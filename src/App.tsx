@@ -1,9 +1,14 @@
+import VisibilityMap from './components/map/VisibilityMap'
+import TopNav from './components/nav/TopNav'
+import SideNav from './components/nav/SideNav'
+
 function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold">Solar Studio</h1>
-        <p className="mt-4 text-gray-300">Moon Visibility MVP</p>
+      <div className="h-screen w-full"> 
+        <TopNav />
+        <SideNav />
+        <VisibilityMap />
       </div>
     </div>
   )
