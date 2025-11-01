@@ -1,9 +1,13 @@
 import VisibilityMap from './components/map/VisibilityMap'
+import TopNav from './components/nav/TopNav'
+import SideNav from './components/nav/SideNav'
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="h-screen w-full">
+      <div className="h-screen w-full"> 
+        <TopNav />
+        <SideNav />
         <VisibilityMap />
       </div>
     </div>
