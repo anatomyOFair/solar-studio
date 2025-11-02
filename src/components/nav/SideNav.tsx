@@ -1,16 +1,60 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { 
+  faHome, 
+  faCloud, 
+  faGear, 
+  faEarth, 
+  faLocationArrow,
+  faPlus,
+  faMinus
+} from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes } from '../../constants'
-import ZoomButtons from './ZoomButtons'
+import { useStore } from '../../store/store'
 
 export default function SideNav() {
+  const handleHomeClick = () => {
+    // TODO: Implement home functionality
+  }
+
+  const handleSearchClick = () => {
+    // TODO: Implement search functionality
+  }
+
+  const handleSettingsClick = () => {
+    // TODO: Implement settings functionality
+  }
+
+  const handleUserClick = () => {
+    // TODO: Implement user functionality
+  }
+
+  const handleInfoClick = () => {
+    // TODO: Implement info functionality
+  }
+
+  const map = useStore((state) => state.map)
+
+  const handleZoomIn = () => {
+    if (map) {
+      map.zoomIn()
+    }
+  }
+
+  const handleZoomOut = () => {
+    if (map) {
+      map.zoomOut()
+    }
+  }
+
   return (
     <nav
-      className="fixed flex flex-col"
+      className="fixed flex flex-col justify-center"
       style={{
         top: '50%',
         left: spacing.md,
         transform: 'translateY(-50%)',
         width: '48px',
-        height: '60%',
+        height: '40%',
         minWidth: '48px',
         zIndex: sizes.zIndex.fixed,
         backgroundColor: colors.navbar.background,
@@ -18,15 +62,72 @@ export default function SideNav() {
         WebkitBackdropFilter: 'blur(12px)',
         border: `1px solid ${colors.navbar.border}`,
         borderRadius: sizes.borderRadius.xl,
+        padding: `${spacing.sm} 0`,
       }}
     >
-      <div className="flex-1 flex items-center justify-center text-gray-400">
-        <div style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}>
-          SideNav
-        </div>
-      </div>
-      <div className="flex justify-center">
-        <ZoomButtons />
+      <div 
+        className="flex flex-col items-center h-full"
+        style={{ justifyContent: 'space-between' }}
+      >
+        <button
+          onClick={handleHomeClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent', paddingTop: spacing.sm, paddingBottom: spacing.sm }}
+          aria-label="home"
+        >
+          <FontAwesomeIcon icon={faHome} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleSearchClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent' }}
+          aria-label="search"
+        >
+          <FontAwesomeIcon icon={faCloud} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleSettingsClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent' }}
+          aria-label="settings"
+        >
+          <FontAwesomeIcon icon={faEarth} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleUserClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent' }}
+          aria-label="user"
+        >
+          <FontAwesomeIcon icon={faLocationArrow} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleInfoClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent' }}
+          aria-label="info"
+        >
+          <FontAwesomeIcon icon={faGear} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleZoomIn}
+          className="w-12 h-12 flex items-center justify-center text-white bg-transparent hover:opacity-80 transition-opacity border-none"
+          style={{ backgroundColor: 'transparent' }}
+        >
+          <FontAwesomeIcon icon={faPlus} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="w-12 h-12 flex items-center justify-center text-white bg-transparent hover:opacity-80 transition-opacity border-none"
+          style={{ backgroundColor: 'transparent', lineHeight: 0, marginTop: '-12px' }}
+        >
+          <FontAwesomeIcon icon={faMinus} style={{ color: 'white', fontSize: '24px', lineHeight: 0 }} />
+        </button>
       </div>
     </nav>
   )
