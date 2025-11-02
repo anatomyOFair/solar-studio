@@ -4,7 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
-import SideNavZoomControl from './SideNavZoomControl'
+import { useStore } from '../../store/store'
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -17,9 +17,15 @@ L.Marker.prototype.options.icon = DefaultIcon
 
 function MapConfigurator() {
   const map = useMap()
+  const setMap = useStore((state) => state.setMap)
   const isAdjusting = useRef(false)
   const resizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
   const currentBounds = useRef<L.LatLngBounds | null>(null)
+
+  useEffect(() => {
+    setMap(map)
+    return () => setMap(null)
+  }, [map, setMap])
 
   const wouldWidthNotFit = (zoom: number) => {
     const containerWidth = map.getContainer().offsetWidth
@@ -155,6 +161,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
         touchZoom={true}
         boxZoom={false}
         keyboard={true}
+        zoomControl={false}
         className="w-full h-full"
         style={{ height: '100%', width: '100%' }}
       >
@@ -165,7 +172,6 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           maxZoom={10}
           minZoom={2}
         />
-        <SideNavZoomControl />
         <MapConfigurator />
         <VisibilityOverlay />
       </MapContainer>

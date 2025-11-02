@@ -62,7 +62,7 @@ export const colors = {
   navbar: {
     base: '#0a0f1a',
     border: '#1a2332',
-    background: 'rgba(10, 15, 26, 0.2)',
+    background: 'rgba(10, 15, 26, 0.60)',
   },
 } as const
 

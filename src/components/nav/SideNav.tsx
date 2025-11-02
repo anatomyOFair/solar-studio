@@ -1,4 +1,5 @@
 import { colors, spacing, sizes } from '../../constants'
+import ZoomButtons from './ZoomButtons'
 
 export default function SideNav() {
   return (
@@ -24,8 +25,8 @@ export default function SideNav() {
           SideNav
         </div>
       </div>
-      <div className="pb-2" id="sidenav-zoom-control-container">
-        {/* Zoom control will be positioned here via CSS */}
+      <div className="flex justify-center">
+        <ZoomButtons />
       </div>
     </nav>
   )

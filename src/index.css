@@ -47,17 +47,16 @@
   padding: 0 !important;
 }
 
-.leaflet-bottom.leaflet-right {
-  bottom: calc(20% - 60px) !important;
-  left: calc(1rem + 48px + 8px) !important;
-  right: auto !important;
-  top: auto !important;
-}
-
 .leaflet-control-zoom {
   border: none !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
 }
 
 .leaflet-control-zoom a {
