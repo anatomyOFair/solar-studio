@@ -1,18 +1,22 @@
+import { colors, spacing, sizes } from '../../constants'
+
 export default function TopNav() {
   return (
     <nav
-      className="fixed rounded-lg"
+      className="fixed"
       style={{
-        top: '1rem',
+        top: spacing.md,
         left: '50%',
         transform: 'translateX(-50%)',
         width: '80%',
         height: '48px',
         minHeight: '48px',
-        zIndex: 1000,
-        backgroundColor: '#1f2937',
-        border: '1px solid #374151',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.3)',
+        zIndex: sizes.zIndex.fixed,
+        backgroundColor: colors.navbar.background,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: `1px solid ${colors.navbar.border}`,
+        borderRadius: sizes.borderRadius.xl,
       }}
     >
       <div className="h-full flex items-center justify-center text-gray-400">

@@ -47,6 +47,13 @@
   padding: 0 !important;
 }
 
+.leaflet-bottom.leaflet-right {
+  bottom: calc(20% - 60px) !important;
+  left: calc(1rem + 48px + 8px) !important;
+  right: auto !important;
+  top: auto !important;
+}
+
 .leaflet-control-zoom {
   border: none !important;
   border-radius: 8px !important;

@@ -57,5 +57,12 @@ export const colors = {
     error: '#ef4444',
     info: '#3b82f6',
   },
+
+  // Navbar colors
+  navbar: {
+    base: '#0a0f1a',
+    border: '#1a2332',
+    background: 'rgba(10, 15, 26, 0.2)',
+  },
 } as const
 

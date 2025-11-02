@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
+import SideNavZoomControl from './SideNavZoomControl'
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -164,6 +165,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           maxZoom={10}
           minZoom={2}
         />
+        <SideNavZoomControl />
         <MapConfigurator />
         <VisibilityOverlay />
       </MapContainer>
