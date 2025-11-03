@@ -83,3 +83,8 @@
 .leaflet-tile-container img {
   filter: brightness(0.8) contrast(1.1);
 }
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+  opacity: 1 !important;
+}
