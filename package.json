@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel:pull:prod": "vercel pull --yes --environment=production",
+    "vercel:build:prod": "vercel build --prod",
+    "vercel:deploy:prod": "vercel deploy --prebuilt --prod"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
