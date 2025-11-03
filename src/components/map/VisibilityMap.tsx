@@ -1,10 +1,15 @@
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useStore } from '../../store/store'
+import { calculateVisibilityScore } from '../../utils/visibilityCalculator'
+import { getWeatherConditions } from '../../utils/weatherService'
+import { colors } from '../../constants'
+import type { Position } from '../../types'
+import VisibilityTooltip from './VisibilityTooltip'
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -132,15 +137,178 @@ function MapConfigurator() {
   return null
 }
 
-// Component placeholder for future canvas overlay
+// Component for visibility overlay
 function VisibilityOverlay() {
   const map = useMap()
+  const selectedObject = useStore((state) => state.selectedObject)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const overlayDivRef = useRef<HTMLDivElement | null>(null)
+
+  const getColorForVisibility = useCallback((visibility: number): string => {
+    if (visibility === 0) return colors.visibility.poor
+
+    // Interpolate between red (0%), orange (30%), yellow (60%), green (100%)
+    if (visibility <= 0.3) {
+      // Red to Orange
+      const ratio = visibility / 0.3
+      return interpolateColor(colors.visibility.poor, colors.visibility.moderate, ratio)
+    } else if (visibility <= 0.7) {
+      // Orange to moderate Yellow
+      const ratio = (visibility - 0.3) / 0.4
+      return interpolateColor(colors.visibility.moderate, '#eab308', ratio)
+    } else {
+      // Yellow to Green
+      const ratio = (visibility - 0.7) / 0.3
+      return interpolateColor('#eab308', colors.visibility.good, ratio)
+    }
+  }, [])
+
+  const renderOverlay = useCallback(
+    async (bounds: L.LatLngBounds, zoom: number) => {
+      if (!selectedObject || !canvasRef.current) return
+
+      const canvas = canvasRef.current
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      const width = canvas.width
+      const height = canvas.height
+
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height)
+
+      // Calculate grid resolution based on zoom
+      const gridSize = Math.max(8, Math.min(32, Math.floor(512 / Math.pow(2, zoom))))
+
+      // Calculate step size for grid
+      const latStep = (bounds.getNorth() - bounds.getSouth()) / gridSize
+      const lonStep = (bounds.getEast() - bounds.getWest()) / gridSize
+
+      const pixelWidth = width / gridSize
+      const pixelHeight = height / gridSize
+
+      const currentTime = new Date()
+      const targetPos: Position = {
+        lat: selectedObject.position.lat,
+        lon: selectedObject.position.lon,
+        altitude: selectedObject.position.altitude,
+      }
+
+      // Render grid
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const lat = bounds.getSouth() + i * latStep
+          const lon = bounds.getWest() + j * lonStep
+
+          // Get weather for this location
+          const weather = await getWeatherConditions(lat, lon)
+          const observerPos: Position = { lat, lon, altitude: 0 } // Sea level
+
+          // Calculate visibility
+          const visibility = calculateVisibilityScore(observerPos, targetPos, weather, currentTime)
+
+          // Draw pixel
+          ctx.fillStyle = getColorForVisibility(visibility)
+          ctx.globalAlpha = 0.5 // Make overlay semi-transparent
+          ctx.fillRect(j * pixelWidth, i * pixelHeight, pixelWidth, pixelHeight)
+          ctx.globalAlpha = 1.0
+        }
+      }
+    },
+    [selectedObject, getColorForVisibility]
+  )
 
   useEffect(() => {
-    console.log('Map ready for visibility overlay', map)
-  }, [map])
+    if (!map) return
+
+    // Create canvas and container
+    const container = document.createElement('div')
+    container.style.position = 'absolute'
+    container.style.top = '0'
+    container.style.left = '0'
+    container.style.width = '100%'
+    container.style.height = '100%'
+    container.style.pointerEvents = 'none'
+    container.style.zIndex = '650'
+
+    const canvas = document.createElement('canvas')
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    canvasRef.current = canvas
+    overlayDivRef.current = container
+    container.appendChild(canvas)
+
+    const mapPane = map.getPane('mapPane')
+    if (mapPane) {
+      mapPane.appendChild(container)
+    }
+
+    const handleMoveEnd = () => {
+      const size = map.getSize()
+      canvas.width = size.x
+      canvas.height = size.y
+      const bounds = map.getBounds()
+      const zoom = map.getZoom()
+      renderOverlay(bounds, zoom).catch((error) => {
+        console.error('Error rendering visibility overlay:', error)
+      })
+    }
+
+    // Initial render
+    handleMoveEnd()
+
+    map.on('moveend', handleMoveEnd)
+    map.on('zoomend', handleMoveEnd)
+
+    return () => {
+      map.off('moveend', handleMoveEnd)
+      map.off('zoomend', handleMoveEnd)
+      if (container && mapPane) {
+        mapPane.removeChild(container)
+      }
+    }
+  }, [map, renderOverlay])
+
+  // Re-render when selected object changes
+  useEffect(() => {
+    if (map && canvasRef.current) {
+      const size = map.getSize()
+      canvasRef.current.width = size.x
+      canvasRef.current.height = size.y
+      const bounds = map.getBounds()
+      const zoom = map.getZoom()
+      renderOverlay(bounds, zoom).catch((error) => {
+        console.error('Error rendering visibility overlay:', error)
+      })
+    }
+  }, [map, selectedObject, renderOverlay])
 
   return null
+}
+
+// Helper function to interpolate between two colors
+function interpolateColor(color1: string, color2: string, ratio: number): string {
+  const c1 = hexToRgb(color1)
+  const c2 = hexToRgb(color2)
+  if (!c1 || !c2) return color1
+
+  const r = Math.round(c1.r + (c2.r - c1.r) * ratio)
+  const g = Math.round(c1.g + (c2.g - c1.g) * ratio)
+  const b = Math.round(c1.b + (c2.b - c1.b) * ratio)
+
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// Helper function to convert hex color to RGB
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+  return result
+    ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+      }
+    : null
 }
 
 interface VisibilityMapProps {
@@ -174,6 +342,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
         />
         <MapConfigurator />
         <VisibilityOverlay />
+        <VisibilityTooltip />
       </MapContainer>
     </div>
   )
