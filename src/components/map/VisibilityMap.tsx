@@ -1,14 +1,11 @@
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import icon from 'leaflet/dist/images/marker-icon.png'
 import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useStore } from '../../store/store'
 import { calculateVisibilityScore } from '../../utils/visibilityCalculator'
-import { getWeatherConditions } from '../../utils/weatherService'
-import { colors } from '../../constants'
-import type { Position } from '../../types'
 import VisibilityTooltip from './VisibilityTooltip'
 
 const DefaultIcon = L.icon({
@@ -137,178 +134,137 @@ function MapConfigurator() {
   return null
 }
 
-// Component for visibility overlay
+// Component placeholder for future canvas overlay
 function VisibilityOverlay() {
   const map = useMap()
-  const selectedObject = useStore((state) => state.selectedObject)
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const overlayDivRef = useRef<HTMLDivElement | null>(null)
+  const selectedObject = useStore((s) => s.selectedObject)
 
-  const getColorForVisibility = useCallback((visibility: number): string => {
-    if (visibility === 0) return colors.visibility.poor
+  const layerRef = useRef<L.GridLayer | null>(null)
 
-    // Interpolate between red (0%), orange (30%), yellow (60%), green (100%)
-    if (visibility <= 0.3) {
-      // Red to Orange
-      const ratio = visibility / 0.3
-      return interpolateColor(colors.visibility.poor, colors.visibility.moderate, ratio)
-    } else if (visibility <= 0.7) {
-      // Orange to moderate Yellow
-      const ratio = (visibility - 0.3) / 0.4
-      return interpolateColor(colors.visibility.moderate, '#eab308', ratio)
-    } else {
-      // Yellow to Green
-      const ratio = (visibility - 0.7) / 0.3
-      return interpolateColor('#eab308', colors.visibility.good, ratio)
-    }
-  }, [])
-
-  const renderOverlay = useCallback(
-    async (bounds: L.LatLngBounds, zoom: number) => {
-      if (!selectedObject || !canvasRef.current) return
-
-      const canvas = canvasRef.current
-      const ctx = canvas.getContext('2d')
-      if (!ctx) return
-
-      const width = canvas.width
-      const height = canvas.height
-
-      // Clear canvas
-      ctx.clearRect(0, 0, width, height)
-
-      // Calculate grid resolution based on zoom
-      const gridSize = Math.max(8, Math.min(32, Math.floor(512 / Math.pow(2, zoom))))
-
-      // Calculate step size for grid
-      const latStep = (bounds.getNorth() - bounds.getSouth()) / gridSize
-      const lonStep = (bounds.getEast() - bounds.getWest()) / gridSize
-
-      const pixelWidth = width / gridSize
-      const pixelHeight = height / gridSize
-
-      const currentTime = new Date()
-      const targetPos: Position = {
-        lat: selectedObject.position.lat,
-        lon: selectedObject.position.lon,
-        altitude: selectedObject.position.altitude,
-      }
-
-      // Render grid
-      for (let i = 0; i < gridSize; i++) {
-        for (let j = 0; j < gridSize; j++) {
-          const lat = bounds.getSouth() + i * latStep
-          const lon = bounds.getWest() + j * lonStep
-
-          // Get weather for this location
-          const weather = await getWeatherConditions(lat, lon)
-          const observerPos: Position = { lat, lon, altitude: 0 } // Sea level
-
-          // Calculate visibility
-          const visibility = calculateVisibilityScore(observerPos, targetPos, weather, currentTime)
-
-          // Draw pixel
-          ctx.fillStyle = getColorForVisibility(visibility)
-          ctx.globalAlpha = 0.5 // Make overlay semi-transparent
-          ctx.fillRect(j * pixelWidth, i * pixelHeight, pixelWidth, pixelHeight)
-          ctx.globalAlpha = 1.0
-        }
-      }
-    },
-    [selectedObject, getColorForVisibility]
-  )
+  // Mocked weather and time bucket (5 minutes)
+  const weather = useMemo(() => ({ cloudCover: 0.2, precipitation: 0, fog: 0 }), [])
+  const timeBucket = Math.floor(Date.now() / (5 * 60 * 1000))
 
   useEffect(() => {
     if (!map) return
 
-    // Create canvas and container
-    const container = document.createElement('div')
-    container.style.position = 'absolute'
-    container.style.top = '0'
-    container.style.left = '0'
-    container.style.width = '100%'
-    container.style.height = '100%'
-    container.style.pointerEvents = 'none'
-    container.style.zIndex = '650'
-
-    const canvas = document.createElement('canvas')
-    canvas.style.width = '100%'
-    canvas.style.height = '100%'
-    canvasRef.current = canvas
-    overlayDivRef.current = container
-    container.appendChild(canvas)
-
-    const mapPane = map.getPane('mapPane')
-    if (mapPane) {
-      mapPane.appendChild(container)
+    // Remove any previous layer
+    if (layerRef.current) {
+      map.removeLayer(layerRef.current)
+      layerRef.current = null
     }
 
-    const handleMoveEnd = () => {
-      const size = map.getSize()
-      canvas.width = size.x
-      canvas.height = size.y
-      const bounds = map.getBounds()
-      const zoom = map.getZoom()
-      renderOverlay(bounds, zoom).catch((error) => {
-        console.error('Error rendering visibility overlay:', error)
-      })
-    }
+    if (!selectedObject) return
 
-    // Initial render
-    handleMoveEnd()
+    // Create GridLayer with custom createTile
+    const HeatmapLayer = (L.GridLayer as any).extend({
+      createTile: function (this: L.GridLayer, coords: L.Coords) {
+        const tile = L.DomUtil.create('canvas', 'leaflet-tile') as HTMLCanvasElement
+        const sizePt = this.getTileSize() as L.Point
+        const width = sizePt.x
+        const height = sizePt.y
+        const dpr = (window as any).devicePixelRatio || 1
+        tile.width = Math.round(width * dpr)
+        tile.height = Math.round(height * dpr)
+        tile.style.width = `${width}px`
+        tile.style.height = `${height}px`
+        tile.style.imageRendering = 'pixelated'
+        const ctx = tile.getContext('2d') as CanvasRenderingContext2D
+        ctx.imageSmoothingEnabled = false
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
-    map.on('moveend', handleMoveEnd)
-    map.on('zoomend', handleMoveEnd)
+        // Early return transparent tile if missing object
+        if (!selectedObject) {
+          ctx.clearRect(0, 0, width, height)
+          return tile
+        }
+
+        // Compute lat/lon bounds for the tile
+        const nwPoint = L.point(coords.x * width, coords.y * height)
+        const sePoint = L.point((coords.x + 1) * width, (coords.y + 1) * height)
+        const nw = (map as any).unproject(nwPoint, coords.z) as L.LatLng
+        const se = (map as any).unproject(sePoint, coords.z) as L.LatLng
+
+        // Sampling density with simple LOD
+        const z = coords.z
+        const samples = z <= 3 ? 16 : z >= 7 ? 48 : 32
+        const dx = (se.lng - nw.lng) / samples
+        const dy = (se.lat - nw.lat) / samples
+
+        // Precompute simple red->yellow->green gradient
+        const ramp = new Uint8ClampedArray(256 * 4)
+        for (let i = 0; i < 256; i++) {
+          const t = i / 255
+          // Stops: 0: red (#ff0000), 0.5: yellow (#ffff00), 1: green (#00ff00)
+          let r: number, g: number, b: number
+          if (t < 0.5) {
+            // red -> yellow
+            const u = t / 0.5
+            r = 255
+            g = Math.round(0 + 255 * u)
+            b = 0
+          } else {
+            // yellow -> green
+            const u = (t - 0.5) / 0.5
+            r = Math.round(255 * (1 - u))
+            g = 255
+            b = 0
+          }
+          const o = i * 4
+          ramp[o] = r
+          ramp[o + 1] = g
+          ramp[o + 2] = b
+          ramp[o + 3] = 128 // lower alpha for more transparency
+        }
+
+        // Paint coarse samples into the canvas by scaling blocks
+        const target = selectedObject.position
+        const now = new Date()
+
+        for (let iy = 0; iy < samples; iy++) {
+          for (let ix = 0; ix < samples; ix++) {
+            const lat = nw.lat + dy * (iy + 0.5)
+            const lon = nw.lng + dx * (ix + 0.5)
+            const score = calculateVisibilityScore(
+              { lat, lon, altitude: 0 },
+              { lat: target.lat, lon: target.lon, altitude: target.altitude },
+              weather as any,
+              now
+            )
+            const idx = Math.max(0, Math.min(255, Math.round(score * 255))) * 4
+            const r = ramp[idx]
+            const g = ramp[idx + 1]
+            const b = ramp[idx + 2]
+            const a = ramp[idx + 3]
+
+            const x0 = Math.round((ix / samples) * width)
+            const y0 = Math.round((iy / samples) * height)
+            const x1 = Math.round(((ix + 1) / samples) * width)
+            const y1 = Math.round(((iy + 1) / samples) * height)
+            const w = Math.max(1, x1 - x0)
+            const h = Math.max(1, y1 - y0)
+
+            ctx.fillStyle = `rgba(${r},${g},${b},${(a / 255).toFixed(3)})`
+            ctx.fillRect(x0, y0, w, h)
+          }
+        }
+        return tile
+      },
+    })
+
+    const layer: L.GridLayer = new HeatmapLayer({ opacity: 0.5 })
+    layer.addTo(map)
+    layerRef.current = layer
 
     return () => {
-      map.off('moveend', handleMoveEnd)
-      map.off('zoomend', handleMoveEnd)
-      if (container && mapPane) {
-        mapPane.removeChild(container)
+      if (layerRef.current) {
+        map.removeLayer(layerRef.current)
+        layerRef.current = null
       }
     }
-  }, [map, renderOverlay])
-
-  // Re-render when selected object changes
-  useEffect(() => {
-    if (map && canvasRef.current) {
-      const size = map.getSize()
-      canvasRef.current.width = size.x
-      canvasRef.current.height = size.y
-      const bounds = map.getBounds()
-      const zoom = map.getZoom()
-      renderOverlay(bounds, zoom).catch((error) => {
-        console.error('Error rendering visibility overlay:', error)
-      })
-    }
-  }, [map, selectedObject, renderOverlay])
+  }, [map, selectedObject, timeBucket, weather])
 
   return null
-}
-
-// Helper function to interpolate between two colors
-function interpolateColor(color1: string, color2: string, ratio: number): string {
-  const c1 = hexToRgb(color1)
-  const c2 = hexToRgb(color2)
-  if (!c1 || !c2) return color1
-
-  const r = Math.round(c1.r + (c2.r - c1.r) * ratio)
-  const g = Math.round(c1.g + (c2.g - c1.g) * ratio)
-  const b = Math.round(c1.b + (c2.b - c1.b) * ratio)
-
-  return `rgb(${r}, ${g}, ${b})`
-}
-
-// Helper function to convert hex color to RGB
-function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  return result
-    ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-      }
-    : null
 }
 
 interface VisibilityMapProps {
@@ -347,4 +303,5 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
     </div>
   )
 }
+
 
