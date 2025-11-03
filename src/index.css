@@ -51,6 +51,12 @@
   border: none !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3) !important;
+  position: relative !important;
+  top: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
+  margin: 0 !important;
 }
 
 .leaflet-control-zoom a {
@@ -76,4 +82,9 @@
 
 .leaflet-tile-container img {
   filter: brightness(0.8) contrast(1.1);
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.7) !important;
+  opacity: 1 !important;
 }
