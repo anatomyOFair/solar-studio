@@ -1,5 +1,5 @@
 import { MapContainer, TileLayer, useMap } from 'react-leaflet'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import icon from 'leaflet/dist/images/marker-icon.png'
@@ -141,8 +141,7 @@ function VisibilityOverlay() {
 
   const layerRef = useRef<L.GridLayer | null>(null)
 
-  // Mocked weather and time bucket (5 minutes)
-  const weather = useMemo(() => ({ cloudCover: 0.2, precipitation: 0, fog: 0 }), [])
+  // Time bucket (5 minutes) to refresh tiles periodically
   const timeBucket = Math.floor(Date.now() / (5 * 60 * 1000))
 
   useEffect(() => {
@@ -187,34 +186,56 @@ function VisibilityOverlay() {
 
         // Sampling density with simple LOD
         const z = coords.z
-        const samples = z <= 3 ? 16 : z >= 7 ? 48 : 32
+        const samples = z <= 3 ? 64 : z >= 7 ? 128 : 96
         const dx = (se.lng - nw.lng) / samples
         const dy = (se.lat - nw.lat) / samples
 
-        // Precompute simple red->yellow->green gradient
+        // Lightweight per-tile weather cache and generator (mirrors weatherService logic)
+        const weatherCache = new Map<string, { cloudCover: number; precipitation: number; fog: number }>()
+        const getWeather = (lat: number, lon: number) => {
+          const key = `${lat.toFixed(2)},${lon.toFixed(2)}`
+          const hit = weatherCache.get(key)
+          if (hit) return hit
+          const seed = Math.floor(lat * 1000) + Math.floor(lon * 1000)
+          let value = seed
+          const rnd = () => {
+            value = (value * 9301 + 49297) % 233280
+            return value / 233280
+          }
+          const isTropical = Math.abs(lat) < 23.5
+          const isDesert = Math.abs(lat) > 15 && Math.abs(lat) < 35 && Math.abs(lon) > 0 && Math.abs(lon) < 60
+          let cloudCover = rnd() * 0.8
+          let precipitation = rnd() * 10
+          let fog = rnd() * 0.3
+          if (isTropical) {
+            cloudCover *= 1.2
+            precipitation *= 1.5
+            fog *= 0.5
+          } else if (isDesert) {
+            cloudCover *= 0.3
+            precipitation *= 0.2
+            fog *= 0.1
+          }
+          cloudCover = Math.min(1, cloudCover)
+          precipitation = Math.min(25, precipitation)
+          fog = Math.min(1, fog)
+          const w = { cloudCover, precipitation, fog }
+          weatherCache.set(key, w)
+          return w
+        }
+
+        // Precompute red -> green gradient (no yellow); alpha set per-cell later
         const ramp = new Uint8ClampedArray(256 * 4)
         for (let i = 0; i < 256; i++) {
           const t = i / 255
-          // Stops: 0: red (#ff0000), 0.5: yellow (#ffff00), 1: green (#00ff00)
-          let r: number, g: number, b: number
-          if (t < 0.5) {
-            // red -> yellow
-            const u = t / 0.5
-            r = 255
-            g = Math.round(0 + 255 * u)
-            b = 0
-          } else {
-            // yellow -> green
-            const u = (t - 0.5) / 0.5
-            r = Math.round(255 * (1 - u))
-            g = 255
-            b = 0
-          }
+          const r = Math.round(255 * (1 - t))
+          const g = Math.round(255 * t)
+          const b = 0
           const o = i * 4
           ramp[o] = r
           ramp[o + 1] = g
           ramp[o + 2] = b
-          ramp[o + 3] = 128 // lower alpha for more transparency
+          ramp[o + 3] = 255
         }
 
         // Paint coarse samples into the canvas by scaling blocks
@@ -225,17 +246,20 @@ function VisibilityOverlay() {
           for (let ix = 0; ix < samples; ix++) {
             const lat = nw.lat + dy * (iy + 0.5)
             const lon = nw.lng + dx * (ix + 0.5)
+            const localWeather = getWeather(lat, lon) as any
             const score = calculateVisibilityScore(
               { lat, lon, altitude: 0 },
               { lat: target.lat, lon: target.lon, altitude: target.altitude },
-              weather as any,
+              localWeather,
               now
             )
-            const idx = Math.max(0, Math.min(255, Math.round(score * 255))) * 4
+            // Gamma boost to make higher visibility more pronounced (more greens)
+            const boosted = Math.pow(Math.max(0, Math.min(1, score)), 0.5)
+            const idx = Math.max(0, Math.min(255, Math.round(boosted * 255))) * 4
             const r = ramp[idx]
             const g = ramp[idx + 1]
             const b = ramp[idx + 2]
-            const a = ramp[idx + 3]
+            const a = Math.round(ramp[idx + 3] * Math.max(0.4, boosted))
 
             const x0 = Math.round((ix / samples) * width)
             const y0 = Math.round((iy / samples) * height)
@@ -252,7 +276,7 @@ function VisibilityOverlay() {
       },
     })
 
-    const layer: L.GridLayer = new HeatmapLayer({ opacity: 0.5 })
+    const layer: L.GridLayer = new HeatmapLayer({ opacity: 0.6 })
     layer.addTo(map)
     layerRef.current = layer
 
@@ -262,7 +286,7 @@ function VisibilityOverlay() {
         layerRef.current = null
       }
     }
-  }, [map, selectedObject, timeBucket, weather])
+  }, [map, selectedObject, timeBucket])
 
   return null
 }
