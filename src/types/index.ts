@@ -34,3 +34,18 @@ export interface Position {
   altitude: number
 }
 
+// Visibility Calculation Types
+export interface VisibilityCalculationRequest {
+  observer_position: Position
+  target_position: Position
+  weather_conditions: WeatherConditions
+  current_time?: string  // ISO date string
+}
+
+export interface VisibilityCalculationResponse {
+  visibility_data: VisibilityData
+  distance_km: number
+  max_los_distance_km: number
+  weather_limit_km: number
+}
+
