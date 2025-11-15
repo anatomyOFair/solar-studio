@@ -2,6 +2,7 @@ import VisibilityMap from './components/map/VisibilityMap'
 import TopNav from './components/nav/TopNav'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
+import UserReportsPanel from './components/ui/UserReportsPanel'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <SideNav />
         <VisibilityMap />
         <ObjectTracker />
+        <UserReportsPanel />
       </div>
     </div>
   )

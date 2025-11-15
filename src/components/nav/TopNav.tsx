@@ -39,7 +39,7 @@ export default function TopNav() {
   }
 
   const handleViewToggle = () => {
-    alert('Not implemented');
+    setIs3DView(!is3DView);
   }
 
   return (
