@@ -153,7 +153,7 @@ export default function UserReportsPanel() {
           <div className="flex flex-col gap-3 flex-1" style={{ minHeight: 0 }}>
             {categories.map((category) => (
               <div key={category.label} className="flex flex-col flex-1 min-h-0">
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between" style={{ marginBottom: spacing.md }}>
                   <div>
                     <p className="text-xxs font-semibold uppercase" style={{ color: colors.text.primary }}>
                       {category.label}
@@ -169,11 +169,11 @@ export default function UserReportsPanel() {
                     return (
                       <div
                         key={`${category.label}-${entry.country}`}
-                        style={{ paddingBottom: index < category.entries.length - 1 ? spacing.md : 0 }}
+                        style={{ paddingBottom: index < category.entries.length - 1 ? spacing.sm : 0 }}
                       >
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between py-2 text-left text-sm"
+                          className="w-full flex items-center justify-between py-2 text-left"
                           onClick={() => toggleCountry(entry.country)}
                           style={{
                             color: colors.text.primary,
@@ -181,31 +181,32 @@ export default function UserReportsPanel() {
                             border: 'none',
                             outline: 'none',
                             cursor: 'pointer',
+                            fontSize: '14px',
                           }}
                         >
                           <div className="flex items-center gap-2">
-                            <FontAwesomeIcon
-                              icon={isExpanded ? faChevronUp : faChevronDown}
-                              style={{
-                                fontSize: '12px',
-                                color: colors.text.muted,
-                                transition: 'transform 200ms ease',
-                              }}
-                            />
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: colors.status.info }}
                             />
                             <span>{entry.country}</span>
+                            <span className="text-xs" style={{ color: colors.text.muted, marginLeft: spacing.sm }}>
+                              {entry.count} people
+                            </span>
                           </div>
-                          <div className="text-xs" style={{ color: colors.text.muted }}>
-                            <span>{entry.count} people</span>
-                          </div>
+                          <FontAwesomeIcon
+                            icon={isExpanded ? faChevronUp : faChevronDown}
+                            style={{
+                              fontSize: '12px',
+                              color: colors.text.muted,
+                              transition: 'transform 200ms ease',
+                            }}
+                          />
                         </button>
                         {isExpanded && (
                           <div
-                            className="pt-2 space-y-2 text-sm"
-                            style={{ color: colors.text.muted, paddingLeft: '24px' }}
+                            className="pt-2 space-y-2"
+                            style={{ color: colors.text.muted, paddingLeft: '24px', fontSize: '12px' }}
                           >
                             {entry.users.map((user) => (
                               <div
