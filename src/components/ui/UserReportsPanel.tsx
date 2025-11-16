@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
 import { colors, spacing, sizes, shadows } from '../../constants'
 
@@ -97,7 +99,7 @@ export default function UserReportsPanel() {
   return (
     <>
       <div
-        className="fixed"
+        className="fixed flex flex-col"
         style={{
           bottom: spacing.md,
           right: spacing.md,
@@ -120,7 +122,7 @@ export default function UserReportsPanel() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3
-              className="text-sm font-semibold tracking-wide uppercase"
+              className="text-lg font-semibold tracking-wide uppercase"
               style={{ color: colors.text.primary, letterSpacing: '0.08em' }}
             >
               User Reports
@@ -142,18 +144,18 @@ export default function UserReportsPanel() {
 
         {!selectedObject ? (
           <div
-            className="h-full flex items-center justify-center text-center px-4"
-            style={{ color: colors.text.muted }}
+            className="flex-1 flex items-center justify-center text-center px-4"
+            style={{ color: colors.text.muted, minHeight: 0 }}
           >
             Not tracking anything right now. Select an object to start receiving visibility updates.
           </div>
         ) : (
-          <div className="space-y-4 overflow-y-auto pr-1" style={{ height: 'calc(70vh - 64px)' }}>
+          <div className="flex flex-col gap-3 flex-1" style={{ minHeight: 0 }}>
             {categories.map((category) => (
-              <div key={category.label}>
+              <div key={category.label} className="flex flex-col flex-1 min-h-0">
                 <div className="flex items-center justify-between mb-1">
                   <div>
-                    <p className="text-xs font-semibold uppercase" style={{ color: colors.text.primary }}>
+                    <p className="text-xxs font-semibold uppercase" style={{ color: colors.text.primary }}>
                       {category.label}
                     </p>
                     <p className="text-[11px]" style={{ color: colors.text.muted }}>
@@ -161,58 +163,54 @@ export default function UserReportsPanel() {
                     </p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  {category.entries.map((entry) => {
+                <div className="overflow-y-auto pr-1 flex-1" style={{ minHeight: 0 }}>
+                  {category.entries.map((entry, index) => {
                     const isExpanded = expandedCountries[entry.country]
                     return (
                       <div
                         key={`${category.label}-${entry.country}`}
-                        className="rounded-lg"
-                        style={{
-                          backgroundColor: colors.navbar.base,
-                          border: `1px solid ${colors.navbar.border}`,
-                        }}
+                        style={{ paddingBottom: index < category.entries.length - 1 ? spacing.md : 0 }}
                       >
                         <button
                           type="button"
-                          className="w-full flex items-center justify-between px-3 py-2 text-left text-sm"
+                          className="w-full flex items-center justify-between py-2 text-left text-sm"
                           onClick={() => toggleCountry(entry.country)}
-                          style={{ color: colors.text.primary }}
+                          style={{
+                            color: colors.text.primary,
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            outline: 'none',
+                            cursor: 'pointer',
+                          }}
                         >
                           <div className="flex items-center gap-2">
+                            <FontAwesomeIcon
+                              icon={isExpanded ? faChevronUp : faChevronDown}
+                              style={{
+                                fontSize: '12px',
+                                color: colors.text.muted,
+                                transition: 'transform 200ms ease',
+                              }}
+                            />
                             <span
                               className="w-2 h-2 rounded-full"
                               style={{ backgroundColor: colors.status.info }}
                             />
                             <span>{entry.country}</span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs" style={{ color: colors.text.muted }}>
+                          <div className="text-xs" style={{ color: colors.text.muted }}>
                             <span>{entry.count} people</span>
-                            <span
-                              className="inline-flex items-center justify-center rounded-full"
-                              style={{
-                                width: '18px',
-                                height: '18px',
-                                border: `1px solid ${colors.navbar.border}`,
-                              }}
-                            >
-                              {isExpanded ? '−' : '+'}
-                            </span>
                           </div>
                         </button>
                         {isExpanded && (
                           <div
-                            className="px-3 pb-3 space-y-2 text-sm"
-                            style={{ color: colors.text.muted }}
+                            className="pt-2 space-y-2 text-sm"
+                            style={{ color: colors.text.muted, paddingLeft: '24px' }}
                           >
                             {entry.users.map((user) => (
                               <div
                                 key={user.name}
-                                className="flex items-center justify-between rounded-md px-2 py-1"
-                                style={{
-                                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-                                  border: `1px solid ${colors.navbar.border}`,
-                                }}
+                                className="flex items-center justify-between"
                               >
                                 <span style={{ color: colors.text.primary }}>{user.name}</span>
                                 <span className="text-xs">{user.timeAgo}</span>
