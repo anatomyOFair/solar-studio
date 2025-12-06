@@ -40,5 +40,19 @@ export const sizes = {
     popover: 1060,
     tooltip: 1070,
   },
+
+  // Widget sizes
+  widget: {
+    minWidth: '200px',
+    maxWidth: '480px',
+    searchWidth: '150px',
+    timeButtonWidth: '240px',
+  },
+
+  // Blur effects
+  blur: {
+    default: '12px',
+    modal: '4px',
+  },
 } as const
 

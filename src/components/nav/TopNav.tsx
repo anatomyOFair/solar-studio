@@ -54,8 +54,8 @@ export default function TopNav() {
         minHeight: '48px',
         zIndex: sizes.zIndex.fixed,
         backgroundColor: colors.navbar.background,
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
+        backdropFilter: `blur(${sizes.blur.default})`,
+        WebkitBackdropFilter: `blur(${sizes.blur.default})`,
         border: `1px solid ${colors.navbar.border}`,
         borderRadius: sizes.borderRadius.xl,
         padding: `0 ${spacing.sm}`,
@@ -72,7 +72,7 @@ export default function TopNav() {
         <button
           onClick={handleTimeToggle}
           className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-          style={{ backgroundColor: 'transparent', color: 'white', width: '240px', minWidth: '240px', maxWidth: '240px', justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
+          style={{ backgroundColor: 'transparent', color: 'white', width: sizes.widget.timeButtonWidth, minWidth: sizes.widget.timeButtonWidth, maxWidth: sizes.widget.timeButtonWidth, justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
         >
           <FontAwesomeIcon icon={faClock} style={{ color: 'white', fontSize: '18px' }} />
           <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
@@ -104,7 +104,7 @@ export default function TopNav() {
             placeholder="Search..."
             className="bg-transparent border-none outline-none text-sm search-input"
             style={{ 
-              width: '150px', 
+              width: sizes.widget.searchWidth, 
               color: '#ffffff', 
               fontSize: '16px'
             }}

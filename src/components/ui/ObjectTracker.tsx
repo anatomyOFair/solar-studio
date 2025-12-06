@@ -30,11 +30,11 @@ export default function ObjectTracker() {
         style={{
           bottom: spacing.md,
           left: spacing.md,
-          minWidth: '200px',
+          minWidth: sizes.widget.minWidth,
           zIndex: sizes.zIndex.fixed,
           backgroundColor: colors.navbar.background,
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter: `blur(${sizes.blur.default})`,
+          WebkitBackdropFilter: `blur(${sizes.blur.default})`,
           border: `1px solid ${colors.navbar.border}`,
           borderRadius: sizes.borderRadius.xl,
           padding: `${spacing.sm} ${spacing.md}`,
@@ -77,7 +77,7 @@ export default function ObjectTracker() {
             style={{
               zIndex: sizes.zIndex.modal,
               backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              backdropFilter: 'blur(4px)',
+              backdropFilter: `blur(${sizes.blur.modal})`,
             }}
             onClick={() => setIsSelectorOpen(false)}
           />
@@ -88,7 +88,7 @@ export default function ObjectTracker() {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '480px',
+              width: sizes.widget.maxWidth,
               maxWidth: '90vw',
               maxHeight: '80vh',
               zIndex: sizes.zIndex.modal + 1,
