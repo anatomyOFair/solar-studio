@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faClock,
   faCamera,
   faClockRotateLeft,
-  faSearch
+  faSearch,
+  faUser
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes } from '../../constants'
 
@@ -13,6 +15,10 @@ export default function TopNav() {
   const [is3DView, setIs3DView] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
+  
+  const user = useStore((state) => state.user)
+  const openAuthModal = useStore((state) => state.openAuthModal)
+  const logout = useStore((state) => state.logout)
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -110,6 +116,15 @@ export default function TopNav() {
             }}
           />
         </div>
+
+        {/* User Profile / Login */}
+        <button
+          onClick={() => user ? logout() : openAuthModal()}
+          className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent', color: 'white', gap: spacing.sm, fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}
+        >
+          <FontAwesomeIcon icon={faUser} style={{ color: user ? colors.status.success : 'white', fontSize: '18px' }} />
+        </button>
       </div>
     </nav>
   )

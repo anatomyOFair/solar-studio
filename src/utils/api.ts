@@ -27,13 +27,13 @@ class ApiClient {
    */
   private buildURL(endpoint: string, params?: Record<string, string | number | boolean>): string {
     const url = new URL(endpoint, this.baseURL);
-    
+
     if (params) {
       Object.entries(params).forEach(([key, value]) => {
         url.searchParams.append(key, String(value));
       });
     }
-    
+
     return url.toString();
   }
 
@@ -68,9 +68,9 @@ class ApiClient {
    */
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const { params, ...fetchOptions } = options;
-    
+
     const url = this.buildURL(endpoint, params);
-    
+
     const config: RequestInit = {
       ...fetchOptions,
       headers: {
@@ -130,6 +130,7 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
 }
 
 // Export singleton instance

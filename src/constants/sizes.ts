@@ -54,5 +54,44 @@ export const sizes = {
     default: '12px',
     modal: '4px',
   },
+
+  // Input & Button standard sizes
+  inputs: {
+    borderWidth: '2px',
+    paddingVertical: '12px',
+    paddingHorizontal: '16px',
+    paddingLeftWithIcon: '50px',
+    iconOffset: '24px',
+    borderRadius: '0.5rem', // sizes.borderRadius.lg (8px)
+    gap: '12px',
+  },
+
+  // Modal specific sizes
+  modal: {
+    width: '500px',
+    maxWidth: '90vw',
+    maxHeight: '90vh',
+    paddingContent: '40px',
+    headerPaddingTop: '24px',
+    headerPaddingBottom: '16px',
+    borderWidth: '1px',
+  },
+
+  // Panel specific sizes
+  panel: {
+    width: 'clamp(260px, 28vw, 360px)',
+    height: '70vh',
+    maxWidth: 'calc(100vw - 40px)',
+    buttonWidth: '90%',
+    indent: '24px',
+    toggleSize: '40px',
+    borderWidth: '1px',
+  },
+
+  // Font sizes
+  fonts: {
+    xs: '12px',
+    sm: '14px',
+  },
 } as const
 
