@@ -64,5 +64,9 @@ export const colors = {
     border: '#1a2332',
     background: 'rgba(10, 15, 26, 0.60)',
   },
+
+  // Common colors
+  transparent: 'transparent',
+  white: '#ffffff',
 } as const
 

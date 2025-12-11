@@ -297,7 +297,7 @@ interface VisibilityMapProps {
 
 export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
   return (
-    <div className={`w-full h-full ${className}`} style={{ margin: 0, padding: 0 }}>
+    <div className={`w-full h-full ${className}`} style={{ margin: 0, padding: 0, zIndex: 0, position: 'relative' }}>
       <MapContainer
         center={[0, 0]}
         zoom={4}
@@ -321,7 +321,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           minZoom={2}
         />
         <MapConfigurator />
-        <VisibilityOverlay />
+        {/* <VisibilityOverlay /> */}
         <VisibilityTooltip />
       </MapContainer>
     </div>
