@@ -21,33 +21,95 @@ type ReportCategory = {
   entries: CountryReport[]
 }
 
-const PLACEHOLDER_REPORTS: Record<'visible' | 'notVisible', CountryReport[]> = {
-  visible: [],
-  notVisible: [],
+
+
+
+
+const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diffInSeconds < 60) return 'Just now'
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`
+    
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric'})
 }
 
 export default function UserReportsPanel() {
   const selectedObject = useStore((state) => state.selectedObject)
   const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({})
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const user = useStore((state) => state.user)
+  const openAuthModal = useStore((state) => state.openAuthModal)
+  const openReportModal = useStore((state) => state.openReportModal)
+  
+  const fetchReports = useStore((state) => state.fetchReports)
+  const reports = useStore((state) => state.reports) || [] // Fallback to empty array
+
+  useEffect(() => {
+    if (selectedObject) {
+      setIsCollapsed(false)
+      fetchReports(selectedObject.id)
+    }
+  }, [selectedObject?.id, selectedObject?.name, fetchReports]) 
 
   const categories: ReportCategory[] = useMemo(() => {
-    const visibleCount = PLACEHOLDER_REPORTS.visible.reduce((sum, report) => sum + report.count, 0)
-    const notVisibleCount = PLACEHOLDER_REPORTS.notVisible.reduce((sum, report) => sum + report.count, 0)
+    if (!reports.length) return [
+        { label: 'Marked Visible', statusText: '0 users reporting visibility', entries: [] },
+        { label: 'Marked Not Visible', statusText: '0 users reporting no visibility', entries: [] }
+    ]
+
+    const visibleReports: CountryReport[] = []
+    const notVisibleReports: CountryReport[] = []
+
+    const visibleMap = new Map<string, ReportUser[]>()
+    const notVisibleMap = new Map<string, ReportUser[]>()
+
+    reports.forEach(report => {
+        const timeAgo = formatTimeAgo(report.created_at)
+        const reportUser: ReportUser = {
+            name: 'Stargazer', // Anonymous for now
+            timeAgo: timeAgo,
+        }
+
+        if (report.is_visible) {
+            const users = visibleMap.get(report.country) || []
+            users.push(reportUser)
+            visibleMap.set(report.country, users)
+        } else {
+            const users = notVisibleMap.get(report.country) || []
+            users.push(reportUser)
+            notVisibleMap.set(report.country, users)
+        }
+    })
+
+    // Convert Maps to CountryReport arrays
+    visibleMap.forEach((users, country) => {
+        visibleReports.push({ country, count: users.length, users })
+    })
+    notVisibleMap.forEach((users, country) => {
+        notVisibleReports.push({ country, count: users.length, users })
+    })
+    
+    // Calculate total counts
+    const visibleCount = reports.filter(r => r.is_visible).length
+    const notVisibleCount = reports.filter(r => !r.is_visible).length
 
     return [
       {
         label: 'Marked Visible',
         statusText: `${visibleCount} users reporting visibility`,
-        entries: PLACEHOLDER_REPORTS.visible,
+        entries: visibleReports,
       },
       {
         label: 'Marked Not Visible',
         statusText: `${notVisibleCount} users reporting no visibility`,
-        entries: PLACEHOLDER_REPORTS.notVisible,
+        entries: notVisibleReports,
       },
     ]
-  }, [])
+  }, [reports])
 
   const toggleCountry = (country: string) => {
     setExpandedCountries((prev) => ({
@@ -55,15 +117,6 @@ export default function UserReportsPanel() {
       [country]: !prev[country],
     }))
   }
-
-  useEffect(() => {
-    if (selectedObject) {
-      setIsCollapsed(false)
-    }
-  }, [selectedObject?.id, selectedObject?.name, selectedObject])
-
-  const user = useStore((state) => state.user)
-  const openAuthModal = useStore((state) => state.openAuthModal)
 
   return (
     <>
@@ -185,9 +238,9 @@ export default function UserReportsPanel() {
                                 className="pt-2 space-y-2"
                                 style={{ color: colors.text.muted, paddingLeft: sizes.panel.indent, fontSize: sizes.fonts.xs }}
                               >
-                                {entry.users.map((user) => (
+                                {entry.users.map((user, i) => (
                                   <div
-                                    key={user.name}
+                                    key={`${user.name}-${i}`} // Use index as key since name is not unique (Stargazer)
                                     className="flex items-center justify-between"
                                   >
                                     <span style={{ color: colors.text.primary }}>{user.name}</span>
@@ -208,7 +261,7 @@ export default function UserReportsPanel() {
             <div className="pt-4">
               <button
                 type="button"
-                onClick={() => !user ? openAuthModal() : console.log('Report visibility clicked')}
+                onClick={() => !user ? openAuthModal() : openReportModal()}
                 className=""
                 style={{
                   backgroundColor: colors.navbar.background,
@@ -262,4 +315,5 @@ export default function UserReportsPanel() {
     </>
   )
 }
+
 

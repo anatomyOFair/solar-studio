@@ -32,6 +32,35 @@ def update_database(data):
 
 if __name__ == "__main__":
     print("Starting ETL process...")
-    data = fetch_solar_data()
-    update_database(data)
+    
+    # Dummy Data Seeding
+    dummy_data = [
+        {
+            "id": "moon",
+            "name": "Moon",
+            "type": "moon",
+            "data": {
+                "position": {
+                    "lat": 28.6139,
+                    "lon": 77.2090,
+                    "altitude": 384400
+                }
+            }
+        },
+        {
+            "id": "mars",
+            "name": "Mars",
+            "type": "planet",
+            "data": {
+                "position": {
+                    "lat": 0,
+                    "lon": 0,
+                    "altitude": 225000000
+                }
+            }
+        }
+    ]
+    
+    response = supabase.table('celestial_objects').upsert(dummy_data).execute()
+    print(f"Inserted: {response}")
     print("ETL complete.")

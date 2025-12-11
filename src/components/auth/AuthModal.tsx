@@ -301,8 +301,6 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                 </div>
             )}
 
-
-
             <button
                 type="submit"
                 disabled={isLoading}

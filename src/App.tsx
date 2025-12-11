@@ -5,6 +5,7 @@ import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
 import UserReportsPanel from './components/ui/UserReportsPanel'
 import AuthModal from './components/auth/AuthModal'
+import ReportModal from './components/reports/ReportModal'
 import { useStore } from './store/store'
 
 function App() {
@@ -42,6 +43,7 @@ function App() {
         <UserReportsPanel />
       </div>
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
+      <ReportModal />
     </div>
   )
 }

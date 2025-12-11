@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
@@ -6,26 +6,41 @@ import {
   faCamera,
   faClockRotateLeft,
   faSearch,
-  faUser
+  faUser,
+  faRightToBracket,
+  faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons'
-import { colors, spacing, sizes } from '../../constants'
+import { colors, spacing, sizes, shadows } from '../../constants'
 
 export default function TopNav() {
   const [isLocalTime, setIsLocalTime] = useState(false)
   const [is3DView, setIs3DView] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
   
   const user = useStore((state) => state.user)
   const openAuthModal = useStore((state) => state.openAuthModal)
   const logout = useStore((state) => state.logout)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
 
-    return () => clearInterval(timer)
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
   }, [])
 
   const formatTime = () => {
@@ -46,6 +61,19 @@ export default function TopNav() {
 
   const handleViewToggle = () => {
     setIs3DView(!is3DView);
+  }
+
+  const handleUserClick = () => {
+    if (user) {
+      setIsUserMenuOpen(!isUserMenuOpen)
+    } else {
+      openAuthModal()
+    }
+  }
+
+  const handleLogout = async () => {
+    setIsUserMenuOpen(false)
+    await logout()
   }
 
   return (
@@ -118,15 +146,56 @@ export default function TopNav() {
         </div>
 
         {/* User Profile / Login */}
-        <button
-          onClick={() => user ? logout() : openAuthModal()}
-          className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-          style={{ backgroundColor: 'transparent', color: 'white', gap: spacing.sm, fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}
-        >
-          <FontAwesomeIcon icon={faUser} style={{ color: user ? colors.status.success : 'white', fontSize: '18px' }} />
-        </button>
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={handleUserClick}
+            className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
+            style={{ backgroundColor: 'transparent', color: 'white', gap: spacing.sm, fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', cursor: 'pointer' }}
+          >
+            {user ? (
+               <FontAwesomeIcon icon={faUser} style={{ color: 'white', fontSize: '18px' }} />
+            ) : (
+               <div className="flex items-center gap-2">
+                   <span className="text-sm hidden sm:block">Log In</span>
+                   <FontAwesomeIcon icon={faRightToBracket} style={{ color: 'white', fontSize: '18px' }} />
+               </div>
+            )}
+          </button>
+
+          {/* User Menu */}
+          {user && isUserMenuOpen && (
+            <div
+                className="absolute right-0 mt-2 flex flex-col"
+                style={{
+                    top: '100%',
+                    minWidth: '200px',
+                    backgroundColor: colors.navbar.background,
+                    backdropFilter: `blur(${sizes.blur.default})`,
+                    WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+                    border: `1px solid ${colors.navbar.border}`,
+                    borderRadius: sizes.borderRadius.lg,
+                    padding: spacing.sm,
+                    boxShadow: shadows.lg,
+                    zIndex: sizes.zIndex.modal + 10 // Ensure it's on top
+                }}
+            >
+                <div className="px-3 py-2 border-b border-gray-700/50 mb-1">
+                    <span className="text-xs text-gray-400 block">Signed in as</span>
+                    <span className="text-sm font-medium text-white block truncate">
+                        {user.user_metadata?.full_name || user.email}
+                    </span>
+                </div>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5 rounded-md w-full text-left transition-colors"
+                >
+                    <FontAwesomeIcon icon={faSignOutAlt} />
+                    <span>Log Out</span>
+                </button>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   )
 }
-

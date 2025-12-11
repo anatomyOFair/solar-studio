@@ -49,3 +49,13 @@ export interface VisibilityCalculationResponse {
   weather_limit_km: number
 }
 
+
+export interface UserReport {
+  id: string
+  user_id: string
+  object_id: string
+  country: string
+  is_visible: boolean
+  image_url?: string | null
+  created_at: string
+}

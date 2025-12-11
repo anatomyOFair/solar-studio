@@ -321,7 +321,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           minZoom={2}
         />
         <MapConfigurator />
-        <VisibilityOverlay />
+        {/* <VisibilityOverlay /> */}
         <VisibilityTooltip />
       </MapContainer>
     </div>
