@@ -1,16 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useMap } from 'react-leaflet'
 import { useStore } from '../../store/store'
-import {
-  calculateVisibilityScore,
-  visibilityScoreToPercentage,
-  getWeatherRating,
-  timeFactorToRating,
-  getTimeOfDayFactor,
-} from '../../utils/visibilityCalculator'
+import { getCelestialVisibilityBreakdown } from '../../utils/visibilityCalculator'
 import { getWeatherConditions } from '../../utils/weatherService'
 import { colors, spacing, sizes } from '../../constants'
-import type { Position } from '../../types'
 
 export default function VisibilityTooltip() {
   const map = useMap()
@@ -21,6 +14,9 @@ export default function VisibilityTooltip() {
     percentage: number
     weatherRating: number
     timeRating: number
+    moonAltitude: number
+    moonIllumination: number
+    isAboveHorizon: boolean
   } | null>(null)
 
   const hoverStartTimeRef = useRef<number | null>(null)
@@ -32,24 +28,18 @@ export default function VisibilityTooltip() {
       if (!selectedObject) return null
 
       const weather = await getWeatherConditions(lat, lon)
-      const observerPos: Position = { lat, lon, altitude: 0 }
-      const targetPos: Position = {
-        lat: selectedObject.position.lat,
-        lon: selectedObject.position.lon,
-        altitude: selectedObject.position.altitude,
-      }
-
       const currentTime = new Date()
-      const visibilityScore = calculateVisibilityScore(observerPos, targetPos, weather, currentTime)
-      const visibilityPercentage = visibilityScoreToPercentage(visibilityScore)
-      const weatherRating = getWeatherRating(weather.extinctionCoeff)
-      const timeFactor = getTimeOfDayFactor(observerPos, currentTime)
-      const timeRating = timeFactorToRating(timeFactor)
+
+      // Use celestial-specific calculation
+      const breakdown = getCelestialVisibilityBreakdown(lat, lon, currentTime, weather)
 
       return {
-        percentage: visibilityPercentage,
-        weatherRating,
-        timeRating,
+        percentage: Math.round(breakdown.score * 100),
+        weatherRating: breakdown.weatherRating,
+        timeRating: breakdown.timeRating,
+        moonAltitude: breakdown.moonAltitude,
+        moonIllumination: breakdown.moonIllumination,
+        isAboveHorizon: breakdown.isAboveHorizon,
       }
     },
     [selectedObject]
@@ -59,36 +49,19 @@ export default function VisibilityTooltip() {
     (e: MouseEvent) => {
       if (!map || !selectedObject) return
 
-      const latlng = map.containerPointToLatLng([e.clientX, e.clientY])
+      const rect = map.getContainer().getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const latlng = map.containerPointToLatLng([x, y])
       const currentPos = { lat: latlng.lat, lon: latlng.lng }
 
       // Check if we've moved significantly
-      if (
-        currentPositionRef.current &&
-        Math.abs(currentPositionRef.current.lat - currentPos.lat) < 0.01 &&
-        Math.abs(currentPositionRef.current.lon - currentPos.lon) < 0.01
-      ) {
-        // Position hasn't changed significantly
-        if (!hoverStartTimeRef.current) {
-          hoverStartTimeRef.current = Date.now()
-        }
+      const hasMoved = !currentPositionRef.current ||
+        Math.abs(currentPositionRef.current.lat - currentPos.lat) >= 0.01 ||
+        Math.abs(currentPositionRef.current.lon - currentPos.lon) >= 0.01
 
-        const hoverDuration = Date.now() - hoverStartTimeRef.current
-        if (hoverDuration >= 3000 && !tooltipVisible) {
-          // Show tooltip after 3 seconds
-          setTooltipVisible(true)
-          setTooltipPosition({ x: e.clientX, y: e.clientY })
-
-          // Calculate visibility data
-          calculateVisibilityAtPoint(currentPos.lat, currentPos.lon).then((data) => {
-            if (data) {
-              setVisibilityData(data)
-            }
-          })
-        }
-      } else {
-        // Position has changed, reset hover timer
-        hoverStartTimeRef.current = null
+      if (hasMoved) {
+        // Position has changed, reset and start new timer
         currentPositionRef.current = currentPos
 
         if (tooltipVisible) {
@@ -100,6 +73,19 @@ export default function VisibilityTooltip() {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current)
         }
+
+        // Start new timeout for 1.5 seconds (reduced from 3)
+        timeoutRef.current = setTimeout(() => {
+          setTooltipVisible(true)
+          setTooltipPosition({ x: e.clientX, y: e.clientY })
+
+          // Calculate visibility data
+          calculateVisibilityAtPoint(currentPos.lat, currentPos.lon).then((data) => {
+            if (data) {
+              setVisibilityData(data)
+            }
+          })
+        }, 1500)
       }
     },
     [map, selectedObject, tooltipVisible, calculateVisibilityAtPoint]
@@ -177,6 +163,30 @@ export default function VisibilityTooltip() {
         </div>
         <div className="text-2xl font-bold" style={{ color: colors.text.primary }}>
           {visibilityData.percentage}%
+        </div>
+        {!visibilityData.isAboveHorizon && (
+          <div className="text-xs mt-1" style={{ color: colors.status.error }}>
+            Moon below horizon
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${colors.navbar.border}` }}>
+        <div className="flex items-center justify-between">
+          <div className="text-sm" style={{ color: colors.text.secondary }}>
+            Moon Altitude
+          </div>
+          <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+            {visibilityData.moonAltitude.toFixed(1)}°
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="text-sm" style={{ color: colors.text.secondary }}>
+            Illumination
+          </div>
+          <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+            {visibilityData.moonIllumination.toFixed(0)}%
+          </div>
         </div>
       </div>
 

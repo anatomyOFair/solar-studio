@@ -1,17 +1,22 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { 
-  faHome, 
-  faCloud, 
-  faGear, 
-  faEarth, 
+import {
+  faHome,
+  faCloud,
+  faGear,
+  faEarth,
   faLocationArrow,
   faPlus,
-  faMinus
+  faMinus,
+  faLayerGroup
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes } from '../../constants'
 import { useStore } from '../../store/store'
 
 export default function SideNav() {
+  const visualizationMode = useStore((state) => state.visualizationMode)
+  const setVisualizationMode = useStore((state) => state.setVisualizationMode)
+  const map = useStore((state) => state.map)
+
   const handleHomeClick = () => {
     // TODO: Implement home functionality
   }
@@ -32,7 +37,15 @@ export default function SideNav() {
     // TODO: Implement info functionality
   }
 
-  const map = useStore((state) => state.map)
+  // Toggle between modes: none ↔ hex
+  const handleLayersClick = () => {
+    setVisualizationMode(visualizationMode === 'none' ? 'hex' : 'none')
+  }
+
+  // Get icon color based on current mode
+  const getLayerIconColor = () => {
+    return visualizationMode === 'hex' ? '#4ADE80' : 'white'
+  }
 
   const handleZoomIn = () => {
     if (map) {
@@ -76,6 +89,16 @@ export default function SideNav() {
           aria-label="home"
         >
           <FontAwesomeIcon icon={faHome} style={{ color: 'white', fontSize: '24px' }} />
+        </button>
+
+        <button
+          onClick={handleLayersClick}
+          className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{ backgroundColor: 'transparent' }}
+          aria-label="toggle visibility overlay"
+          title={`Overlay: ${visualizationMode === 'none' ? 'Off' : 'On'}`}
+        >
+          <FontAwesomeIcon icon={faLayerGroup} style={{ color: getLayerIconColor(), fontSize: '24px' }} />
         </button>
 
         <button
@@ -132,4 +155,3 @@ export default function SideNav() {
     </nav>
   )
 }
-
