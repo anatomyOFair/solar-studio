@@ -88,3 +88,11 @@
   color: rgba(255, 255, 255, 0.7) !important;
   opacity: 1 !important;
 }
+
+/* Fix cursor for visibility grid overlay */
+.leaflet-hexPane-pane,
+.leaflet-hexPane-pane path,
+.leaflet-pane[style*="hexPane"] path {
+  cursor: default !important;
+  pointer-events: none !important;
+}

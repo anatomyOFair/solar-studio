@@ -9,8 +9,11 @@ interface StoreState {
   setSelectedObject: (object: CelestialObject | null) => void
 
   // Data Slice
+  // Data Slice
   objects: CelestialObject[]
   fetchObjects: () => Promise<void>
+  visualizationMode: 'none' | 'hex'
+  setVisualizationMode: (mode: 'none' | 'hex') => void
   reports: UserReport[]
   fetchReports: (objectId: string) => Promise<void>
 
@@ -40,17 +43,39 @@ export const useStore = create<StoreState>((set) => ({
   objects: [],
   fetchObjects: async () => {
     const { supabase } = await import('../lib/supabase')
+    const { calculateMoonPosition } = await import('../utils/celestialCalculations')
+
     const { data, error } = await supabase.from('celestial_objects').select('*')
     if (error) {
       console.error('Error fetching objects:', error)
     }
     console.log('Fetched objects:', data)
+
     if (data) {
-      set({ objects: data as CelestialObject[] })
+      const updatedData = data.map((obj: CelestialObject) => {
+        if (obj.name.toLowerCase() === 'moon') {
+          const now = new Date()
+          const position = calculateMoonPosition(now)
+          return {
+            ...obj,
+            position: {
+              ...obj.position,
+              lat: position.lat,
+              lon: position.lon,
+              altitude: position.altitude
+            }
+          }
+        }
+        return obj
+      })
+
+      set({ objects: updatedData as CelestialObject[] })
     }
   },
 
   reports: [],
+  visualizationMode: 'none',
+  setVisualizationMode: (mode) => set({ visualizationMode: mode }),
   fetchReports: async (objectId: string) => {
     const { supabase } = await import('../lib/supabase')
     const { data, error } = await supabase

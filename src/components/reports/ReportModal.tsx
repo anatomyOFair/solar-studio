@@ -107,8 +107,9 @@ export default function ReportModal() {
           id: crypto.randomUUID(), // Explicitly generate ID to avoid not-null constraint violation
           user_id: user.id,
           object_id: selectedObject.id,
-          country: location?.country || 'Unknown', 
+          country: location?.country || 'Unknown',
           is_visible: isVisible,
+          image_url: imageUrl,
         })
 
       if (insertError) throw insertError

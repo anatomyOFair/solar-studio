@@ -1,4 +1,5 @@
 import type { Position, WeatherConditions } from '../types'
+import SunCalc from 'suncalc'
 
 const EARTH_RADIUS_KM = 6371
 const REFRACTION_COEFFICIENT = 4 / 3
@@ -180,5 +181,195 @@ export function calculateVisibilityScore(
  */
 export function visibilityScoreToPercentage(visibilityScore: number): number {
   return Math.round(visibilityScore * 100)
+}
+
+// ============================================================================
+// CELESTIAL OBJECT VISIBILITY (Moon, planets, etc.)
+// ============================================================================
+
+/**
+ * Calculate visibility score for celestial objects (Moon, planets, etc.)
+ * Unlike ground objects, celestial visibility depends on:
+ * 1. Is the object above the horizon at observer location?
+ * 2. How high is it above the horizon? (higher = better, less atmosphere)
+ * 3. Object brightness/illumination (for Moon: phase)
+ * 4. Weather conditions at observer location
+ * 5. Time of day (night is better for viewing most celestial objects)
+ *
+ * @param observerLat Observer latitude in degrees
+ * @param observerLon Observer longitude in degrees
+ * @param currentTime Current time
+ * @param weather Weather conditions at observer location
+ * @returns Visibility score (0-1)
+ */
+export function calculateCelestialVisibilityScore(
+  observerLat: number,
+  observerLon: number,
+  currentTime: Date,
+  weather: WeatherConditions
+): number {
+  // 1. Get Moon position at observer's location
+  const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+  const moonAltitudeDeg = moonPos.altitude * (180 / Math.PI) // Convert radians to degrees
+
+  // 2. If Moon is below horizon, visibility is 0
+  if (moonAltitudeDeg < 0) {
+    return 0
+  }
+
+  // 3. Calculate altitude factor (0-1)
+  // Higher altitude = better visibility (less atmosphere to look through)
+  // Uses a curve that favors higher altitudes
+  const altitudeFactor = Math.pow(moonAltitudeDeg / 90, 0.5)
+
+  // 4. Get Moon illumination (phase)
+  const moonIllum = SunCalc.getMoonIllumination(currentTime)
+  // illumination.fraction: 0 = new moon, 1 = full moon
+  // Even new moon has some visibility (earthshine), so minimum factor is 0.1
+  const illuminationFactor = 0.1 + 0.9 * moonIllum.fraction
+
+  // 5. Calculate weather factor
+  // Cloud cover is the primary factor for celestial viewing
+  const weatherFactor = Math.max(0.05, 1 - weather.cloudCover * 0.9 - weather.fog * 0.5)
+
+  // 6. Calculate time-of-day factor
+  // Moon is visible during day but easier to see at night
+  const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
+  const sunAltitudeDeg = sunPos.altitude * (180 / Math.PI)
+
+  let timeFactor: number
+  if (sunAltitudeDeg < -18) {
+    // Astronomical night - best viewing
+    timeFactor = 1.0
+  } else if (sunAltitudeDeg < -12) {
+    // Nautical twilight
+    timeFactor = 0.9
+  } else if (sunAltitudeDeg < -6) {
+    // Civil twilight
+    timeFactor = 0.7
+  } else if (sunAltitudeDeg < 0) {
+    // Sun just below horizon
+    timeFactor = 0.5
+  } else {
+    // Daytime - Moon still visible but harder
+    // Visibility decreases as sun gets higher
+    timeFactor = Math.max(0.2, 0.5 - sunAltitudeDeg / 180)
+  }
+
+  // 7. Combine all factors
+  const rawScore = altitudeFactor * illuminationFactor * weatherFactor * timeFactor
+
+  // Clamp to 0-1 range
+  return Math.max(0, Math.min(1, rawScore))
+}
+
+/**
+ * Get detailed visibility breakdown for UI display
+ */
+export function getCelestialVisibilityBreakdown(
+  observerLat: number,
+  observerLon: number,
+  currentTime: Date,
+  weather: WeatherConditions
+): {
+  score: number
+  moonAltitude: number
+  moonIllumination: number
+  isAboveHorizon: boolean
+  weatherRating: number
+  timeRating: number
+} {
+  const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+  const moonAltitudeDeg = moonPos.altitude * (180 / Math.PI)
+  const moonIllum = SunCalc.getMoonIllumination(currentTime)
+  const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
+  const sunAltitudeDeg = sunPos.altitude * (180 / Math.PI)
+
+  const isAboveHorizon = moonAltitudeDeg > 0
+  const score = calculateCelestialVisibilityScore(observerLat, observerLon, currentTime, weather)
+
+  // Convert weather to 1-10 rating (10 = clear skies)
+  const weatherRating = Math.round((1 - weather.cloudCover) * 9 + 1)
+
+  // Convert time to 1-10 rating (10 = dark night)
+  let timeRating: number
+  if (sunAltitudeDeg < -18) timeRating = 10
+  else if (sunAltitudeDeg < -12) timeRating = 9
+  else if (sunAltitudeDeg < -6) timeRating = 7
+  else if (sunAltitudeDeg < 0) timeRating = 5
+  else timeRating = Math.max(2, Math.round(5 - sunAltitudeDeg / 18))
+
+  return {
+    score,
+    moonAltitude: moonAltitudeDeg,
+    moonIllumination: moonIllum.fraction * 100,
+    isAboveHorizon,
+    weatherRating,
+    timeRating,
+  }
+}
+
+// ============================================================================
+// COLOR GRADIENT FOR VISIBILITY
+// ============================================================================
+
+/**
+ * Convert HSL to Hex color
+ */
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100
+  l /= 100
+
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
+  const m = l - c / 2
+
+  let r = 0,
+    g = 0,
+    b = 0
+
+  if (h >= 0 && h < 60) {
+    r = c
+    g = x
+    b = 0
+  } else if (h >= 60 && h < 120) {
+    r = x
+    g = c
+    b = 0
+  } else if (h >= 120 && h < 180) {
+    r = 0
+    g = c
+    b = x
+  }
+
+  r = Math.round((r + m) * 255)
+  g = Math.round((g + m) * 255)
+  b = Math.round((b + m) * 255)
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
+/**
+ * Interpolate between red (0% visibility) and green (100% visibility)
+ * Uses HSL color space for smooth perceptual gradient
+ *
+ * @param score Visibility score (0-1)
+ * @returns Hex color string
+ */
+export function getVisibilityColor(score: number): string {
+  // Clamp score to 0-1
+  const s = Math.max(0, Math.min(1, score))
+
+  // HSL interpolation: Red (0) -> Yellow (60) -> Green (120)
+  // Hue: 0 (red) at score=0, 120 (green) at score=1
+  const hue = s * 120
+
+  // Saturation: Keep high for vivid colors
+  const saturation = 70
+
+  // Lightness: Slightly brighter in the middle (yellow), darker at extremes
+  const lightness = 45 + Math.sin(s * Math.PI) * 10
+
+  return hslToHex(hue, saturation, lightness)
 }
 
