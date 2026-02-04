@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useMap } from 'react-leaflet'
 import { useStore } from '../../store/store'
 import { getCelestialVisibilityBreakdown } from '../../utils/visibilityCalculator'
-import { getWeatherConditions } from '../../utils/weatherService'
+import { getWeatherForUserLocation } from '../../utils/weatherService'
 import { colors, spacing, sizes } from '../../constants'
 
 export default function VisibilityTooltip() {
@@ -27,7 +27,7 @@ export default function VisibilityTooltip() {
     async (lat: number, lon: number) => {
       if (!selectedObject) return null
 
-      const weather = await getWeatherConditions(lat, lon)
+      const weather = await getWeatherForUserLocation(lat, lon)
       const currentTime = new Date()
 
       // Use celestial-specific calculation
