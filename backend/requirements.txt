@@ -1,3 +1,7 @@
 supabase
 python-dotenv
 pydantic
+pydantic-settings
+httpx
+fastapi
+uvicorn
