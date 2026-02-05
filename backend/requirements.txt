@@ -5,3 +5,5 @@ pydantic-settings
 httpx
 fastapi
 uvicorn
+astroquery
+astropy
