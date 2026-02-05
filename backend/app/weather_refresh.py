@@ -33,53 +33,55 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 def generate_land_grid():
     """
     Generate grid points covering major land masses
-    Uses 5-degree resolution, filtered to approximate land areas
+    Uses exact multiples of GRID_RESOLUTION to match JS Math.round behavior
     """
-    grid_points = []
+    grid_points = set()
 
     # Approximate bounding boxes for populated land areas
     # Format: (lat_min, lat_max, lon_min, lon_max)
-    # Focused on populated regions, skipping remote/ocean areas
     land_regions = [
         # North America (continental US, Mexico, southern Canada)
-        (25, 55, -130, -70),
+        (20, 60, -130, -70),
         # Central America & Caribbean
-        (10, 25, -110, -60),
+        (10, 30, -110, -60),
         # South America (main populated areas)
-        (-40, 10, -80, -35),
+        (-40, 10, -80, -30),
         # Western Europe
-        (35, 60, -10, 25),
+        (30, 60, -10, 30),
         # Eastern Europe
-        (40, 60, 20, 45),
+        (40, 60, 20, 50),
         # Africa (northern & sub-saharan)
-        (-35, 35, -20, 45),
+        (-40, 40, -20, 50),
         # Middle East
         (20, 40, 30, 60),
         # South Asia (India, SE Asia)
-        (5, 35, 65, 105),
+        (0, 40, 60, 110),
         # East Asia (China, Japan, Korea)
-        (20, 50, 100, 145),
+        (20, 50, 100, 150),
         # Australia (populated coast)
-        (-40, -15, 115, 155),
+        (-40, -10, 110, 160),
     ]
 
     for lat_min, lat_max, lon_min, lon_max in land_regions:
-        lat = lat_min
+        # Generate exact grid multiples within the region
+        # Start from the first grid point >= lat_min
+        lat_start = (lat_min // GRID_RESOLUTION) * GRID_RESOLUTION
+        if lat_start < lat_min:
+            lat_start += GRID_RESOLUTION
+
+        lon_start = (lon_min // GRID_RESOLUTION) * GRID_RESOLUTION
+        if lon_start < lon_min:
+            lon_start += GRID_RESOLUTION
+
+        lat = lat_start
         while lat <= lat_max:
-            lon = lon_min
+            lon = lon_start
             while lon <= lon_max:
-                # Round to grid
-                lat_grid = round(lat / GRID_RESOLUTION) * GRID_RESOLUTION
-                lon_grid = round(lon / GRID_RESOLUTION) * GRID_RESOLUTION
-
-                point = (lat_grid, lon_grid)
-                if point not in grid_points:
-                    grid_points.append(point)
-
+                grid_points.add((int(lat), int(lon)))
                 lon += GRID_RESOLUTION
             lat += GRID_RESOLUTION
 
-    return grid_points
+    return list(grid_points)
 
 
 def fetch_weather(lat: float, lon: float) -> dict | None:
