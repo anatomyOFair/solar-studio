@@ -14,6 +14,11 @@ const OVERLAY_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 const userCache = new Map<string, { data: WeatherConditions; timestamp: number }>()
 const USER_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
+// Bulk cache for all weather data (for overlay)
+let bulkWeatherCache: Map<string, WeatherConditions> | null = null
+let bulkCacheTimestamp = 0
+const BULK_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
+
 /**
  * Get weather for OVERLAY rendering (reads from Supabase pre-populated data)
  * Falls back to mock if not found
@@ -186,6 +191,75 @@ function seededRandom(seed: number): () => number {
     value = (value * 9301 + 49297) % 233280
     return value / 233280
   }
+}
+
+/**
+ * Fetch ALL weather data from Supabase in one query (for overlay)
+ * Returns a Map keyed by "lat,lon" grid coordinates
+ */
+export async function getAllWeatherFromCache(): Promise<Map<string, WeatherConditions>> {
+  // Return cached if fresh
+  if (bulkWeatherCache && Date.now() - bulkCacheTimestamp < BULK_CACHE_TTL_MS) {
+    return bulkWeatherCache
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('weather_cache')
+      .select('lat_grid, lon_grid, cloud_cover, precipitation, fog, updated_at')
+
+    if (error || !data) {
+      console.warn('Failed to fetch bulk weather:', error)
+      return bulkWeatherCache || new Map()
+    }
+
+    const weatherMap = new Map<string, WeatherConditions>()
+    const now = Date.now()
+    const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000 // 3 hours
+
+    for (const row of data) {
+      // Skip stale entries
+      const updatedAt = new Date(row.updated_at).getTime()
+      if (now - updatedAt > STALE_THRESHOLD_MS) continue
+
+      const key = `${row.lat_grid},${row.lon_grid}`
+      weatherMap.set(key, {
+        cloudCover: row.cloud_cover,
+        precipitation: row.precipitation,
+        fog: row.fog,
+        extinctionCoeff: calculateExtinctionCoefficient({
+          cloudCover: row.cloud_cover,
+          precipitation: row.precipitation,
+          fog: row.fog,
+        }),
+      })
+    }
+
+    bulkWeatherCache = weatherMap
+    bulkCacheTimestamp = Date.now()
+    return weatherMap
+  } catch (error) {
+    console.warn('Bulk weather fetch error:', error)
+    return bulkWeatherCache || new Map()
+  }
+}
+
+/**
+ * Get weather for a specific point from the bulk cache
+ * Finds nearest grid point within GRID_RESOLUTION
+ * Returns null if no cached data (for grey overlay rendering)
+ */
+export function getWeatherFromBulkCache(
+  lat: number,
+  lon: number,
+  cache: Map<string, WeatherConditions>
+): WeatherConditions | null {
+  // Round to nearest grid point
+  const latGrid = Math.round(lat / GRID_RESOLUTION) * GRID_RESOLUTION
+  const lonGrid = Math.round(lon / GRID_RESOLUTION) * GRID_RESOLUTION
+  const key = `${latGrid},${lonGrid}`
+
+  return cache.get(key) || null
 }
 
 /**

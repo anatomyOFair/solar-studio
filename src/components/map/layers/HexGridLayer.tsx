@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { useStore } from "../../../store/store";
@@ -6,6 +6,11 @@ import {
   calculateCelestialVisibilityScore,
   getVisibilityColor,
 } from "../../../utils/visibilityCalculator";
+import type { WeatherConditions } from "../../../types";
+import {
+  getAllWeatherFromCache,
+  getWeatherFromBulkCache,
+} from "../../../utils/weatherService";
 
 // Cache for visibility scores - keyed by "lat,lon,time10min"
 const visibilityCache = new Map<string, number>();
@@ -20,11 +25,29 @@ function getCacheKey(lat: number, lon: number, time: Date): string {
   return `${roundedLat},${roundedLon},${timeMinute}`;
 }
 
-function getCachedScore(lat: number, lon: number, time: Date, weather: any): number {
+// Returns { score, hasRealWeather } - score is -1 if no real weather data
+function getCachedScore(
+  lat: number,
+  lon: number,
+  time: Date,
+  weatherCache: Map<string, WeatherConditions>
+): { score: number; hasRealWeather: boolean } {
   const key = getCacheKey(lat, lon, time);
 
+  // Check visibility cache first
   if (visibilityCache.has(key)) {
-    return visibilityCache.get(key)!;
+    const cached = visibilityCache.get(key)!;
+    // Negative scores indicate no real weather data
+    return { score: Math.abs(cached), hasRealWeather: cached >= 0 };
+  }
+
+  // Get weather for this location from bulk cache
+  const weather = getWeatherFromBulkCache(lat, lon, weatherCache);
+
+  if (!weather) {
+    // No real weather data - cache as negative to remember
+    visibilityCache.set(key, -0.5);
+    return { score: 0.5, hasRealWeather: false };
   }
 
   // Calculate and cache
@@ -37,7 +60,7 @@ function getCachedScore(lat: number, lon: number, time: Date, weather: any): num
   }
 
   visibilityCache.set(key, score);
-  return score;
+  return { score, hasRealWeather: true };
 }
 
 // Square grid generator
@@ -119,13 +142,31 @@ export default function HexGridLayer() {
     time: number;
   } | null>(null);
 
-  // Memoize weather conditions since they're static for now
-  const weather = useMemo(() => ({
-    cloudCover: 0.1,
-    precipitation: 0,
-    fog: 0,
-    extinctionCoeff: 0.05
-  }), []);
+  // Weather cache from Supabase
+  const [weatherCache, setWeatherCache] = useState<Map<string, WeatherConditions>>(new Map());
+  const weatherLoadedRef = useRef(false);
+
+  // Load weather data on mount
+  useEffect(() => {
+    if (weatherLoadedRef.current) return;
+    weatherLoadedRef.current = true;
+
+    getAllWeatherFromCache().then((cache) => {
+      setWeatherCache(cache);
+    });
+
+    // Refresh every 5 minutes
+    const interval = setInterval(() => {
+      getAllWeatherFromCache().then((cache) => {
+        setWeatherCache(cache);
+        // Clear visibility cache when weather updates
+        visibilityCache.clear();
+        lastRenderRef.current = null;
+      });
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const updateGrid = useCallback(() => {
     if (!map || !selectedObject) return;
@@ -171,16 +212,17 @@ export default function HexGridLayer() {
     const layerGroup = L.layerGroup();
 
     cells.forEach((cell) => {
-      // Use cached score calculation
-      const score = getCachedScore(
+      // Use cached score calculation with real weather
+      const { score, hasRealWeather } = getCachedScore(
         cell.center.lat,
         cell.center.lon,
         now,
-        weather
+        weatherCache
       );
 
-      const color = getVisibilityColor(score);
-      const opacity = 0.25 + score * 0.2;
+      // Grey for no data, normal color gradient for real weather
+      const color = hasRealWeather ? getVisibilityColor(score) : "#6B7280";
+      const opacity = hasRealWeather ? 0.25 + score * 0.2 : 0.15;
 
       const polygon = L.polygon(cell.points, {
         pane: "hexPane",
@@ -193,7 +235,7 @@ export default function HexGridLayer() {
 
     layerGroup.addTo(map);
     layerRef.current = layerGroup;
-  }, [map, selectedObject, weather]);
+  }, [map, selectedObject, weatherCache]);
 
   // Debounced update handler
   const debouncedUpdate = useCallback(() => {
