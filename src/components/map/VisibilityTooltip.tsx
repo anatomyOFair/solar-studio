@@ -19,9 +19,9 @@ export default function VisibilityTooltip() {
     isAboveHorizon: boolean
   } | null>(null)
 
-  const hoverStartTimeRef = useRef<number | null>(null)
-  const currentPositionRef = useRef<{ lat: number; lon: number } | null>(null)
+  const currentPixelRef = useRef<{ x: number; y: number } | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const tooltipVisibleRef = useRef(false)
 
   const calculateVisibilityAtPoint = useCallback(
     async (lat: number, lon: number) => {
@@ -49,22 +49,19 @@ export default function VisibilityTooltip() {
     (e: MouseEvent) => {
       if (!map || !selectedObject) return
 
-      const rect = map.getContainer().getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-      const latlng = map.containerPointToLatLng([x, y])
-      const currentPos = { lat: latlng.lat, lon: latlng.lng }
+      const currentPixel = { x: e.clientX, y: e.clientY }
 
-      // Check if we've moved significantly
-      const hasMoved = !currentPositionRef.current ||
-        Math.abs(currentPositionRef.current.lat - currentPos.lat) >= 0.01 ||
-        Math.abs(currentPositionRef.current.lon - currentPos.lon) >= 0.01
+      // Check if we've moved more than 15 pixels (much less sensitive)
+      const hasMoved = !currentPixelRef.current ||
+        Math.abs(currentPixelRef.current.x - currentPixel.x) >= 15 ||
+        Math.abs(currentPixelRef.current.y - currentPixel.y) >= 15
 
       if (hasMoved) {
         // Position has changed, reset and start new timer
-        currentPositionRef.current = currentPos
+        currentPixelRef.current = currentPixel
 
-        if (tooltipVisible) {
+        if (tooltipVisibleRef.current) {
+          tooltipVisibleRef.current = false
           setTooltipVisible(false)
           setVisibilityData(null)
         }
@@ -74,26 +71,32 @@ export default function VisibilityTooltip() {
           clearTimeout(timeoutRef.current)
         }
 
-        // Start new timeout for 1.5 seconds (reduced from 3)
+        // Start new timeout for 1.5 seconds
         timeoutRef.current = setTimeout(() => {
+          const rect = map.getContainer().getBoundingClientRect()
+          const x = currentPixel.x - rect.left
+          const y = currentPixel.y - rect.top
+          const latlng = map.containerPointToLatLng([x, y])
+
+          tooltipVisibleRef.current = true
           setTooltipVisible(true)
-          setTooltipPosition({ x: e.clientX, y: e.clientY })
+          setTooltipPosition({ x: currentPixel.x, y: currentPixel.y })
 
           // Calculate visibility data
-          calculateVisibilityAtPoint(currentPos.lat, currentPos.lon).then((data) => {
-            if (data) {
+          calculateVisibilityAtPoint(latlng.lat, latlng.lng).then((data) => {
+            if (data && tooltipVisibleRef.current) {
               setVisibilityData(data)
             }
           })
         }, 1500)
       }
     },
-    [map, selectedObject, tooltipVisible, calculateVisibilityAtPoint]
+    [map, selectedObject, calculateVisibilityAtPoint]
   )
 
   const handleMouseLeave = useCallback(() => {
-    hoverStartTimeRef.current = null
-    currentPositionRef.current = null
+    currentPixelRef.current = null
+    tooltipVisibleRef.current = false
 
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
@@ -125,19 +128,20 @@ export default function VisibilityTooltip() {
     }
   }, [map, selectedObject, handleMouseMove, handleMouseLeave])
 
-  if (!tooltipVisible || !visibilityData) return null
+  if (!tooltipVisible) return null
 
   // Position tooltip relative to mouse, adjusting if too close to edges
   const tooltipX = tooltipPosition.x + 20
-  const tooltipY = tooltipPosition.y + 20
+  const tooltipY = tooltipPosition.y - 20
 
   return (
     <div
-      className="fixed pointer-events-none z-50"
+      className="pointer-events-none"
       style={{
+        position: 'fixed',
         left: `${tooltipX}px`,
         top: `${tooltipY}px`,
-        transform: 'translate(-50%, -100%)',
+        zIndex: 9999,
         backgroundColor: colors.navbar.background,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
@@ -157,86 +161,94 @@ export default function VisibilityTooltip() {
         `}
       </style>
 
-      <div className="mb-3">
-        <div className="text-xs uppercase mb-1" style={{ color: colors.text.muted, fontWeight: 600 }}>
-          Visibility Details
+      {!visibilityData ? (
+        <div className="text-sm" style={{ color: colors.text.secondary }}>
+          Loading...
         </div>
-        <div className="text-2xl font-bold" style={{ color: colors.text.primary }}>
-          {visibilityData.percentage}%
-        </div>
-        {!visibilityData.isAboveHorizon && (
-          <div className="text-xs mt-1" style={{ color: colors.status.error }}>
-            Moon below horizon
+      ) : (
+        <>
+          <div className="mb-3">
+            <div className="text-xs uppercase mb-1" style={{ color: colors.text.muted, fontWeight: 600 }}>
+              Visibility Details
+            </div>
+            <div className="text-2xl font-bold" style={{ color: colors.text.primary }}>
+              {visibilityData.percentage}%
+            </div>
+            {!visibilityData.isAboveHorizon && (
+              <div className="text-xs mt-1" style={{ color: colors.status.error }}>
+                Moon below horizon
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="space-y-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${colors.navbar.border}` }}>
-        <div className="flex items-center justify-between">
-          <div className="text-sm" style={{ color: colors.text.secondary }}>
-            Moon Altitude
+          <div className="space-y-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${colors.navbar.border}` }}>
+            <div className="flex items-center justify-between">
+              <div className="text-sm" style={{ color: colors.text.secondary }}>
+                Moon Altitude
+              </div>
+              <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+                {visibilityData.moonAltitude.toFixed(1)}°
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="text-sm" style={{ color: colors.text.secondary }}>
+                Illumination
+              </div>
+              <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+                {visibilityData.moonIllumination.toFixed(0)}%
+              </div>
+            </div>
           </div>
-          <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-            {visibilityData.moonAltitude.toFixed(1)}°
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm" style={{ color: colors.text.secondary }}>
-            Illumination
-          </div>
-          <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-            {visibilityData.moonIllumination.toFixed(0)}%
-          </div>
-        </div>
-      </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="text-sm" style={{ color: colors.text.secondary }}>
-            Weather Rating
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-              {visibilityData.weatherRating}/10
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="text-sm" style={{ color: colors.text.secondary }}>
+                Weather Rating
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+                  {visibilityData.weatherRating}/10
+                </div>
+                <div
+                  className="w-12 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: colors.navbar.border }}
+                >
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${visibilityData.weatherRating * 10}%`,
+                      backgroundColor: getWeatherColor(visibilityData.weatherRating),
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div
-              className="w-12 h-2 rounded-full overflow-hidden"
-              style={{ backgroundColor: colors.navbar.border }}
-            >
-              <div
-                className="h-full transition-all"
-                style={{
-                  width: `${visibilityData.weatherRating * 10}%`,
-                  backgroundColor: getWeatherColor(visibilityData.weatherRating),
-                }}
-              />
-            </div>
-          </div>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <div className="text-sm" style={{ color: colors.text.secondary }}>
-            Time/Light Rating
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-              {visibilityData.timeRating}/10
+            <div className="flex items-center justify-between">
+              <div className="text-sm" style={{ color: colors.text.secondary }}>
+                Time/Light Rating
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+                  {visibilityData.timeRating}/10
+                </div>
+                <div
+                  className="w-12 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: colors.navbar.border }}
+                >
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${visibilityData.timeRating * 10}%`,
+                      backgroundColor: getTimeColor(visibilityData.timeRating),
+                    }}
+                  />
+                </div>
+              </div>
             </div>
-            <div
-              className="w-12 h-2 rounded-full overflow-hidden"
-              style={{ backgroundColor: colors.navbar.border }}
-            >
-              <div
-                className="h-full transition-all"
-                style={{
-                  width: `${visibilityData.timeRating * 10}%`,
-                  backgroundColor: getTimeColor(visibilityData.timeRating),
-                }}
-              />
-            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }
