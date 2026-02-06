@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { useStore } from "../../../store/store";
@@ -18,14 +18,12 @@ const CACHE_MAX_SIZE = 10000;
 const CACHE_TIME_RESOLUTION_MS = 600000; // 10 minutes
 
 function getCacheKey(lat: number, lon: number, time: Date): string {
-  // Round coordinates to 2 decimal places and time to nearest minute
   const roundedLat = Math.round(lat * 100) / 100;
   const roundedLon = Math.round(lon * 100) / 100;
   const timeMinute = Math.floor(time.getTime() / CACHE_TIME_RESOLUTION_MS);
   return `${roundedLat},${roundedLon},${timeMinute}`;
 }
 
-// Returns { score, hasRealWeather } - score is -1 if no real weather data
 function getCachedScore(
   lat: number,
   lon: number,
@@ -34,26 +32,20 @@ function getCachedScore(
 ): { score: number; hasRealWeather: boolean } {
   const key = getCacheKey(lat, lon, time);
 
-  // Check visibility cache first
   if (visibilityCache.has(key)) {
     const cached = visibilityCache.get(key)!;
-    // Negative scores indicate no real weather data
     return { score: Math.abs(cached), hasRealWeather: cached >= 0 };
   }
 
-  // Get weather for this location from bulk cache
   const weather = getWeatherFromBulkCache(lat, lon, weatherCache);
 
   if (!weather) {
-    // No real weather data - cache as negative to remember
     visibilityCache.set(key, -0.5);
     return { score: 0.5, hasRealWeather: false };
   }
 
-  // Calculate and cache
   const score = calculateCelestialVisibilityScore(lat, lon, time, weather);
 
-  // Evict old entries if cache is too large
   if (visibilityCache.size >= CACHE_MAX_SIZE) {
     const firstKey = visibilityCache.keys().next().value;
     if (firstKey) visibilityCache.delete(firstKey);
@@ -63,90 +55,104 @@ function getCachedScore(
   return { score, hasRealWeather: true };
 }
 
-// Square grid generator
-// Generates a grid of squares covering an expanded area around the view
-function generateSquareGrid(bounds: L.LatLngBounds, zoom: number): any[] {
-  // Determine cell size based on zoom
-  // Higher zoom = smaller cells
-  const baseSize = 2.5; // degrees at zoom 4
-  const cellSize = baseSize / Math.pow(2, zoom - 4);
+// --- Canvas-based L.GridLayer subclass ---
 
-  // Expand bounds by 50% in each direction for pre-rendering
-  const latPadding = (bounds.getNorth() - bounds.getSouth()) * 0.5;
-  const lonPadding = (bounds.getEast() - bounds.getWest()) * 0.5;
+interface IVisibilityGridLayer extends L.GridLayer {
+  _weatherCache: Map<string, WeatherConditions>;
+  _currentTime: Date;
+  setWeatherCache(cache: Map<string, WeatherConditions>): void;
+  setCurrentTime(time: Date): void;
+}
 
-  const cells: any[] = [];
+const VisibilityGridLayer = L.GridLayer.extend({
+  _weatherCache: new Map() as Map<string, WeatherConditions>,
+  _currentTime: new Date(),
 
-  const latStart = Math.floor((bounds.getSouth() - latPadding) / cellSize) * cellSize;
-  const latEnd = Math.ceil((bounds.getNorth() + latPadding) / cellSize) * cellSize;
-  const lonStart = Math.floor((bounds.getWest() - lonPadding) / cellSize) * cellSize;
-  const lonEnd = Math.ceil((bounds.getEast() + lonPadding) / cellSize) * cellSize;
+  setWeatherCache(this: IVisibilityGridLayer, cache: Map<string, WeatherConditions>) {
+    this._weatherCache = cache;
+  },
 
-  // Cap max cells to prevent performance issues
-  const maxCells = 2000;
-  const estimatedCells = ((latEnd - latStart) / cellSize) * ((lonEnd - lonStart) / cellSize);
+  setCurrentTime(this: IVisibilityGridLayer, time: Date) {
+    this._currentTime = time;
+  },
 
-  if (estimatedCells > maxCells) {
-    // Fall back to just the viewport if too many cells
-    const latStartFallback = Math.floor(bounds.getSouth() / cellSize) * cellSize;
-    const latEndFallback = Math.ceil(bounds.getNorth() / cellSize) * cellSize;
-    const lonStartFallback = Math.floor(bounds.getWest() / cellSize) * cellSize;
-    const lonEndFallback = Math.ceil(bounds.getEast() / cellSize) * cellSize;
+  createTile(this: IVisibilityGridLayer & { _map: L.Map; getTileSize(): L.Point }, coords: L.Coords): HTMLCanvasElement {
+    const tile = document.createElement("canvas");
+    const size = this.getTileSize();
+    tile.width = size.x;
+    tile.height = size.y;
 
-    for (let lat = latStartFallback; lat < latEndFallback; lat += cellSize) {
-      for (let lon = lonStartFallback; lon < lonEndFallback; lon += cellSize) {
-        const points = [
-          [lat, lon],
-          [lat + cellSize, lon],
-          [lat + cellSize, lon + cellSize],
-          [lat, lon + cellSize],
-        ];
-        cells.push({
-          center: { lat: lat + cellSize / 2, lon: lon + cellSize / 2 },
-          points: points,
-        });
+    const ctx = tile.getContext("2d");
+    if (!ctx) return tile;
+
+    const map = this._map;
+    const zoom = coords.z;
+    const tileSize = size.x;
+    const weatherCache = this._weatherCache;
+    const now = this._currentTime;
+
+    // Tile pixel origin in global pixel space
+    const nwPixel = L.point(coords.x * tileSize, coords.y * tileSize);
+
+    // Geographic bounds of this tile
+    const nw = map.unproject(nwPixel, zoom);
+    const se = map.unproject(L.point((coords.x + 1) * tileSize, (coords.y + 1) * tileSize), zoom);
+
+    // Grid cell size at this zoom
+    const baseSize = 2.5;
+    const cellSize = baseSize / Math.pow(2, zoom - 4);
+
+    // Find grid cells that overlap this tile
+    const latStart = Math.floor(se.lat / cellSize) * cellSize;
+    const latEnd = Math.ceil(nw.lat / cellSize) * cellSize;
+    const lngStart = Math.floor(nw.lng / cellSize) * cellSize;
+    const lngEnd = Math.ceil(se.lng / cellSize) * cellSize;
+
+    for (let lat = latStart; lat < latEnd; lat += cellSize) {
+      for (let lng = lngStart; lng < lngEnd; lng += cellSize) {
+        const cellCenterLat = lat + cellSize / 2;
+        const cellCenterLng = lng + cellSize / 2;
+
+        const { score, hasRealWeather } = getCachedScore(
+          cellCenterLat, cellCenterLng, now, weatherCache
+        );
+
+        const color = hasRealWeather ? getVisibilityColor(score) : "#6B7280";
+        const opacity = hasRealWeather ? 0.25 + score * 0.2 : 0.15;
+
+        // Convert cell corners from lat/lng to tile-local pixel coords
+        const cellNW = map.project(L.latLng(lat + cellSize, lng), zoom);
+        const cellSE = map.project(L.latLng(lat, lng + cellSize), zoom);
+
+        const x0 = cellNW.x - nwPixel.x;
+        const y0 = cellNW.y - nwPixel.y;
+        const x1 = cellSE.x - nwPixel.x;
+        const y1 = cellSE.y - nwPixel.y;
+
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = color;
+        // Expand by 0.5px to avoid sub-pixel seams between adjacent tiles
+        ctx.fillRect(x0 - 0.5, y0 - 0.5, (x1 - x0) + 1, (y1 - y0) + 1);
       }
     }
-    return cells;
-  }
 
-  for (let lat = latStart; lat < latEnd; lat += cellSize) {
-    for (let lon = lonStart; lon < lonEnd; lon += cellSize) {
-      const points = [
-        [lat, lon],
-        [lat + cellSize, lon],
-        [lat + cellSize, lon + cellSize],
-        [lat, lon + cellSize],
-      ];
+    ctx.globalAlpha = 1.0;
+    return tile;
+  },
+}) as unknown as { new (options?: L.GridLayerOptions): IVisibilityGridLayer };
 
-      cells.push({
-        center: { lat: lat + cellSize / 2, lon: lon + cellSize / 2 },
-        points: points,
-      });
-    }
-  }
-  return cells;
-}
+// --- React component ---
 
 export default function HexGridLayer() {
   const map = useMap();
   const selectedObject = useStore((state) => state.selectedObject);
-  const layerRef = useRef<L.LayerGroup | null>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastRenderRef = useRef<{
-    north: number;
-    south: number;
-    east: number;
-    west: number;
-    zoom: number;
-    time: number;
-  } | null>(null);
+  const layerRef = useRef<IVisibilityGridLayer | null>(null);
 
-  // Weather cache from Supabase
   const [weatherCache, setWeatherCache] = useState<Map<string, WeatherConditions>>(new Map());
   const weatherLoadedRef = useRef(false);
+  const timeRef = useRef<number>(Math.floor(Date.now() / CACHE_TIME_RESOLUTION_MS));
 
-  // Load weather data on mount
+  // Load weather data on mount + refresh every 5 min
   useEffect(() => {
     if (weatherLoadedRef.current) return;
     weatherLoadedRef.current = true;
@@ -155,102 +161,47 @@ export default function HexGridLayer() {
       setWeatherCache(cache);
     });
 
-    // Refresh every 5 minutes
     const interval = setInterval(() => {
       getAllWeatherFromCache().then((cache) => {
         setWeatherCache(cache);
-        // Clear visibility cache when weather updates
         visibilityCache.clear();
-        lastRenderRef.current = null;
+        if (layerRef.current) {
+          layerRef.current.setWeatherCache(cache);
+          layerRef.current.redraw();
+        }
       });
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const updateGrid = useCallback(() => {
-    if (!map || !selectedObject) return;
-
-    const bounds = map.getBounds();
-    const zoom = map.getZoom();
-    const now = new Date();
-    const currentTimeMinute = Math.floor(now.getTime() / CACHE_TIME_RESOLUTION_MS);
-
-    // Check if current view is still within previously rendered area
-    if (lastRenderRef.current && lastRenderRef.current.zoom === zoom && lastRenderRef.current.time === currentTimeMinute) {
-      const { north, south, east, west } = lastRenderRef.current;
-      // Only re-render if we've panned more than 25% outside the previously rendered bounds
-      const threshold = 0.25;
-      const latRange = north - south;
-      const lonRange = east - west;
-
-      if (bounds.getNorth() < north - latRange * threshold &&
-          bounds.getSouth() > south + latRange * threshold &&
-          bounds.getEast() < east - lonRange * threshold &&
-          bounds.getWest() > west + lonRange * threshold) {
-        return; // Still within pre-rendered area, skip update
+  // Time-based redraw every 60s if the 10-min bucket changed
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentBucket = Math.floor(Date.now() / CACHE_TIME_RESOLUTION_MS);
+      if (currentBucket !== timeRef.current) {
+        timeRef.current = currentBucket;
+        visibilityCache.clear();
+        if (layerRef.current) {
+          layerRef.current.setCurrentTime(new Date());
+          layerRef.current.redraw();
+        }
       }
-    }
+    }, 60_000);
 
-    // Store the expanded bounds we're about to render
-    const latPadding = (bounds.getNorth() - bounds.getSouth()) * 0.5;
-    const lonPadding = (bounds.getEast() - bounds.getWest()) * 0.5;
-    lastRenderRef.current = {
-      north: bounds.getNorth() + latPadding,
-      south: bounds.getSouth() - latPadding,
-      east: bounds.getEast() + lonPadding,
-      west: bounds.getWest() - lonPadding,
-      zoom,
-      time: currentTimeMinute,
-    };
+    return () => clearInterval(interval);
+  }, []);
 
-    if (layerRef.current) {
-      map.removeLayer(layerRef.current);
-    }
-
-    const cells = generateSquareGrid(bounds, zoom);
-    const layerGroup = L.layerGroup();
-
-    cells.forEach((cell) => {
-      // Use cached score calculation with real weather
-      const { score, hasRealWeather } = getCachedScore(
-        cell.center.lat,
-        cell.center.lon,
-        now,
-        weatherCache
-      );
-
-      // Grey for no data, normal color gradient for real weather
-      const color = hasRealWeather ? getVisibilityColor(score) : "#6B7280";
-      const opacity = hasRealWeather ? 0.25 + score * 0.2 : 0.15;
-
-      const polygon = L.polygon(cell.points, {
-        pane: "hexPane",
-        stroke: false,
-        fillColor: color,
-        fillOpacity: opacity,
-      });
-      layerGroup.addLayer(polygon);
-    });
-
-    layerGroup.addTo(map);
-    layerRef.current = layerGroup;
-  }, [map, selectedObject, weatherCache]);
-
-  // Debounced update handler
-  const debouncedUpdate = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = setTimeout(updateGrid, 150);
-  }, [updateGrid]);
-
+  // Layer lifecycle — create/destroy based on map + selectedObject
   useEffect(() => {
     if (!map || !selectedObject) {
+      if (layerRef.current) {
+        map?.removeLayer(layerRef.current);
+        layerRef.current = null;
+      }
       return;
     }
 
-    // Create custom pane for grid
     let pane = map.getPane("hexPane");
     if (!pane) {
       pane = map.createPane("hexPane");
@@ -259,22 +210,34 @@ export default function HexGridLayer() {
       pane.style.cursor = "default";
     }
 
-    // Initial draw
-    updateGrid();
+    const gridLayer = new VisibilityGridLayer({
+      tileSize: 256,
+      noWrap: true,
+      pane: "hexPane",
+      opacity: 1,
+      updateWhenZooming: false,
+      updateWhenIdle: true,
+      keepBuffer: 2,
+    });
 
-    // Debounced re-draw on moveend
-    map.on("moveend", debouncedUpdate);
+    gridLayer.setWeatherCache(weatherCache);
+    gridLayer.setCurrentTime(new Date());
+    gridLayer.addTo(map);
+    layerRef.current = gridLayer;
 
     return () => {
-      map.off("moveend", debouncedUpdate);
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      if (layerRef.current) {
-        map.removeLayer(layerRef.current);
-      }
+      map.removeLayer(gridLayer);
+      layerRef.current = null;
     };
-  }, [map, selectedObject, updateGrid, debouncedUpdate]);
+  }, [map, selectedObject]);
+
+  // Sync weather cache to existing layer without recreating it
+  useEffect(() => {
+    if (layerRef.current) {
+      layerRef.current.setWeatherCache(weatherCache);
+      layerRef.current.redraw();
+    }
+  }, [weatherCache]);
 
   return null;
 }
