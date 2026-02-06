@@ -8,6 +8,7 @@ export default function ReportModal() {
   const isOpen = useStore((state) => state.isReportModalOpen)
   const onClose = useStore((state) => state.closeReportModal)
   const selectedObject = useStore((state) => state.selectedObject)
+  const fetchReports = useStore((state) => state.fetchReports)
   const user = useStore((state) => state.user)
 
   const [isLoading, setIsLoading] = useState(false)
@@ -114,6 +115,7 @@ export default function ReportModal() {
 
       if (insertError) throw insertError
 
+      if (selectedObject) fetchReports(selectedObject.id)
       onClose()
       // Reset form
       setIsVisible(true)
