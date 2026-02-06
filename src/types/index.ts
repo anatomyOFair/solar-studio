@@ -1,15 +1,39 @@
 // Celestial Object Types
-export type CelestialObjectType = 'moon' | 'planet' | 'satellite' | 'star' | 'asteroid' | 'spacecraft'
+export type CelestialObjectType = 'moon' | 'planet' | 'dwarf_planet' | 'star' | 'asteroid' | 'comet' | 'satellite' | 'spacecraft'
 
 export interface CelestialObject {
   id: string
   name: string
   type: CelestialObjectType
+
+  // Observer-centric position (for visibility calculations)
   position: {
-    lat: number  // degrees
-    lon: number  // degrees
-    altitude: number  // kilometers above sea level
+    lat: number  // declination mapped to lat for visibility calc
+    lon: number  // RA mapped to lon for visibility calc
+    altitude: number  // distance in km
   }
+
+  // Heliocentric cartesian coordinates (AU) for 3D rendering
+  x?: number
+  y?: number
+  z?: number
+
+  // Velocity (AU/day) for animation
+  vx?: number
+  vy?: number
+  vz?: number
+
+  // Observer data
+  ra?: number           // Right Ascension (degrees)
+  dec?: number          // Declination (degrees)
+  distance_au?: number  // Distance from Earth (AU)
+  distance_km?: number  // Distance from Earth (km)
+  magnitude?: number    // Apparent magnitude
+
+  // Physical properties
+  radius_km?: number
+  parent_body?: string  // For moons
+  jpl_horizons_id?: string
 }
 
 // Weather Conditions

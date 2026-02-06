@@ -4,29 +4,28 @@ from typing import List, Union
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
-    
-    # MongoDB Configuration
-    mongodb_uri: str = "mongodb://localhost:27017"
-    mongodb_database: str = "solar_studio"
-    
+
+    # Supabase Configuration
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+
+    # OpenWeatherMap Configuration
+    openweathermap_api_key: str = ""
+
     # CORS Configuration
     frontend_url: str = "http://localhost:5173"
     cors_origins: Union[str, List[str]] = "http://localhost:5173,http://localhost:3000"
-    
+
     # Environment
     environment: str = "development"
-    
+
     # API Configuration
     api_prefix: str = "/api"
 
-    # JWT Configuration
-    secret_key: str = "your-super-secret-key-change-me"
-    algorithm: str = "HS256"
-    access_token_expire_minutes: int = 30
-    
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

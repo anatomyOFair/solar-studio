@@ -45,32 +45,67 @@ export const useStore = create<StoreState>((set) => ({
     const { supabase } = await import('../lib/supabase')
     const { calculateMoonPosition } = await import('../utils/celestialCalculations')
 
-    const { data, error } = await supabase.from('celestial_objects').select('*')
-    if (error) {
-      console.error('Error fetching objects:', error)
-    }
-    console.log('Fetched objects:', data)
+    try {
+      // Fetch celestial objects from Supabase
+      const { data, error } = await supabase
+        .from('celestial_objects')
+        .select('*')
+        .order('name')
 
-    if (data) {
-      const updatedData = data.map((obj: CelestialObject) => {
-        if (obj.name.toLowerCase() === 'moon') {
-          const now = new Date()
-          const position = calculateMoonPosition(now)
-          return {
-            ...obj,
-            position: {
-              ...obj.position,
-              lat: position.lat,
-              lon: position.lon,
-              altitude: position.altitude
-            }
-          }
-        }
-        return obj
-      })
+      if (error) {
+        console.error('Error fetching celestial objects:', error)
+        throw error
+      }
 
-      set({ objects: updatedData as CelestialObject[] })
+      if (data && data.length > 0) {
+        // Map database records to CelestialObject type
+        const objects: CelestialObject[] = data.map((record) => ({
+          id: record.id,
+          name: record.name,
+          type: record.type as CelestialObject['type'],
+          position: {
+            lat: record.dec ?? 0,  // Use declination for lat
+            lon: record.ra ?? 0,   // Use RA for lon
+            altitude: record.distance_km ?? 0,
+          },
+          x: record.x,
+          y: record.y,
+          z: record.z,
+          vx: record.vx,
+          vy: record.vy,
+          vz: record.vz,
+          ra: record.ra,
+          dec: record.dec,
+          distance_au: record.distance_au,
+          distance_km: record.distance_km,
+          magnitude: record.magnitude,
+          radius_km: record.radius_km,
+          parent_body: record.parent_body,
+          jpl_horizons_id: record.jpl_horizons_id,
+        }))
+
+        set({ objects })
+        return
+      }
+    } catch (err) {
+      console.warn('Falling back to calculated Moon position')
     }
+
+    // Fallback: Use calculated Moon position if table is empty or errors
+    const now = new Date()
+    const position = calculateMoonPosition(now)
+    const moonObject: CelestialObject = {
+      id: 'moon',
+      name: 'Moon',
+      type: 'moon',
+      position: {
+        lat: position.lat,
+        lon: position.lon,
+        altitude: position.altitude,
+      },
+    }
+
+    set({ objects: [moonObject] })
   },
 
   reports: [],
