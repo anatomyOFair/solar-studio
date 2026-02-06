@@ -3,8 +3,9 @@ import { supabase } from '../lib/supabase'
 
 const GRID_RESOLUTION = 10
 
-// Backend API URL (Heroku)
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://solar-studio-api-8a039d099d67.herokuapp.com'
+// Backend API URL - localhost for dev, Heroku for prod
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? 'http://localhost:8000' : 'https://solar-studio-api-3922c439107d.herokuapp.com')
 
 // In-memory cache for overlay data (from Supabase)
 const overlayCache = new Map<string, { data: WeatherConditions; timestamp: number }>()
