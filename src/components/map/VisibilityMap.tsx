@@ -7,6 +7,7 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useStore } from '../../store/store'
 import VisibilityTooltip from './VisibilityTooltip'
 import HexGridLayer from './layers/HexGridLayer'
+import VectorLayer from './layers/VectorLayer'
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -166,7 +167,8 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           minZoom={2}
         />
         <MapConfigurator />
-        
+        <VectorLayer />
+
         {visualizationMode === 'hex' && <HexGridLayer />}
 
         <VisibilityTooltip />
