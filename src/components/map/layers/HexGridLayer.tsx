@@ -6,31 +6,32 @@ import {
   calculateCelestialVisibilityScore,
   getVisibilityColor,
 } from "../../../utils/visibilityCalculator";
-import type { WeatherConditions } from "../../../types";
+import type { WeatherConditions, CelestialObject } from "../../../types";
 import {
   getAllWeatherFromCache,
   getWeatherFromBulkCache,
 } from "../../../utils/weatherService";
 
-// Cache for visibility scores - keyed by "lat,lon,time10min"
+// Cache for visibility scores - keyed by "objectId,lat,lon,time10min"
 const visibilityCache = new Map<string, number>();
 const CACHE_MAX_SIZE = 10000;
 const CACHE_TIME_RESOLUTION_MS = 600000; // 10 minutes
 
-function getCacheKey(lat: number, lon: number, time: Date): string {
+function getCacheKey(lat: number, lon: number, time: Date, objectId: string): string {
   const roundedLat = Math.round(lat * 100) / 100;
   const roundedLon = Math.round(lon * 100) / 100;
   const timeMinute = Math.floor(time.getTime() / CACHE_TIME_RESOLUTION_MS);
-  return `${roundedLat},${roundedLon},${timeMinute}`;
+  return `${objectId},${roundedLat},${roundedLon},${timeMinute}`;
 }
 
 function getCachedScore(
   lat: number,
   lon: number,
   time: Date,
-  weatherCache: Map<string, WeatherConditions>
+  weatherCache: Map<string, WeatherConditions>,
+  object: CelestialObject | null
 ): { score: number; hasRealWeather: boolean } {
-  const key = getCacheKey(lat, lon, time);
+  const key = getCacheKey(lat, lon, time, object?.id ?? 'moon');
 
   if (visibilityCache.has(key)) {
     const cached = visibilityCache.get(key)!;
@@ -44,7 +45,7 @@ function getCachedScore(
     return { score: 0.5, hasRealWeather: false };
   }
 
-  const score = calculateCelestialVisibilityScore(lat, lon, time, weather);
+  const score = calculateCelestialVisibilityScore(lat, lon, time, weather, object);
 
   if (visibilityCache.size >= CACHE_MAX_SIZE) {
     const firstKey = visibilityCache.keys().next().value;
@@ -60,13 +61,16 @@ function getCachedScore(
 interface IVisibilityGridLayer extends L.GridLayer {
   _weatherCache: Map<string, WeatherConditions>;
   _currentTime: Date;
+  _selectedObject: CelestialObject | null;
   setWeatherCache(cache: Map<string, WeatherConditions>): void;
   setCurrentTime(time: Date): void;
+  setSelectedObject(obj: CelestialObject | null): void;
 }
 
 const VisibilityGridLayer = L.GridLayer.extend({
   _weatherCache: new Map() as Map<string, WeatherConditions>,
   _currentTime: new Date(),
+  _selectedObject: null as CelestialObject | null,
 
   setWeatherCache(this: IVisibilityGridLayer, cache: Map<string, WeatherConditions>) {
     this._weatherCache = cache;
@@ -74,6 +78,10 @@ const VisibilityGridLayer = L.GridLayer.extend({
 
   setCurrentTime(this: IVisibilityGridLayer, time: Date) {
     this._currentTime = time;
+  },
+
+  setSelectedObject(this: IVisibilityGridLayer, obj: CelestialObject | null) {
+    this._selectedObject = obj;
   },
 
   createTile(this: IVisibilityGridLayer & { _map: L.Map; getTileSize(): L.Point }, coords: L.Coords): HTMLCanvasElement {
@@ -90,6 +98,7 @@ const VisibilityGridLayer = L.GridLayer.extend({
     const tileSize = size.x;
     const weatherCache = this._weatherCache;
     const now = this._currentTime;
+    const selectedObject = this._selectedObject;
 
     // Tile pixel origin in global pixel space
     const nwPixel = L.point(coords.x * tileSize, coords.y * tileSize);
@@ -114,7 +123,7 @@ const VisibilityGridLayer = L.GridLayer.extend({
         const cellCenterLng = lng + cellSize / 2;
 
         const { score, hasRealWeather } = getCachedScore(
-          cellCenterLat, cellCenterLng, now, weatherCache
+          cellCenterLat, cellCenterLng, now, weatherCache, selectedObject
         );
 
         const color = hasRealWeather ? getVisibilityColor(score) : "#6B7280";
@@ -220,8 +229,10 @@ export default function HexGridLayer() {
       keepBuffer: 2,
     });
 
+    visibilityCache.clear();
     gridLayer.setWeatherCache(weatherCache);
     gridLayer.setCurrentTime(new Date());
+    gridLayer.setSelectedObject(selectedObject);
     gridLayer.addTo(map);
     layerRef.current = gridLayer;
 

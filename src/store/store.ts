@@ -149,15 +149,3 @@ export const useStore = create<StoreState>((set) => ({
   closeReportModal: () => set({ isReportModalOpen: false }),
 }))
 
-// Mock Moon data for testing
-export const MOCK_MOON: CelestialObject = {
-  id: 'moon',
-  name: 'Moon',
-  type: 'moon',
-  position: {
-    lat: 28.6139,
-    lon: 77.2090,
-    altitude: 384400,
-  },
-}
-

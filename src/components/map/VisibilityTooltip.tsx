@@ -14,8 +14,8 @@ export default function VisibilityTooltip() {
     percentage: number
     weatherRating: number
     timeRating: number
-    moonAltitude: number
-    moonIllumination: number
+    objectAltitude: number
+    illumination: number | null
     isAboveHorizon: boolean
   } | null>(null)
 
@@ -30,15 +30,14 @@ export default function VisibilityTooltip() {
       const weather = await getWeatherForUserLocation(lat, lon)
       const currentTime = new Date()
 
-      // Use celestial-specific calculation
-      const breakdown = getCelestialVisibilityBreakdown(lat, lon, currentTime, weather)
+      const breakdown = getCelestialVisibilityBreakdown(lat, lon, currentTime, weather, selectedObject)
 
       return {
         percentage: Math.round(breakdown.score * 100),
         weatherRating: breakdown.weatherRating,
         timeRating: breakdown.timeRating,
-        moonAltitude: breakdown.moonAltitude,
-        moonIllumination: breakdown.moonIllumination,
+        objectAltitude: breakdown.objectAltitude,
+        illumination: breakdown.illumination,
         isAboveHorizon: breakdown.isAboveHorizon,
       }
     },
@@ -174,7 +173,7 @@ export default function VisibilityTooltip() {
             </div>
             {!visibilityData.isAboveHorizon && (
               <div className="text-xs mt-1" style={{ color: colors.status.error }}>
-                Moon below horizon
+                {selectedObject?.name ?? 'Object'} below horizon
               </div>
             )}
           </div>
@@ -182,20 +181,22 @@ export default function VisibilityTooltip() {
           <div className="space-y-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${colors.navbar.border}` }}>
             <div className="flex items-center justify-between">
               <div className="text-sm" style={{ color: colors.text.secondary }}>
-                Moon Altitude
+                Altitude
               </div>
               <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                {visibilityData.moonAltitude.toFixed(1)}°
+                {visibilityData.objectAltitude.toFixed(1)}°
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="text-sm" style={{ color: colors.text.secondary }}>
-                Illumination
+            {visibilityData.illumination != null && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm" style={{ color: colors.text.secondary }}>
+                  Illumination
+                </div>
+                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
+                  {visibilityData.illumination.toFixed(0)}%
+                </div>
               </div>
-              <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                {visibilityData.moonIllumination.toFixed(0)}%
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="space-y-2">

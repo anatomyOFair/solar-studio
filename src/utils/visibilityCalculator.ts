@@ -1,4 +1,4 @@
-import type { Position, WeatherConditions } from '../types'
+import type { Position, WeatherConditions, CelestialObject } from '../types'
 import SunCalc from 'suncalc'
 
 const EARTH_RADIUS_KM = 6371
@@ -188,112 +188,167 @@ export function visibilityScoreToPercentage(visibilityScore: number): number {
 // ============================================================================
 
 /**
- * Calculate visibility score for celestial objects (Moon, planets, etc.)
- * Unlike ground objects, celestial visibility depends on:
- * 1. Is the object above the horizon at observer location?
- * 2. How high is it above the horizon? (higher = better, less atmosphere)
- * 3. Object brightness/illumination (for Moon: phase)
- * 4. Weather conditions at observer location
- * 5. Time of day (night is better for viewing most celestial objects)
- *
- * @param observerLat Observer latitude in degrees
- * @param observerLon Observer longitude in degrees
- * @param currentTime Current time
- * @param weather Weather conditions at observer location
- * @returns Visibility score (0-1)
+ * Convert RA/Dec (equatorial coordinates) to altitude at observer location.
+ * Used for planets and other objects not covered by SunCalc.
+ */
+function raDecToAltitude(raDeg: number, decDeg: number, observerLat: number, observerLon: number, time: Date): number {
+  const DEG = Math.PI / 180
+
+  // Julian Date
+  const JD = time.getTime() / 86400000 + 2440587.5
+
+  // Greenwich Mean Sidereal Time (degrees)
+  const T = (JD - 2451545.0) / 36525
+  let GMST = 280.46061837 + 360.98564736629 * (JD - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000
+  GMST = ((GMST % 360) + 360) % 360
+
+  // Local Sidereal Time
+  const LST = ((GMST + observerLon) % 360 + 360) % 360
+
+  // Hour Angle
+  const HA = (LST - raDeg) * DEG
+
+  const lat = observerLat * DEG
+  const dec = decDeg * DEG
+
+  // sin(altitude) = sin(dec)*sin(lat) + cos(dec)*cos(lat)*cos(HA)
+  const sinAlt = Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(lat) * Math.cos(HA)
+
+  return Math.asin(Math.max(-1, Math.min(1, sinAlt))) / DEG
+}
+
+/**
+ * Calculate visibility score for celestial objects (Moon, planets, Sun, etc.)
+ * Supports all object types via optional CelestialObject parameter.
+ * When no object is provided, defaults to Moon behavior for backward compat.
  */
 export function calculateCelestialVisibilityScore(
   observerLat: number,
   observerLon: number,
   currentTime: Date,
-  weather: WeatherConditions
+  weather: WeatherConditions,
+  object?: CelestialObject | null
 ): number {
-  // 1. Get Moon position at observer's location
-  const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
-  const moonAltitudeDeg = moonPos.altitude * (180 / Math.PI) // Convert radians to degrees
+  const type = object?.type ?? 'moon'
+  const id = object?.id ?? 'moon'
 
-  // 2. If Moon is below horizon, visibility is 0
-  if (moonAltitudeDeg < 0) {
-    return 0
+  // 1. Determine object altitude and brightness
+  let objectAltitudeDeg: number
+  let brightnessFactor: number
+
+  if (id === 'moon' || (type === 'moon' && !object?.ra)) {
+    // Earth's Moon — use SunCalc for precise position
+    const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = moonPos.altitude * (180 / Math.PI)
+    const moonIllum = SunCalc.getMoonIllumination(currentTime)
+    brightnessFactor = 0.1 + 0.9 * moonIllum.fraction
+  } else if (id === 'sun') {
+    // Sun — use SunCalc
+    const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = sunPos.altitude * (180 / Math.PI)
+    brightnessFactor = 1.0
+  } else if (object?.ra != null && object?.dec != null) {
+    // Planet, distant moon, or other — use RA/Dec
+    objectAltitudeDeg = raDecToAltitude(object.ra, object.dec, observerLat, observerLon, currentTime)
+    // Magnitude → brightness: lower magnitude = brighter (Venus -4, Jupiter -2, Saturn +0.5)
+    const mag = object.magnitude ?? 2
+    brightnessFactor = Math.max(0.05, Math.min(1, (6 - mag) / 10))
+  } else {
+    // Fallback: treat as Moon
+    const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = moonPos.altitude * (180 / Math.PI)
+    const moonIllum = SunCalc.getMoonIllumination(currentTime)
+    brightnessFactor = 0.1 + 0.9 * moonIllum.fraction
   }
 
-  // 3. Calculate altitude factor (0-1)
-  // Higher altitude = better visibility (less atmosphere to look through)
-  // Uses a curve that favors higher altitudes
-  const altitudeFactor = Math.pow(moonAltitudeDeg / 90, 0.5)
+  // 2. Below horizon → 0
+  if (objectAltitudeDeg < 0) return 0
 
-  // 4. Get Moon illumination (phase)
-  const moonIllum = SunCalc.getMoonIllumination(currentTime)
-  // illumination.fraction: 0 = new moon, 1 = full moon
-  // Even new moon has some visibility (earthshine), so minimum factor is 0.1
-  const illuminationFactor = 0.1 + 0.9 * moonIllum.fraction
+  // 3. Altitude factor — higher = less atmosphere
+  const altitudeFactor = Math.pow(objectAltitudeDeg / 90, 0.5)
 
-  // 5. Calculate weather factor
-  // Cloud cover is the primary factor for celestial viewing
+  // 4. Weather factor
   const weatherFactor = Math.max(0.05, 1 - weather.cloudCover * 0.9 - weather.fog * 0.5)
 
-  // 6. Calculate time-of-day factor
-  // Moon is visible during day but easier to see at night
+  // 5. Time-of-day factor
   const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
   const sunAltitudeDeg = sunPos.altitude * (180 / Math.PI)
 
   let timeFactor: number
-  if (sunAltitudeDeg < -18) {
-    // Astronomical night - best viewing
-    timeFactor = 1.0
+  if (id === 'sun') {
+    // Sun is visible during daytime
+    timeFactor = sunAltitudeDeg > 0 ? 1.0 : 0
+  } else if (sunAltitudeDeg < -18) {
+    timeFactor = 1.0 // Astronomical night
   } else if (sunAltitudeDeg < -12) {
-    // Nautical twilight
-    timeFactor = 0.9
+    timeFactor = 0.9 // Nautical twilight
   } else if (sunAltitudeDeg < -6) {
-    // Civil twilight
-    timeFactor = 0.7
+    timeFactor = 0.7 // Civil twilight
   } else if (sunAltitudeDeg < 0) {
-    // Sun just below horizon
-    timeFactor = 0.5
-  } else {
-    // Daytime - Moon still visible but harder
-    // Visibility decreases as sun gets higher
+    timeFactor = 0.5 // Sun just below horizon
+  } else if (id === 'moon' || type === 'moon') {
+    // Moon visible during day but harder
     timeFactor = Math.max(0.2, 0.5 - sunAltitudeDeg / 180)
+  } else {
+    // Planets mostly not visible during day
+    timeFactor = Math.max(0.05, 0.3 - sunAltitudeDeg / 90)
   }
 
-  // 7. Combine all factors
-  const rawScore = altitudeFactor * illuminationFactor * weatherFactor * timeFactor
-
-  // Clamp to 0-1 range
+  const rawScore = altitudeFactor * brightnessFactor * weatherFactor * timeFactor
   return Math.max(0, Math.min(1, rawScore))
 }
 
 /**
- * Get detailed visibility breakdown for UI display
+ * Get detailed visibility breakdown for UI display.
+ * Supports any celestial object via optional parameter.
  */
 export function getCelestialVisibilityBreakdown(
   observerLat: number,
   observerLon: number,
   currentTime: Date,
-  weather: WeatherConditions
+  weather: WeatherConditions,
+  object?: CelestialObject | null
 ): {
   score: number
-  moonAltitude: number
-  moonIllumination: number
+  objectAltitude: number
+  illumination: number | null
   isAboveHorizon: boolean
   weatherRating: number
   timeRating: number
 } {
-  const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
-  const moonAltitudeDeg = moonPos.altitude * (180 / Math.PI)
-  const moonIllum = SunCalc.getMoonIllumination(currentTime)
+  const id = object?.id ?? 'moon'
+
+  // Get object altitude
+  let objectAltitudeDeg: number
+  let illumination: number | null = null
+
+  if (id === 'moon' || (object?.type === 'moon' && !object?.ra)) {
+    const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = moonPos.altitude * (180 / Math.PI)
+    illumination = SunCalc.getMoonIllumination(currentTime).fraction * 100
+  } else if (id === 'sun') {
+    const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = sunPos.altitude * (180 / Math.PI)
+  } else if (object?.ra != null && object?.dec != null) {
+    objectAltitudeDeg = raDecToAltitude(object.ra, object.dec, observerLat, observerLon, currentTime)
+  } else {
+    const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
+    objectAltitudeDeg = moonPos.altitude * (180 / Math.PI)
+    illumination = SunCalc.getMoonIllumination(currentTime).fraction * 100
+  }
+
+  const isAboveHorizon = objectAltitudeDeg > 0
+  const score = calculateCelestialVisibilityScore(observerLat, observerLon, currentTime, weather, object)
+
+  const weatherRating = Math.round((1 - weather.cloudCover) * 9 + 1)
+
   const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
   const sunAltitudeDeg = sunPos.altitude * (180 / Math.PI)
 
-  const isAboveHorizon = moonAltitudeDeg > 0
-  const score = calculateCelestialVisibilityScore(observerLat, observerLon, currentTime, weather)
-
-  // Convert weather to 1-10 rating (10 = clear skies)
-  const weatherRating = Math.round((1 - weather.cloudCover) * 9 + 1)
-
-  // Convert time to 1-10 rating (10 = dark night)
   let timeRating: number
-  if (sunAltitudeDeg < -18) timeRating = 10
+  if (id === 'sun') {
+    timeRating = sunAltitudeDeg > 0 ? 10 : 1
+  } else if (sunAltitudeDeg < -18) timeRating = 10
   else if (sunAltitudeDeg < -12) timeRating = 9
   else if (sunAltitudeDeg < -6) timeRating = 7
   else if (sunAltitudeDeg < 0) timeRating = 5
@@ -301,8 +356,8 @@ export function getCelestialVisibilityBreakdown(
 
   return {
     score,
-    moonAltitude: moonAltitudeDeg,
-    moonIllumination: moonIllum.fraction * 100,
+    objectAltitude: objectAltitudeDeg,
+    illumination,
     isAboveHorizon,
     weatherRating,
     timeRating,

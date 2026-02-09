@@ -1,13 +1,18 @@
-import { useState, useEffect } from 'react'
-import { useStore, MOCK_MOON } from '../../store/store'
-import type { CelestialObject } from '../../types'
+import { useState, useEffect, useMemo } from 'react'
+import { useStore } from '../../store/store'
+import type { CelestialObject, CelestialObjectType } from '../../types'
 import { colors, spacing, sizes, shadows } from '../../constants'
 import MoonPhaseIcon from './MoonPhaseIcon'
 
-// Available objects (starting with just Moon for testing)
-const AVAILABLE_OBJECTS: CelestialObject[] = [
-  MOCK_MOON,
-]
+const TYPE_ORDER: CelestialObjectType[] = ['moon', 'planet', 'star', 'dwarf_planet', 'asteroid', 'comet']
+const TYPE_LABELS: Record<string, string> = {
+  moon: 'Moons',
+  planet: 'Planets',
+  star: 'Stars',
+  dwarf_planet: 'Dwarf Planets',
+  asteroid: 'Asteroids',
+  comet: 'Comets',
+}
 
 export default function ObjectTracker() {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false)
@@ -21,9 +26,21 @@ export default function ObjectTracker() {
     fetchObjects()
   }, [fetchObjects])
 
-  const filteredObjects = objects.length > 0 
-    ? objects.filter((obj) => obj.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : AVAILABLE_OBJECTS.filter((obj) => obj.name.toLowerCase().includes(searchQuery.toLowerCase())) // Fallback to mocks if DB empty for testing
+  const filteredObjects = objects
+    .filter((obj) => obj.id !== 'earth') // Can't track Earth from Earth
+    .filter((obj) => obj.name.toLowerCase().includes(searchQuery.toLowerCase()))
+
+  // Group by type for display
+  const groupedObjects = useMemo(() => {
+    const groups: { type: CelestialObjectType; label: string; objects: CelestialObject[] }[] = []
+    for (const type of TYPE_ORDER) {
+      const objs = filteredObjects.filter((o) => o.type === type)
+      if (objs.length > 0) {
+        groups.push({ type, label: TYPE_LABELS[type] ?? type, objects: objs })
+      }
+    }
+    return groups
+  }, [filteredObjects])
 
   const handleSelectObject = (object: CelestialObject) => {
     setSelectedObject(object)
@@ -74,7 +91,7 @@ export default function ObjectTracker() {
         <div style={{ fontSize: '12px', color: colors.text.muted, marginTop: '2px' }}>
           Click to select object
         </div>
-        {selectedObject?.type === 'moon' && <MoonPhaseIcon />}
+        {selectedObject?.id === 'moon' && <MoonPhaseIcon />}
       </div>
 
       {/* Modal Overlay */}
@@ -162,33 +179,45 @@ export default function ObjectTracker() {
                 />
 
                 {/* Object List */}
-                <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-                {filteredObjects.length === 0 ? (
+                <div className="flex-1 overflow-y-auto pr-2">
+                {groupedObjects.length === 0 ? (
                     <div className="text-center py-8 text-sm" style={{ color: colors.text.muted }}>
                     No objects found
                     </div>
                 ) : (
-                    filteredObjects.map((object) => (
-                    <button
-                        key={object.id}
-                        onClick={() => handleSelectObject(object)}
-                        className="w-full text-left rounded-lg px-4 py-3 transition-all flex items-center justify-between group"
-                        style={{
-                        backgroundColor:
-                            selectedObject?.id === object.id ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                        border: `1px solid ${
-                            selectedObject?.id === object.id
-                            ? 'rgba(255, 255, 255, 0.2)'
-                            : 'transparent'
-                        }`,
-                        color: colors.white,
-                        }}
-                    >
-                        <span className="font-medium">{object.name}</span>
-                        {selectedObject?.id === object.id && (
-                             <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.5)]" style={{ backgroundColor: colors.status.success }} />
-                        )}
-                    </button>
+                    groupedObjects.map((group) => (
+                    <div key={group.type} style={{ marginBottom: spacing.md }}>
+                        <div
+                          className="text-xs font-semibold uppercase"
+                          style={{ color: colors.text.muted, marginBottom: spacing.sm, letterSpacing: '0.06em' }}
+                        >
+                          {group.label}
+                        </div>
+                        <div className="space-y-1">
+                        {group.objects.map((object) => (
+                          <button
+                              key={object.id}
+                              onClick={() => handleSelectObject(object)}
+                              className="w-full text-left rounded-lg px-4 py-2.5 transition-all flex items-center justify-between group"
+                              style={{
+                              backgroundColor:
+                                  selectedObject?.id === object.id ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                              border: `1px solid ${
+                                  selectedObject?.id === object.id
+                                  ? 'rgba(255, 255, 255, 0.2)'
+                                  : 'transparent'
+                              }`,
+                              color: colors.white,
+                              }}
+                          >
+                              <span className="font-medium text-sm">{object.name}</span>
+                              {selectedObject?.id === object.id && (
+                                   <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.5)]" style={{ backgroundColor: colors.status.success }} />
+                              )}
+                          </button>
+                        ))}
+                        </div>
+                    </div>
                     ))
                 )}
                 </div>
