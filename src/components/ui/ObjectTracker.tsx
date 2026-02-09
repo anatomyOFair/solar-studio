@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useStore, MOCK_MOON } from '../../store/store'
 import type { CelestialObject } from '../../types'
 import { colors, spacing, sizes, shadows } from '../../constants'
+import MoonPhaseIcon from './MoonPhaseIcon'
 
 // Available objects (starting with just Moon for testing)
 const AVAILABLE_OBJECTS: CelestialObject[] = [
@@ -73,6 +74,7 @@ export default function ObjectTracker() {
         <div style={{ fontSize: '12px', color: colors.text.muted, marginTop: '2px' }}>
           Click to select object
         </div>
+        {selectedObject?.type === 'moon' && <MoonPhaseIcon />}
       </div>
 
       {/* Modal Overlay */}
