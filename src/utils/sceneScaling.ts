@@ -9,22 +9,33 @@
 const AU_SCALE = 15
 const POSITION_EXPONENT = 0.55
 
-/** Convert a single AU value to compressed scene units */
+/** Compress a distance (AU) to scene units */
 export function auToScene(au: number): number {
-  return Math.sign(au) * Math.pow(Math.abs(au) * AU_SCALE, POSITION_EXPONENT)
+  return Math.pow(Math.abs(au) * AU_SCALE, POSITION_EXPONENT)
 }
 
-/** Convert heliocentric x,y,z (AU) to scene position [x, y, z] */
+/**
+ * Convert heliocentric x,y,z (AU) to scene position [x, y, z].
+ * Compresses the total distance while preserving direction,
+ * then swaps axes: astronomical y → scene -z, astronomical z → scene y
+ * to put the ecliptic plane on the XZ plane in Three.js.
+ */
 export function positionToScene(x: number, y: number, z: number): [number, number, number] {
-  return [auToScene(x), auToScene(z), auToScene(-y)]
-  // Swap y/z: astronomical y → scene -z, astronomical z → scene y
-  // This puts the ecliptic plane on the XZ plane in Three.js
+  const dist = Math.sqrt(x * x + y * y + z * z)
+  if (dist === 0) return [0, 0, 0]
+  const sceneDist = auToScene(dist)
+  return [
+    (x / dist) * sceneDist,
+    (z / dist) * sceneDist,
+    (-y / dist) * sceneDist,
+  ]
 }
 
 /** Convert real radius (km) to display radius. Exaggerated so planets are clickable. */
 export function radiusToScene(radiusKm: number, id: string): number {
-  if (id === 'sun') return 2.0
-  return Math.max(0.3, Math.log10(radiusKm / 1000) * 0.6)
+  if (id === 'sun') return 2.5
+  // Bigger minimum so small planets are visible, gentler scaling
+  return Math.max(0.15, Math.log10(radiusKm / 500) * 0.35)
 }
 
 /** Planet colors by object ID */
