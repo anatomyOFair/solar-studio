@@ -3,6 +3,7 @@ import { useStore } from '../../store/store'
 import type { CelestialObject, CelestialObjectType } from '../../types'
 import { colors, spacing, sizes, shadows } from '../../constants'
 import MoonPhaseIcon from './MoonPhaseIcon'
+import RiseSetTimes from './RiseSetTimes'
 
 const TYPE_ORDER: CelestialObjectType[] = ['moon', 'planet', 'star', 'dwarf_planet', 'asteroid', 'comet']
 const TYPE_LABELS: Record<string, string> = {
@@ -92,6 +93,7 @@ export default function ObjectTracker() {
           Click to select object
         </div>
         {selectedObject?.id === 'moon' && <MoonPhaseIcon />}
+        <RiseSetTimes />
       </div>
 
       {/* Modal Overlay */}

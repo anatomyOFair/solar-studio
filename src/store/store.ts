@@ -25,6 +25,8 @@ interface StoreState {
   logout: () => Promise<void>
 
   // UI Slice
+  isLocalTime: boolean
+  toggleLocalTime: () => void
   isAuthModalOpen: boolean
   openAuthModal: () => void
   closeAuthModal: () => void
@@ -141,6 +143,8 @@ export const useStore = create<StoreState>((set) => ({
   },
 
   // UI Slice
+  isLocalTime: false,
+  toggleLocalTime: () => set((state) => ({ isLocalTime: !state.isLocalTime })),
   isAuthModalOpen: false,
   openAuthModal: () => set({ isAuthModalOpen: true }),
   closeAuthModal: () => set({ isAuthModalOpen: false }),

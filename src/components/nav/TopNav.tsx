@@ -13,7 +13,8 @@ import {
 import { colors, spacing, sizes, shadows } from '../../constants'
 
 export default function TopNav() {
-  const [isLocalTime, setIsLocalTime] = useState(false)
+  const isLocalTime = useStore((state) => state.isLocalTime)
+  const toggleLocalTime = useStore((state) => state.toggleLocalTime)
   const [is3DView, setIs3DView] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -56,7 +57,7 @@ export default function TopNav() {
   }
 
   const handleTimeToggle = () => {
-    setIsLocalTime(!isLocalTime)
+    toggleLocalTime()
   }
 
   const handleViewToggle = () => {
