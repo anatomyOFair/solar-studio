@@ -15,6 +15,8 @@ import { useStore } from '../../store/store'
 export default function SideNav() {
   const visualizationMode = useStore((state) => state.visualizationMode)
   const setVisualizationMode = useStore((state) => state.setVisualizationMode)
+  const viewMode = useStore((state) => state.viewMode)
+  const setViewMode = useStore((state) => state.setViewMode)
   const map = useStore((state) => state.map)
 
   const handleHomeClick = () => {
@@ -25,8 +27,8 @@ export default function SideNav() {
     // TODO: Implement search functionality
   }
 
-  const handleSettingsClick = () => {
-    // TODO: Implement settings functionality
+  const handleViewToggle = () => {
+    setViewMode(viewMode === '2d' ? '3d' : '2d')
   }
 
   const handleUserClick = () => {
@@ -111,12 +113,13 @@ export default function SideNav() {
         </button>
 
         <button
-          onClick={handleSettingsClick}
+          onClick={handleViewToggle}
           className="w-12 h-12 flex items-center justify-center text-white hover:opacity-80 transition-opacity bg-transparent border-none"
           style={{ backgroundColor: 'transparent' }}
-          aria-label="settings"
+          aria-label="toggle 2D/3D view"
+          title={viewMode === '2d' ? 'Switch to 3D' : 'Switch to Map'}
         >
-          <FontAwesomeIcon icon={faEarth} style={{ color: 'white', fontSize: '24px' }} />
+          <FontAwesomeIcon icon={faEarth} style={{ color: viewMode === '3d' ? '#4ADE80' : 'white', fontSize: '24px' }} />
         </button>
 
         <button

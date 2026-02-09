@@ -15,7 +15,8 @@ import { colors, spacing, sizes, shadows } from '../../constants'
 export default function TopNav() {
   const isLocalTime = useStore((state) => state.isLocalTime)
   const toggleLocalTime = useStore((state) => state.toggleLocalTime)
-  const [is3DView, setIs3DView] = useState(false)
+  const viewMode = useStore((state) => state.viewMode)
+  const setViewMode = useStore((state) => state.setViewMode)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -61,7 +62,7 @@ export default function TopNav() {
   }
 
   const handleViewToggle = () => {
-    setIs3DView(!is3DView);
+    setViewMode(viewMode === '2d' ? '3d' : '2d')
   }
 
   const handleUserClick = () => {
@@ -120,7 +121,7 @@ export default function TopNav() {
           style={{ backgroundColor: 'transparent', color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
         >
           <FontAwesomeIcon icon={faCamera} style={{ color: 'white', fontSize: '18px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{is3DView ? '3D' : 'Map'}</span>
+          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{viewMode === '3d' ? '3D' : 'Map'}</span>
         </button>
 
         {/* 4. History */}

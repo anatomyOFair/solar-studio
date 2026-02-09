@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import VisibilityMap from './components/map/VisibilityMap'
+import SolarSystemScene from './components/scene/SolarSystemScene'
 import TopNav from './components/nav/TopNav'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
@@ -12,6 +13,7 @@ function App() {
   const isAuthModalOpen = useStore((state) => state.isAuthModalOpen)
   const closeAuthModal = useStore((state) => state.closeAuthModal)
   const setSession = useStore((state) => state.setSession)
+  const viewMode = useStore((state) => state.viewMode)
 
   useEffect(() => {
     // Dynamic import to avoid circular dependencies if any, though standard import is fine too.
@@ -38,9 +40,15 @@ function App() {
       <div className="h-screen w-full"> 
         <TopNav />
         <SideNav />
-        <VisibilityMap />
-        <ObjectTracker />
-        <UserReportsPanel />
+        {viewMode === '2d' ? (
+          <>
+            <VisibilityMap />
+            <ObjectTracker />
+            <UserReportsPanel />
+          </>
+        ) : (
+          <SolarSystemScene />
+        )}
       </div>
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />

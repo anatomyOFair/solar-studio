@@ -25,6 +25,8 @@ interface StoreState {
   logout: () => Promise<void>
 
   // UI Slice
+  viewMode: '2d' | '3d'
+  setViewMode: (mode: '2d' | '3d') => void
   isLocalTime: boolean
   toggleLocalTime: () => void
   isAuthModalOpen: boolean
@@ -143,6 +145,8 @@ export const useStore = create<StoreState>((set) => ({
   },
 
   // UI Slice
+  viewMode: '2d',
+  setViewMode: (mode) => set({ viewMode: mode }),
   isLocalTime: false,
   toggleLocalTime: () => set((state) => ({ isLocalTime: !state.isLocalTime })),
   isAuthModalOpen: false,
