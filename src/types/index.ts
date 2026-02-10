@@ -34,6 +34,7 @@ export interface CelestialObject {
   radius_km?: number
   parent_body?: string  // For moons
   jpl_horizons_id?: string
+  description?: string
 }
 
 // Weather Conditions

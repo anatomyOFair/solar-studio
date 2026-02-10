@@ -86,6 +86,7 @@ export const useStore = create<StoreState>((set) => ({
           radius_km: record.radius_km,
           parent_body: record.parent_body,
           jpl_horizons_id: record.jpl_horizons_id,
+          description: record.description,
         }))
 
         set({ objects })

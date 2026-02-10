@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import VisibilityMap from './components/map/VisibilityMap'
 import SolarSystemScene from './components/scene/SolarSystemScene'
+import InfoPanel from './components/scene/InfoPanel'
 import TopNav from './components/nav/TopNav'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
@@ -47,7 +48,10 @@ function App() {
             <UserReportsPanel />
           </>
         ) : (
-          <SolarSystemScene />
+          <>
+            <SolarSystemScene />
+            <InfoPanel />
+          </>
         )}
       </div>
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
