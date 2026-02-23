@@ -225,7 +225,6 @@ export default function HexGridLayer() {
       pane: "hexPane",
       opacity: 1,
       updateWhenZooming: false,
-      updateWhenIdle: true,
       keepBuffer: 2,
     });
 

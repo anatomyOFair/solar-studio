@@ -4,6 +4,18 @@ import type { CelestialObject, CelestialObjectType } from '../../types'
 import { colors, spacing, sizes, shadows } from '../../constants'
 import MoonPhaseIcon from './MoonPhaseIcon'
 import RiseSetTimes from './RiseSetTimes'
+import { isNearNewMoon, type YallopZone } from '../../utils/yallopCriteria'
+import { getVisibilityColor } from '../../utils/visibilityCalculator'
+
+const CRESCENT_ZONES: YallopZone[] = ['A', 'B', 'C', 'D', 'E', 'F']
+const ZONE_COLORS: Record<YallopZone, string> = {
+  A: '#22c55e', B: '#86efac', C: '#facc15',
+  D: '#f97316', E: '#ef4444', F: '#6b7280',
+}
+const ZONE_DESCS: Record<YallopZone, string> = {
+  A: 'Easily visible', B: 'Perfect conditions', C: 'May need binoculars',
+  D: 'Needs optical aid', E: 'Not visible with telescope', F: 'Not visible',
+}
 
 const TYPE_ORDER: CelestialObjectType[] = ['moon', 'planet', 'star', 'dwarf_planet', 'asteroid', 'comet']
 const TYPE_LABELS: Record<string, string> = {
@@ -22,6 +34,18 @@ export default function ObjectTracker() {
   const setSelectedObject = useStore((state) => state.setSelectedObject)
   const objects = useStore((state) => state.objects)
   const fetchObjects = useStore((state) => state.fetchObjects)
+  const visualizationMode = useStore((state) => state.visualizationMode)
+  const showCrescentZones = useStore((state) => state.showCrescentZones)
+  const setShowCrescentZones = useStore((state) => state.setShowCrescentZones)
+
+  const showCrescentToggle = selectedObject?.id === 'moon' && isNearNewMoon(new Date())
+
+  // Auto-disable crescent zones when Moon is deselected or not near new moon
+  useEffect(() => {
+    if (!showCrescentToggle && showCrescentZones) {
+      setShowCrescentZones(false)
+    }
+  }, [showCrescentToggle, showCrescentZones, setShowCrescentZones])
 
   useEffect(() => {
     fetchObjects()
@@ -50,6 +74,51 @@ export default function ObjectTracker() {
 
   return (
     <>
+      {/* Crescent Visibility Zones toggle — only when Moon selected + near new moon */}
+      {showCrescentToggle && (
+        <div
+          className="fixed"
+          style={{
+            bottom: `calc(${spacing.md} + 110px)`,
+            left: spacing.md,
+            zIndex: sizes.zIndex.fixed,
+            backgroundColor: colors.navbar.background,
+            backdropFilter: `blur(${sizes.blur.default})`,
+            WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+            border: `1px solid ${colors.navbar.border}`,
+            borderRadius: sizes.borderRadius.xl,
+            padding: `${spacing.xs} ${spacing.sm}`,
+          }}
+        >
+          <button
+            onClick={() => setShowCrescentZones(!showCrescentZones)}
+            className="flex items-center transition-all"
+            style={{
+              gap: spacing.sm,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              color: colors.text.primary,
+              fontSize: '12px',
+              fontWeight: 500,
+              padding: `4px 6px`,
+              borderRadius: '6px',
+            }}
+          >
+            <div
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: showCrescentZones ? '#22c55e' : colors.text.muted,
+                transition: 'all 0.2s ease',
+              }}
+            />
+            Crescent Visibility Zones
+          </button>
+        </div>
+      )}
+
       <div
         className="fixed cursor-pointer"
         style={{
@@ -95,6 +164,88 @@ export default function ObjectTracker() {
         {selectedObject?.id === 'moon' && <MoonPhaseIcon />}
         <RiseSetTimes />
       </div>
+
+      {/* Legend — beside the object tracker */}
+      {(showCrescentZones || visualizationMode === 'hex') && (
+        <div
+          className="fixed"
+          style={{
+            bottom: spacing.md,
+            left: `calc(${spacing.md} + ${sizes.widget.minWidth} + ${spacing.sm})`,
+            zIndex: sizes.zIndex.fixed,
+            backgroundColor: colors.navbar.background,
+            backdropFilter: `blur(${sizes.blur.default})`,
+            WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+            border: `1px solid ${colors.navbar.border}`,
+            borderRadius: sizes.borderRadius.xl,
+            padding: `${spacing.sm} ${spacing.md}`,
+          }}
+        >
+          {showCrescentZones ? (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text.primary, marginBottom: '6px' }}>
+                Crescent Visibility (Yallop)
+              </div>
+              {CRESCENT_ZONES.map((zone) => (
+                <div key={zone} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                  <div
+                    style={{
+                      width: 16,
+                      height: 12,
+                      borderRadius: 2,
+                      backgroundColor: ZONE_COLORS[zone],
+                      opacity: zone === 'F' ? 0.5 : 0.85,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 8,
+                      fontWeight: 700,
+                      color: zone === 'C' || zone === 'D' ? '#000' : '#fff',
+                    }}
+                  >
+                    {zone}
+                  </div>
+                  <span style={{ fontSize: '10px', color: colors.text.muted }}>{ZONE_DESCS[zone]}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '11px', fontWeight: 600, color: colors.text.primary, marginBottom: '6px' }}>
+                Visibility
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                <div
+                  style={{
+                    width: 100,
+                    height: 10,
+                    borderRadius: 3,
+                    background: `linear-gradient(to right, ${getVisibilityColor(0)}, ${getVisibilityColor(0.25)}, ${getVisibilityColor(0.5)}, ${getVisibilityColor(0.75)}, ${getVisibilityColor(1)})`,
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: 100 }}>
+                <span style={{ fontSize: '9px', color: colors.text.muted }}>Poor</span>
+                <span style={{ fontSize: '9px', color: colors.text.muted }}>Excellent</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                <div
+                  style={{
+                    width: 16,
+                    height: 10,
+                    borderRadius: 2,
+                    backgroundColor: '#6B7280',
+                    opacity: 0.5,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ fontSize: '9px', color: colors.text.muted }}>No weather data</span>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Modal Overlay */}
       {isSelectorOpen && (

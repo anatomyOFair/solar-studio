@@ -35,6 +35,8 @@ interface StoreState {
   isReportModalOpen: boolean
   openReportModal: () => void
   closeReportModal: () => void
+  showCrescentZones: boolean
+  setShowCrescentZones: (show: boolean) => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -115,7 +117,7 @@ export const useStore = create<StoreState>((set) => ({
 
   reports: [],
   visualizationMode: 'none',
-  setVisualizationMode: (mode) => set({ visualizationMode: mode }),
+  setVisualizationMode: (mode) => set({ visualizationMode: mode, ...(mode === 'hex' ? { showCrescentZones: false } : {}) }),
   fetchReports: async (objectId: string) => {
     const { supabase } = await import('../lib/supabase')
     const { data, error } = await supabase
@@ -156,5 +158,7 @@ export const useStore = create<StoreState>((set) => ({
   isReportModalOpen: false,
   openReportModal: () => set({ isReportModalOpen: true }),
   closeReportModal: () => set({ isReportModalOpen: false }),
+  showCrescentZones: false,
+  setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
 }))
 

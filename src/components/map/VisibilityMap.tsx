@@ -7,6 +7,7 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useStore } from '../../store/store'
 import VisibilityTooltip from './VisibilityTooltip'
 import HexGridLayer from './layers/HexGridLayer'
+import CrescentVisibilityLayer from './layers/CrescentVisibilityLayer'
 import VectorLayer from './layers/VectorLayer'
 
 const DefaultIcon = L.icon({
@@ -141,6 +142,7 @@ interface VisibilityMapProps {
 
 export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
   const visualizationMode = useStore((state) => state.visualizationMode)
+  const showCrescentZones = useStore((state) => state.showCrescentZones)
 
   return (
     <div className={`w-full h-full ${className}`} style={{ margin: 0, padding: 0, zIndex: 0, position: 'relative' }}>
@@ -169,7 +171,8 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
         <MapConfigurator />
         <VectorLayer />
 
-        {visualizationMode === 'hex' && <HexGridLayer />}
+        {visualizationMode === 'hex' && !showCrescentZones && <HexGridLayer />}
+        {showCrescentZones && <CrescentVisibilityLayer />}
 
         <VisibilityTooltip />
       </MapContainer>
