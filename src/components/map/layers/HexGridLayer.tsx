@@ -10,6 +10,7 @@ import type { WeatherConditions, CelestialObject } from "../../../types";
 import {
   getAllWeatherFromCache,
   getWeatherFromBulkCache,
+  getWeatherForecastForTime,
 } from "../../../utils/weatherService";
 
 // Cache for visibility scores - keyed by "objectId,lat,lon,time10min"
@@ -155,20 +156,23 @@ const VisibilityGridLayer = L.GridLayer.extend({
 export default function HexGridLayer() {
   const map = useMap();
   const selectedObject = useStore((state) => state.selectedObject);
+  const simulatedTime = useStore((state) => state.simulatedTime);
   const layerRef = useRef<IVisibilityGridLayer | null>(null);
 
   const [weatherCache, setWeatherCache] = useState<Map<string, WeatherConditions>>(new Map());
   const weatherLoadedRef = useRef(false);
   const timeRef = useRef<number>(Math.floor(Date.now() / CACHE_TIME_RESOLUTION_MS));
 
-  // Load weather data on mount + refresh every 5 min
+  // Load weather data on mount + refresh every 5 min (live mode only)
   useEffect(() => {
-    if (weatherLoadedRef.current) return;
-    weatherLoadedRef.current = true;
+    if (simulatedTime) return; // Don't auto-refresh in simulated mode
 
-    getAllWeatherFromCache().then((cache) => {
-      setWeatherCache(cache);
-    });
+    if (!weatherLoadedRef.current) {
+      weatherLoadedRef.current = true;
+      getAllWeatherFromCache().then((cache) => {
+        setWeatherCache(cache);
+      });
+    }
 
     const interval = setInterval(() => {
       getAllWeatherFromCache().then((cache) => {
@@ -182,10 +186,26 @@ export default function HexGridLayer() {
     }, 5 * 60 * 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [simulatedTime]);
 
-  // Time-based redraw every 60s if the 10-min bucket changed
+  // Fetch forecast weather when simulatedTime changes
   useEffect(() => {
+    if (!simulatedTime) return;
+    getWeatherForecastForTime(simulatedTime).then((cache) => {
+      setWeatherCache(cache);
+      visibilityCache.clear();
+      if (layerRef.current) {
+        layerRef.current.setWeatherCache(cache);
+        layerRef.current.setCurrentTime(simulatedTime);
+        layerRef.current.redraw();
+      }
+    });
+  }, [simulatedTime]);
+
+  // Time-based redraw every 60s if the 10-min bucket changed (live mode only)
+  useEffect(() => {
+    if (simulatedTime) return; // Don't auto-tick when simulating
+
     const interval = setInterval(() => {
       const currentBucket = Math.floor(Date.now() / CACHE_TIME_RESOLUTION_MS);
       if (currentBucket !== timeRef.current) {
@@ -199,7 +219,7 @@ export default function HexGridLayer() {
     }, 60_000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [simulatedTime]);
 
   // Layer lifecycle — create/destroy based on map + selectedObject
   useEffect(() => {
@@ -228,9 +248,10 @@ export default function HexGridLayer() {
       keepBuffer: 2,
     });
 
+    const effectiveTime = simulatedTime ?? new Date();
     visibilityCache.clear();
     gridLayer.setWeatherCache(weatherCache);
-    gridLayer.setCurrentTime(new Date());
+    gridLayer.setCurrentTime(effectiveTime);
     gridLayer.setSelectedObject(selectedObject);
     gridLayer.addTo(map);
     layerRef.current = gridLayer;

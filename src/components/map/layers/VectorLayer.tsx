@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Polygon } from 'react-leaflet'
+import { useStore } from '../../../store/store'
 
 const RAD = Math.PI / 180
 const DEG = 180 / Math.PI
@@ -77,14 +78,20 @@ function getNightPolygon(time: Date): [number, number][] {
 }
 
 export default function VectorLayer() {
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const [nightPoly, setNightPoly] = useState<[number, number][]>([])
 
+  // Recalculate when simulatedTime changes
   useEffect(() => {
-    const update = () => setNightPoly(getNightPolygon(new Date()))
-    update()
-    const interval = setInterval(update, 60_000)
+    const effectiveTime = simulatedTime ?? new Date()
+    setNightPoly(getNightPolygon(effectiveTime))
+
+    if (simulatedTime) return // Don't auto-tick when simulating
+    const interval = setInterval(() => {
+      setNightPoly(getNightPolygon(new Date()))
+    }, 60_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [simulatedTime])
 
   if (nightPoly.length === 0) return null
 

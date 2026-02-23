@@ -2,12 +2,14 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useMap } from 'react-leaflet'
 import { useStore } from '../../store/store'
 import { getCelestialVisibilityBreakdown } from '../../utils/visibilityCalculator'
-import { getWeatherForUserLocation } from '../../utils/weatherService'
+import { getAllWeatherFromCache, getWeatherFromBulkCache } from '../../utils/weatherService'
+import type { WeatherConditions } from '../../types'
 import { colors, spacing, sizes } from '../../constants'
 
 export default function VisibilityTooltip() {
   const map = useMap()
   const selectedObject = useStore((state) => state.selectedObject)
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const [tooltipVisible, setTooltipVisible] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
   const [visibilityData, setVisibilityData] = useState<{
@@ -22,15 +24,24 @@ export default function VisibilityTooltip() {
   const currentPixelRef = useRef<{ x: number; y: number } | null>(null)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const tooltipVisibleRef = useRef(false)
+  const weatherCacheRef = useRef<Map<string, WeatherConditions>>(new Map())
+
+  // Load weather cache (same source as the hex grid overlay)
+  useEffect(() => {
+    getAllWeatherFromCache().then((cache) => {
+      weatherCacheRef.current = cache
+    })
+  }, [])
 
   const calculateVisibilityAtPoint = useCallback(
-    async (lat: number, lon: number) => {
+    (lat: number, lon: number) => {
       if (!selectedObject) return null
 
-      const weather = await getWeatherForUserLocation(lat, lon)
-      const currentTime = new Date()
+      const weather = getWeatherFromBulkCache(lat, lon, weatherCacheRef.current)
+      if (!weather) return null
+      const effectiveTime = simulatedTime ?? new Date()
 
-      const breakdown = getCelestialVisibilityBreakdown(lat, lon, currentTime, weather, selectedObject)
+      const breakdown = getCelestialVisibilityBreakdown(lat, lon, effectiveTime, weather, selectedObject)
 
       return {
         percentage: Math.round(breakdown.score * 100),
@@ -41,7 +52,7 @@ export default function VisibilityTooltip() {
         isAboveHorizon: breakdown.isAboveHorizon,
       }
     },
-    [selectedObject]
+    [selectedObject, simulatedTime]
   )
 
   const handleMouseMove = useCallback(
@@ -82,11 +93,10 @@ export default function VisibilityTooltip() {
           setTooltipPosition({ x: currentPixel.x, y: currentPixel.y })
 
           // Calculate visibility data
-          calculateVisibilityAtPoint(latlng.lat, latlng.lng).then((data) => {
-            if (data && tooltipVisibleRef.current) {
-              setVisibilityData(data)
-            }
-          })
+          const data = calculateVisibilityAtPoint(latlng.lat, latlng.lng)
+          if (data && tooltipVisibleRef.current) {
+            setVisibilityData(data)
+          }
         }, 1500)
       }
     },

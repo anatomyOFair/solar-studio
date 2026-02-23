@@ -17,6 +17,7 @@ export default function TopNav() {
   const toggleLocalTime = useStore((state) => state.toggleLocalTime)
   const viewMode = useStore((state) => state.viewMode)
   const setViewMode = useStore((state) => state.setViewMode)
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
@@ -27,31 +28,32 @@ export default function TopNav() {
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (simulatedTime) return // Don't tick when simulating
     const timer = setInterval(() => {
       setCurrentTime(new Date())
     }, 1000)
+    return () => clearInterval(timer)
+  }, [simulatedTime])
 
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsUserMenuOpen(false)
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
-
-    return () => {
-      clearInterval(timer)
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const displayTime = simulatedTime ?? currentTime
+
   const formatTime = () => {
-    const dateStr = currentTime.toLocaleDateString()
+    const dateStr = displayTime.toLocaleDateString()
     if (isLocalTime) {
-      const timeStr = currentTime.toLocaleTimeString()
+      const timeStr = displayTime.toLocaleTimeString()
       return `${dateStr} ${timeStr}`
     } else {
-      const utc = currentTime.toUTCString()
+      const utc = displayTime.toUTCString()
       const timeStr = utc.split(' ')[4]
       return `${dateStr} ${timeStr} UTC`
     }
@@ -110,8 +112,8 @@ export default function TopNav() {
           className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
           style={{ backgroundColor: 'transparent', color: 'white', width: sizes.widget.timeButtonWidth, minWidth: sizes.widget.timeButtonWidth, maxWidth: sizes.widget.timeButtonWidth, justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
         >
-          <FontAwesomeIcon icon={faClock} style={{ color: 'white', fontSize: '18px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
+          <FontAwesomeIcon icon={faClock} style={{ color: simulatedTime ? colors.primary[400] : 'white', fontSize: '18px' }} />
+          <span style={{ color: simulatedTime ? colors.primary[400] : 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
         </button>
 
         {/* 3. Camera and Map/3D Toggle */}
@@ -125,9 +127,9 @@ export default function TopNav() {
         </button>
 
         {/* 4. History */}
-        <div className="flex items-center opacity-50" style={{ color: 'white', gap: spacing.sm }}>
+        <div className="flex items-center opacity-50" style={{ gap: spacing.sm }}>
           <FontAwesomeIcon icon={faClockRotateLeft} style={{ color: 'white', fontSize: '18px' }} />
-          <span className="text-sm" style={{ color: 'white', fontSize: '16px', fontWeight: '400' }}>Not Implemented</span>
+          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>History</span>
         </div>
 
         {/* 5. Search Bar */}

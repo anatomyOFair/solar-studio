@@ -261,41 +261,56 @@ export function calculateCelestialVisibilityScore(
     brightnessFactor = 0.1 + 0.9 * moonIllum.fraction
   }
 
-  // 2. Below horizon → 0
-  if (objectAltitudeDeg < 0) return 0
+  // 2. Hard gate: well below horizon → 0 (accounting for refraction)
+  if (objectAltitudeDeg < -2) return 0
 
-  // 3. Altitude factor — higher = less atmosphere
-  const altitudeFactor = Math.pow(objectAltitudeDeg / 90, 0.5)
+  // 3. Altitude factor — higher = less atmosphere, gentle curve
+  const altitudeFactor = Math.min(1, Math.max(0, objectAltitudeDeg / 60))
 
-  // 4. Weather factor
-  const weatherFactor = Math.max(0.05, 1 - weather.cloudCover * 0.9 - weather.fog * 0.5)
+  // 4. Horizon ramp — smooth transition from -2° to 10° instead of hard cut
+  //    Prevents jarring green/red boundaries on the grid overlay
+  const horizonRamp = objectAltitudeDeg < 10
+    ? Math.max(0, (objectAltitudeDeg + 2) / 12)
+    : 1
 
-  // 5. Time-of-day factor
+  // 5. Weather factor — clouds and fog reduce visibility
+  const weatherFactor = Math.max(0, 1 - weather.cloudCover * 0.9 - weather.fog * 0.5)
+
+  // 6. Time-of-day factor (sun position)
   const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
   const sunAltitudeDeg = sunPos.altitude * (180 / Math.PI)
 
   let timeFactor: number
   if (id === 'sun') {
-    // Sun is visible during daytime
     timeFactor = sunAltitudeDeg > 0 ? 1.0 : 0
   } else if (sunAltitudeDeg < -18) {
     timeFactor = 1.0 // Astronomical night
   } else if (sunAltitudeDeg < -12) {
     timeFactor = 0.9 // Nautical twilight
   } else if (sunAltitudeDeg < -6) {
-    timeFactor = 0.7 // Civil twilight
+    timeFactor = 0.75 // Civil twilight
   } else if (sunAltitudeDeg < 0) {
     timeFactor = 0.5 // Sun just below horizon
   } else if (id === 'moon' || type === 'moon') {
-    // Moon visible during day but harder
     timeFactor = Math.max(0.2, 0.5 - sunAltitudeDeg / 180)
   } else {
-    // Planets mostly not visible during day
-    timeFactor = Math.max(0.05, 0.3 - sunAltitudeDeg / 90)
+    // Planets not visible during day — hard gate
+    timeFactor = 0
   }
 
-  const rawScore = altitudeFactor * brightnessFactor * weatherFactor * timeFactor
-  return Math.max(0, Math.min(1, rawScore))
+  // Hard gate: daytime for non-sun/non-moon → 0
+  if (timeFactor <= 0) return 0
+
+  // 7. Weighted average, then apply horizon ramp as multiplier
+  //    Weather and time are the most critical, altitude and brightness secondary
+  const rawScore = (
+    0.30 * weatherFactor +
+    0.30 * timeFactor +
+    0.25 * altitudeFactor +
+    0.15 * brightnessFactor
+  )
+
+  return Math.max(0, Math.min(1, rawScore * horizonRamp))
 }
 
 /**

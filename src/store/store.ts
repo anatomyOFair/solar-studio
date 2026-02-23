@@ -37,6 +37,8 @@ interface StoreState {
   closeReportModal: () => void
   showCrescentZones: boolean
   setShowCrescentZones: (show: boolean) => void
+  simulatedTime: Date | null
+  setSimulatedTime: (time: Date | null) => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -160,5 +162,11 @@ export const useStore = create<StoreState>((set) => ({
   closeReportModal: () => set({ isReportModalOpen: false }),
   showCrescentZones: false,
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
+  simulatedTime: null,
+  setSimulatedTime: (time) => set({ simulatedTime: time }),
 }))
+
+export function getEffectiveTime(): Date {
+  return useStore.getState().simulatedTime ?? new Date()
+}
 

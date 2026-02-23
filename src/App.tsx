@@ -3,6 +3,7 @@ import VisibilityMap from './components/map/VisibilityMap'
 import SolarSystemScene from './components/scene/SolarSystemScene'
 import InfoPanel from './components/scene/InfoPanel'
 import TopNav from './components/nav/TopNav'
+import TimeSlider from './components/nav/TimeSlider'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
 import UserReportsPanel from './components/ui/UserReportsPanel'
@@ -40,6 +41,7 @@ function App() {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="h-screen w-full"> 
         <TopNav />
+        <TimeSlider />
         <SideNav />
         {viewMode === '2d' ? (
           <>

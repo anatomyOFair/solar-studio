@@ -94,6 +94,7 @@ export default function RiseSetTimes() {
   const selectedObject = useStore((state) => state.selectedObject)
   const map = useStore((state) => state.map)
   const isLocalTime = useStore((state) => state.isLocalTime)
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const [riseSet, setRiseSet] = useState<RiseSet | null>(null)
   const [center, setCenter] = useState<{ lat: number; lon: number } | null>(null)
 
@@ -126,14 +127,15 @@ export default function RiseSetTimes() {
       setRiseSet(null)
       return
     }
-    setRiseSet(getRiseSetForObject(selectedObject, new Date(), center.lat, center.lon))
-  }, [selectedObject, center])
+    const effectiveTime = simulatedTime ?? new Date()
+    setRiseSet(getRiseSetForObject(selectedObject, effectiveTime, center.lat, center.lon))
+  }, [selectedObject, center, simulatedTime])
 
   if (!riseSet || !selectedObject) return null
 
   return (
     <div style={{ marginTop: '6px' }}>
-      <div className="flex" style={{ gap: '12px', fontSize: '11px', color: colors.text.muted }}>
+      <div className="flex" style={{ gap: '12px', fontSize: '11px', color: colors.text.muted, whiteSpace: 'nowrap' }}>
         {riseSet.alwaysUp ? (
           <span>Always above horizon</span>
         ) : riseSet.alwaysDown ? (

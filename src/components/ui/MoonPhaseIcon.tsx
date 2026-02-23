@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import SunCalc from 'suncalc'
+import { useStore } from '../../store/store'
 import { colors } from '../../constants'
 
 function getPhaseName(phase: number, fraction: number): string {
@@ -55,9 +56,9 @@ function MoonPhaseSVG({ phase, fraction, size = 32 }: { phase: number; fraction:
   // If gibbous (fraction>0.5): terminator curves opposite to outer (expanding lit side)
   let innerSweep: number
   if (waxing) {
-    innerSweep = curveRight ? 0 : 1
-  } else {
     innerSweep = curveRight ? 1 : 0
+  } else {
+    innerSweep = curveRight ? 0 : 1
   }
 
   const path = [
@@ -77,14 +78,19 @@ function MoonPhaseSVG({ phase, fraction, size = 32 }: { phase: number; fraction:
 }
 
 export default function MoonPhaseIcon() {
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const [illumination, setIllumination] = useState(() => SunCalc.getMoonIllumination(new Date()))
 
   useEffect(() => {
+    const effectiveTime = simulatedTime ?? new Date()
+    setIllumination(SunCalc.getMoonIllumination(effectiveTime))
+
+    if (simulatedTime) return // Don't auto-tick when simulating
     const interval = setInterval(() => {
       setIllumination(SunCalc.getMoonIllumination(new Date()))
     }, 60_000)
     return () => clearInterval(interval)
-  }, [])
+  }, [simulatedTime])
 
   const phaseName = getPhaseName(illumination.phase, illumination.fraction)
   const illuminationPct = Math.round(illumination.fraction * 100)

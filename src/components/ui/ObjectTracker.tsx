@@ -37,8 +37,9 @@ export default function ObjectTracker() {
   const visualizationMode = useStore((state) => state.visualizationMode)
   const showCrescentZones = useStore((state) => state.showCrescentZones)
   const setShowCrescentZones = useStore((state) => state.setShowCrescentZones)
+  const simulatedTime = useStore((state) => state.simulatedTime)
 
-  const showCrescentToggle = selectedObject?.id === 'moon' && isNearNewMoon(new Date())
+  const showCrescentToggle = selectedObject?.id === 'moon' && isNearNewMoon(simulatedTime ?? new Date())
 
   // Auto-disable crescent zones when Moon is deselected or not near new moon
   useEffect(() => {
@@ -124,14 +125,18 @@ export default function ObjectTracker() {
         style={{
           bottom: spacing.md,
           left: spacing.md,
-          minWidth: sizes.widget.minWidth,
+          width: sizes.widget.minWidth,
+          height: '120px',
           zIndex: sizes.zIndex.fixed,
           backgroundColor: colors.navbar.background,
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
           border: `1px solid ${colors.navbar.border}`,
           borderRadius: sizes.borderRadius.xl,
-          padding: `${spacing.sm} ${spacing.md}`,
+          padding: `0 ${spacing.md}`,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
           transition: 'all 0.2s ease',
         }}
         onClick={() => setIsSelectorOpen(true)}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
+import { useStore } from '../../../store/store'
 import { calculateYallopQ, type YallopZone } from '../../../utils/yallopCriteria'
 
 // Cache keyed by "lat,lon,dateDay" — zones only change day to day
@@ -142,6 +143,7 @@ const CrescentGridLayer = L.GridLayer.extend({
 
 export default function CrescentVisibilityLayer() {
   const map = useMap()
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const layerRef = useRef<ICrescentGridLayer | null>(null)
 
   useEffect(() => {
@@ -164,8 +166,9 @@ export default function CrescentVisibilityLayer() {
       keepBuffer: 2,
     })
 
+    const effectiveTime = simulatedTime ?? new Date()
     zoneCache.clear()
-    gridLayer.setDate(new Date())
+    gridLayer.setDate(effectiveTime)
     gridLayer.addTo(map)
     layerRef.current = gridLayer
 
@@ -173,7 +176,7 @@ export default function CrescentVisibilityLayer() {
       map.removeLayer(gridLayer)
       layerRef.current = null
     }
-  }, [map])
+  }, [map, simulatedTime])
 
   return null
 }
