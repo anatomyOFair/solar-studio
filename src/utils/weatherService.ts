@@ -1,7 +1,7 @@
 import type { WeatherConditions } from '../types'
 import { supabase } from '../lib/supabase'
 
-const GRID_RESOLUTION = 10
+const GRID_RESOLUTION = 5
 
 // Backend API URL - localhost for dev, Heroku for prod
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ||
@@ -21,7 +21,7 @@ let bulkCacheTimestamp = 0
 const BULK_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 /**
- * Get weather for OVERLAY rendering (reads from Supabase pre-populated data)
+ * Get weather for OVERLAY rendering (reads from weather_forecast table, current hour)
  * Falls back to mock if not found
  */
 export async function getWeatherConditions(
@@ -39,8 +39,7 @@ export async function getWeatherConditions(
   }
 
   try {
-    // Try Supabase
-    const weather = await getWeatherFromSupabase(latGrid, lonGrid)
+    const weather = await getWeatherFromForecastTable(latGrid, lonGrid)
     if (weather) {
       overlayCache.set(cacheKey, { data: weather, timestamp: Date.now() })
       return weather
@@ -96,38 +95,40 @@ export async function getWeatherForUserLocation(
 }
 
 /**
- * Get weather from Supabase cache (for overlay)
+ * Get current weather from weather_forecast table (current hour)
  */
-async function getWeatherFromSupabase(
+async function getWeatherFromForecastTable(
   latGrid: number,
   lonGrid: number
 ): Promise<WeatherConditions | null> {
+  const now = new Date()
+  now.setMinutes(0, 0, 0)
+  const hourEnd = new Date(now.getTime() + 60 * 60 * 1000)
+
   const { data, error } = await supabase
-    .from('weather_cache')
-    .select('cloud_cover, precipitation, fog, updated_at')
+    .from('weather_forecast')
+    .select('cloud_cover, precipitation, visibility_km')
     .eq('lat_grid', latGrid)
     .eq('lon_grid', lonGrid)
+    .gte('forecast_time', now.toISOString())
+    .lt('forecast_time', hourEnd.toISOString())
+    .limit(1)
     .single()
 
   if (error || !data) {
     return null
   }
 
-  // Check if stale (> 3 hours)
-  const updatedAt = new Date(data.updated_at).getTime()
-  if (Date.now() - updatedAt > 3 * 60 * 60 * 1000) {
-    return null
-  }
+  const cloudCover = (data.cloud_cover ?? 0) / 100
+  const precipitation = data.precipitation ?? 0
+  const visKm = data.visibility_km
+  const fog = visKm != null && visKm < 10 ? Math.max(0, 1 - visKm / 10) : 0
 
   return {
-    cloudCover: data.cloud_cover,
-    precipitation: data.precipitation,
-    fog: data.fog,
-    extinctionCoeff: calculateExtinctionCoefficient({
-      cloudCover: data.cloud_cover,
-      precipitation: data.precipitation,
-      fog: data.fog,
-    }),
+    cloudCover,
+    precipitation,
+    fog,
+    extinctionCoeff: calculateExtinctionCoefficient({ cloudCover, precipitation, fog }),
   }
 }
 
@@ -195,7 +196,7 @@ function seededRandom(seed: number): () => number {
 }
 
 /**
- * Fetch ALL weather data from Supabase in one query (for overlay)
+ * Fetch ALL weather data from weather_forecast table for current hour (for overlay)
  * Returns a Map keyed by "lat,lon" grid coordinates
  */
 export async function getAllWeatherFromCache(): Promise<Map<string, WeatherConditions>> {
@@ -205,9 +206,15 @@ export async function getAllWeatherFromCache(): Promise<Map<string, WeatherCondi
   }
 
   try {
+    const now = new Date()
+    now.setMinutes(0, 0, 0)
+    const hourEnd = new Date(now.getTime() + 60 * 60 * 1000)
+
     const { data, error } = await supabase
-      .from('weather_cache')
-      .select('lat_grid, lon_grid, cloud_cover, precipitation, fog, updated_at')
+      .from('weather_forecast')
+      .select('lat_grid, lon_grid, cloud_cover, precipitation, visibility_km')
+      .gte('forecast_time', now.toISOString())
+      .lt('forecast_time', hourEnd.toISOString())
 
     if (error || !data) {
       console.warn('Failed to fetch bulk weather:', error)
@@ -215,24 +222,19 @@ export async function getAllWeatherFromCache(): Promise<Map<string, WeatherCondi
     }
 
     const weatherMap = new Map<string, WeatherConditions>()
-    const now = Date.now()
-    const STALE_THRESHOLD_MS = 3 * 60 * 60 * 1000 // 3 hours
 
     for (const row of data) {
-      // Skip stale entries
-      const updatedAt = new Date(row.updated_at).getTime()
-      if (now - updatedAt > STALE_THRESHOLD_MS) continue
-
       const key = `${row.lat_grid},${row.lon_grid}`
+      const cloudCover = (row.cloud_cover ?? 0) / 100
+      const precipitation = row.precipitation ?? 0
+      const visKm = row.visibility_km
+      const fog = visKm != null && visKm < 10 ? Math.max(0, 1 - visKm / 10) : 0
+
       weatherMap.set(key, {
-        cloudCover: row.cloud_cover,
-        precipitation: row.precipitation,
-        fog: row.fog,
-        extinctionCoeff: calculateExtinctionCoefficient({
-          cloudCover: row.cloud_cover,
-          precipitation: row.precipitation,
-          fog: row.fog,
-        }),
+        cloudCover,
+        precipitation,
+        fog,
+        extinctionCoeff: calculateExtinctionCoefficient({ cloudCover, precipitation, fog }),
       })
     }
 
@@ -270,4 +272,64 @@ export async function getWeatherConditionsForGrid(
   positions: Array<{ lat: number; lon: number }>
 ): Promise<WeatherConditions[]> {
   return Promise.all(positions.map((pos) => getWeatherConditions(pos.lat, pos.lon)))
+}
+
+// Forecast cache — keyed by hour bucket so we don't re-fetch for the same hour
+let forecastCache: { hour: string; data: Map<string, WeatherConditions> } | null = null
+
+/**
+ * Fetch forecast weather for a specific future time from Supabase.
+ * Returns a Map keyed by "lat,lon" grid coordinates, same shape as getAllWeatherFromCache.
+ * Falls back to current weather if no forecast data exists.
+ */
+export async function getWeatherForecastForTime(
+  time: Date
+): Promise<Map<string, WeatherConditions>> {
+  // Round to hour for cache key
+  const hourKey = time.toISOString().slice(0, 13) // "2024-01-15T14"
+
+  if (forecastCache && forecastCache.hour === hourKey) {
+    return forecastCache.data
+  }
+
+  try {
+    // Find the nearest forecast hour (round down)
+    const hourStart = new Date(time)
+    hourStart.setMinutes(0, 0, 0)
+    const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000)
+
+    const { data, error } = await supabase
+      .from('weather_forecast')
+      .select('lat_grid, lon_grid, cloud_cover, precipitation, visibility_km')
+      .gte('forecast_time', hourStart.toISOString())
+      .lt('forecast_time', hourEnd.toISOString())
+
+    if (error || !data || data.length === 0) {
+      console.warn('No forecast data for', hourKey, error)
+      return getAllWeatherFromCache()
+    }
+
+    const weatherMap = new Map<string, WeatherConditions>()
+
+    for (const row of data) {
+      const key = `${row.lat_grid},${row.lon_grid}`
+      const cloudCover = (row.cloud_cover ?? 0) / 100 // 0-100 -> 0-1
+      const precipitation = row.precipitation ?? 0
+      const visKm = row.visibility_km
+      const fog = visKm != null && visKm < 10 ? Math.max(0, 1 - visKm / 10) : 0
+
+      weatherMap.set(key, {
+        cloudCover,
+        precipitation,
+        fog,
+        extinctionCoeff: calculateExtinctionCoefficient({ cloudCover, precipitation, fog }),
+      })
+    }
+
+    forecastCache = { hour: hourKey, data: weatherMap }
+    return weatherMap
+  } catch (error) {
+    console.warn('Forecast fetch error:', error)
+    return getAllWeatherFromCache()
+  }
 }

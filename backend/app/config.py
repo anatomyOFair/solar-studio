@@ -9,9 +9,6 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
 
-    # OpenWeatherMap Configuration
-    openweathermap_api_key: str = ""
-
     # CORS Configuration
     frontend_url: str = "http://localhost:5173"
     cors_origins: Union[str, List[str]] = "http://localhost:5173,http://localhost:3000"
