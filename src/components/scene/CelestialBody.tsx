@@ -96,7 +96,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
     }
   })
 
-  const handleClick = (e: THREE.Event) => {
+  const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
     setSelectedObject(isSelected ? null : object)
   }

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import * as THREE from 'three'
 
 interface OrbitRingProps {
@@ -16,6 +16,8 @@ const SEGMENTS = 128
  * The tilt matches the planet's orbital inclination.
  */
 export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0 }: OrbitRingProps) {
+  const lineRef = useRef<THREE.Line>(null)
+
   const geometry = useMemo(() => {
     const points: THREE.Vector3[] = []
     for (let i = 0; i <= SEGMENTS; i++) {
@@ -25,11 +27,13 @@ export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0 }: OrbitRingPro
     return new THREE.BufferGeometry().setFromPoints(points)
   }, [radius])
 
+  const material = useMemo(() => {
+    return new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.08 })
+  }, [])
+
   return (
     <group rotation={[tiltX, 0, tiltZ]}>
-      <line geometry={geometry}>
-        <lineBasicMaterial color="#ffffff" transparent opacity={0.08} />
-      </line>
+      <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />
     </group>
   )
 }

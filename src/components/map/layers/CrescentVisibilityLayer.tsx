@@ -33,7 +33,7 @@ const ZONE_OPACITY: Record<YallopZone, number> = {
   F: 0.15,
 }
 
-const ZONE_LABELS: Record<YallopZone, string> = {
+const _ZONE_LABELS: Record<YallopZone, string> = {
   A: 'Easily visible',
   B: 'Visible in perfect conditions',
   C: 'May need binoculars',
@@ -41,6 +41,7 @@ const ZONE_LABELS: Record<YallopZone, string> = {
   E: 'Not visible with telescope',
   F: 'Not visible',
 }
+void _ZONE_LABELS
 
 // --- L.GridLayer subclass ---
 
