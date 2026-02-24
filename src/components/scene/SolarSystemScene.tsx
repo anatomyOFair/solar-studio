@@ -1,6 +1,7 @@
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
-import { useEffect, useMemo } from 'react'
+import { EffectComposer, Bloom } from '@react-three/postprocessing'
+import { Suspense, useEffect, useMemo } from 'react'
 import { useStore } from '../../store/store'
 import { positionToScene } from '../../utils/sceneScaling'
 import CelestialBody from './CelestialBody'
@@ -59,7 +60,7 @@ function Scene() {
       <OrbitControls
         enableDamping
         dampingFactor={0.08}
-        minDistance={3}
+        minDistance={1}
         maxDistance={200}
         enablePan
         panSpeed={0.5}
@@ -68,6 +69,15 @@ function Scene() {
       {objects.map((obj) => (
         <CelestialBody key={obj.id} object={obj} />
       ))}
+      <EffectComposer>
+        <Bloom
+          mipmapBlur
+          luminanceThreshold={0.9}
+          luminanceSmoothing={0.1}
+          intensity={2.0}
+          radius={0.85}
+        />
+      </EffectComposer>
     </>
   )
 }
@@ -88,7 +98,9 @@ export default function SolarSystemScene() {
         camera={{ position: [0, 40, 60], fov: 50 }}
         gl={{ alpha: true }}
       >
-        <Scene />
+        <Suspense fallback={null}>
+          <Scene />
+        </Suspense>
       </Canvas>
     </div>
   )

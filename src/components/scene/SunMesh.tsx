@@ -1,64 +1,41 @@
-import { useRef, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef } from 'react'
+import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
-import { radiusToScene, PLANET_COLORS } from '../../utils/sceneScaling'
-
-const SUN_COLOR = PLANET_COLORS.sun
+import { radiusToScene } from '../../utils/sceneScaling'
+import sunTexturePath from '../../assets/textures/8k_sun.jpg'
 
 /**
- * Sun sphere + point light + additive-blended glow sprite.
- * The glow is a simple radial gradient on a plane, always facing camera.
+ * Sun sphere + point light.
+ * Uses meshStandardMaterial with the texture on the emissive channel
+ * (not diffuse) so emissiveIntensity multiplies values above 1.0.
+ * toneMapped={false} prevents clamping — bloom picks up the excess.
  */
 export default function SunMesh() {
-  const glowRef = useRef<THREE.Mesh>(null)
+  const sunRef = useRef<THREE.Mesh>(null)
   const radius = radiusToScene(695700, 'sun')
 
-  const glowTexture = useMemo(() => {
-    const size = 256
-    const canvas = document.createElement('canvas')
-    canvas.width = size
-    canvas.height = size
-    const ctx = canvas.getContext('2d')!
-    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2)
-    gradient.addColorStop(0, 'rgba(255, 204, 51, 0.6)')
-    gradient.addColorStop(0.3, 'rgba(255, 170, 20, 0.25)')
-    gradient.addColorStop(0.6, 'rgba(255, 140, 0, 0.08)')
-    gradient.addColorStop(1, 'rgba(255, 100, 0, 0)')
-    ctx.fillStyle = gradient
-    ctx.fillRect(0, 0, size, size)
-    const tex = new THREE.CanvasTexture(canvas)
-    return tex
-  }, [])
+  const sunTexture = useLoader(THREE.TextureLoader, sunTexturePath)
 
-  // Subtle pulsing
-  useFrame(({ clock }) => {
-    if (!glowRef.current) return
-    const s = 1 + Math.sin(clock.elapsedTime * 0.8) * 0.05
-    glowRef.current.scale.set(s, s, s)
+  useFrame(() => {
+    if (sunRef.current) {
+      sunRef.current.rotation.y += 0.0005
+    }
   })
 
   return (
     <group>
-      {/* Sun sphere */}
-      <mesh>
-        <sphereGeometry args={[radius, 32, 32]} />
-        <meshBasicMaterial color={SUN_COLOR} />
-      </mesh>
-
-      {/* Point light from sun */}
-      <pointLight color={SUN_COLOR} intensity={3} distance={600} decay={1.5} />
-
-      {/* Glow sprite */}
-      <mesh ref={glowRef}>
-        <planeGeometry args={[radius * 8, radius * 8]} />
-        <meshBasicMaterial
-          map={glowTexture}
-          transparent
-          blending={THREE.AdditiveBlending}
-          depthWrite={false}
-          side={THREE.DoubleSide}
+      <mesh ref={sunRef}>
+        <sphereGeometry args={[radius, 64, 64]} />
+        <meshStandardMaterial
+          emissiveMap={sunTexture}
+          emissive="#ffffff"
+          emissiveIntensity={2}
+          toneMapped={false}
         />
       </mesh>
+
+      {/* Point light — decay=0 so all planets get consistent illumination */}
+      <pointLight color="#fff5e0" intensity={2} decay={0} />
     </group>
   )
 }

@@ -6,7 +6,7 @@
  * We use power-law compression so everything is visible in one scene.
  */
 
-const AU_SCALE = 15
+const AU_SCALE = 20
 const POSITION_EXPONENT = 0.55
 
 /** Compress a distance (AU) to scene units */
@@ -31,11 +31,18 @@ export function positionToScene(x: number, y: number, z: number): [number, numbe
   ]
 }
 
-/** Convert real radius (km) to display radius. Exaggerated so planets are clickable. */
+/**
+ * Convert real radius (km) to display radius using square-root scaling.
+ * Sqrt is the standard for interactive orreries because humans judge
+ * size by area (area ∝ r²), so sqrt makes visual areas proportional
+ * to real radii. Sun is capped to avoid engulfing inner planets.
+ */
+const BASE_PLANET_SIZE = 0.3   // Earth = 0.3 scene units
+const MIN_PLANET_SIZE = 0.12   // minimum clickable size
+
 export function radiusToScene(radiusKm: number, id: string): number {
-  if (id === 'sun') return 2.5
-  // Bigger minimum so small planets are visible, gentler scaling
-  return Math.max(0.15, Math.log10(radiusKm / 500) * 0.35)
+  if (id === 'sun') return 2.0
+  return Math.max(MIN_PLANET_SIZE, Math.sqrt(radiusKm / 6371) * BASE_PLANET_SIZE)
 }
 
 /** Planet colors by object ID */

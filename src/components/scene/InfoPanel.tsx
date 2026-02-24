@@ -11,8 +11,14 @@ export default function InfoPanel() {
   const color = PLANET_COLORS[selectedObject.id] ?? DEFAULT_COLOR
   const description = selectedObject.description || DESCRIPTIONS[selectedObject.id] || ''
 
-  const formatDistance = (km?: number) => {
-    if (!km) return '—'
+  // Heliocentric distance from x,y,z (AU)
+  const x = selectedObject.x ?? 0
+  const y = selectedObject.y ?? 0
+  const z = selectedObject.z ?? 0
+  const sunDistAu = Math.sqrt(x * x + y * y + z * z)
+  const sunDistKm = sunDistAu * 149_597_870.7
+
+  const formatDistance = (km: number) => {
     if (km >= 1_000_000) return `${(km / 1_000_000).toFixed(1)}M km`
     return `${Math.round(km).toLocaleString()} km`
   }
@@ -20,8 +26,8 @@ export default function InfoPanel() {
   const stats: { label: string; value: string }[] = [
     { label: 'Type', value: selectedObject.type.charAt(0).toUpperCase() + selectedObject.type.slice(1) },
     { label: 'Radius', value: selectedObject.radius_km ? `${selectedObject.radius_km.toLocaleString()} km` : '—' },
-    { label: 'Distance (AU)', value: selectedObject.distance_au != null ? `${selectedObject.distance_au.toFixed(4)} AU` : '—' },
-    { label: 'Distance', value: formatDistance(selectedObject.distance_km) },
+    { label: 'From Sun (AU)', value: sunDistAu > 0 ? `${sunDistAu.toFixed(4)} AU` : '—' },
+    { label: 'From Sun', value: sunDistAu > 0 ? formatDistance(sunDistKm) : '—' },
     { label: 'Magnitude', value: selectedObject.magnitude != null ? selectedObject.magnitude.toFixed(1) : '—' },
   ]
 
