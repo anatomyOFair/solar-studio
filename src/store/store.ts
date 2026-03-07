@@ -9,8 +9,8 @@ interface StoreState {
   setSelectedObject: (object: CelestialObject | null) => void
 
   // Data Slice
-  // Data Slice
   objects: CelestialObject[]
+  objectsUpdatedAt: Date
   fetchObjects: () => Promise<void>
   visualizationMode: 'none' | 'hex'
   setVisualizationMode: (mode: 'none' | 'hex') => void
@@ -49,6 +49,7 @@ export const useStore = create<StoreState>((set) => ({
 
   // Data Slice
   objects: [],
+  objectsUpdatedAt: new Date(),
   fetchObjects: async () => {
     const { supabase } = await import('../lib/supabase')
     const { calculateMoonPosition } = await import('../utils/celestialCalculations')
@@ -93,7 +94,11 @@ export const useStore = create<StoreState>((set) => ({
           description: record.description,
         }))
 
-        set({ objects })
+        const updatedAt = data[0]?.updated_at
+          ? new Date(data[0].updated_at)
+          : new Date()
+
+        set({ objects, objectsUpdatedAt: updatedAt })
         return
       }
     } catch (err) {

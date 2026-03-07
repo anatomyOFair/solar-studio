@@ -4,6 +4,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Suspense, useEffect, useMemo } from 'react'
 import { useStore } from '../../store/store'
 import { positionToScene } from '../../utils/sceneScaling'
+import { extrapolatePosition } from '../../utils/extrapolatePosition'
 import CelestialBody from './CelestialBody'
 import Starfield from './Starfield'
 import SunMesh from './SunMesh'
@@ -13,6 +14,8 @@ const PLANET_IDS = new Set(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'sat
 
 function Scene() {
   const objects = useStore((state) => state.objects)
+  const objectsUpdatedAt = useStore((state) => state.objectsUpdatedAt)
+  const simulatedTime = useStore((state) => state.simulatedTime)
   const fetchObjects = useStore((state) => state.fetchObjects)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
 
@@ -24,10 +27,12 @@ function Scene() {
 
   // Compute orbit ring radii + tilt from the planet's 3D scene position
   const orbitData = useMemo(() => {
+    const effectiveTime = simulatedTime ?? new Date()
     return objects
       .filter((obj) => PLANET_IDS.has(obj.id))
       .map((obj) => {
-        const [sx, sy, sz] = positionToScene(obj.x ?? 0, obj.y ?? 0, obj.z ?? 0)
+        const { x, y, z } = extrapolatePosition(obj, effectiveTime, objectsUpdatedAt)
+        const [sx, sy, sz] = positionToScene(x, y, z)
         const radius = Math.sqrt(sx * sx + sy * sy + sz * sz)
         const xzDist = Math.sqrt(sx * sx + sz * sz)
         // Elevation angle above the XZ plane
@@ -42,7 +47,7 @@ function Scene() {
           tiltZ: alpha * Math.cos(theta),
         }
       })
-  }, [objects])
+  }, [objects, simulatedTime, objectsUpdatedAt])
 
   return (
     <>

@@ -3,6 +3,7 @@ import { useFrame, useLoader } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 import { positionToScene, radiusToScene, PLANET_COLORS, DEFAULT_COLOR } from '../../utils/sceneScaling'
+import { extrapolatePosition } from '../../utils/extrapolatePosition'
 import { useStore } from '../../store/store'
 import type { CelestialObject } from '../../types'
 
@@ -33,9 +34,14 @@ interface CelestialBodyProps {
 }
 
 function TexturedPlanet({ object }: CelestialBodyProps) {
-  const x = object.x ?? 0
-  const y = object.y ?? 0
-  const z = object.z ?? 0
+  const simulatedTime = useStore((state) => state.simulatedTime)
+  const objectsUpdatedAt = useStore((state) => state.objectsUpdatedAt)
+
+  const { x, y, z } = useMemo(() => {
+    const effectiveTime = simulatedTime ?? new Date()
+    return extrapolatePosition(object, effectiveTime, objectsUpdatedAt)
+  }, [object, simulatedTime, objectsUpdatedAt])
+
   const radius = radiusToScene(object.radius_km ?? 1000, object.id)
   const color = PLANET_COLORS[object.id] ?? DEFAULT_COLOR
   const position = positionToScene(x, y, z)
