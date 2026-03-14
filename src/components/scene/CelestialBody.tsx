@@ -18,6 +18,47 @@ import saturnRingTex from '../../assets/textures/8k_saturn_ring_alpha.png'
 import uranusTex from '../../assets/textures/2k_uranus.jpg'
 import neptuneTex from '../../assets/textures/2k_neptune.jpg'
 
+// Atmosphere config: [color, intensity, exponent, scale]
+// Real atmosphere ratios are tiny (Earth = 1.016, Jupiter = 1.001) — invisible at scene scale.
+// We exaggerate uniformly but preserve relative proportions and use real colors/opacities.
+// Venus = thickest visible haze, Mars = thinnest, gas giants = subtle (their "surface" IS atmosphere).
+const ATMOSPHERE: Record<string, [string, number, number, number]> = {
+  earth:   ['#6BA3D6', 0.20, 2.5, 1.05],  // thin transparent blue limb
+  venus:   ['#e8d5a0', 0.30, 2.0, 1.04],  // thick opaque yellow-white sulfuric haze
+  mars:    ['#c4836a', 0.08, 3.5, 1.03],  // very thin reddish-tan dust haze
+  jupiter: ['#d4a56a', 0.10, 3.0, 1.02],  // subtle warm glow at cloud tops
+  saturn:  ['#c9b87a', 0.08, 3.0, 1.02],  // faint golden haze
+  uranus:  ['#7fdbda', 0.12, 3.0, 1.02],  // pale cyan methane glow
+  neptune: ['#4a6bdf', 0.15, 3.0, 1.02],  // deep blue methane haze
+}
+
+const atmosVertexShader = /* glsl */ `
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    vNormal = normalize(normalMatrix * normal);
+    vec4 mvPos = modelViewMatrix * vec4(position, 1.0);
+    vViewDir = normalize(-mvPos.xyz);
+    gl_Position = projectionMatrix * mvPos;
+  }
+`
+
+const atmosFragmentShader = /* glsl */ `
+  uniform vec3 uColor;
+  uniform float uIntensity;
+  uniform float uExponent;
+  varying vec3 vNormal;
+  varying vec3 vViewDir;
+  void main() {
+    float rim = 1.0 - clamp(dot(vNormal, vViewDir), 0.0, 1.0);
+    // rim=0 at center (occluded by planet), rim=1 at outer edge
+    // Multiply rim (grows outward) by (1-rim)^exp (fades at outer edge)
+    // Result: glow peaks near the planet surface and diffuses to transparent
+    float glow = pow(rim, 1.5) * pow(1.0 - rim, uExponent) * 4.0;
+    gl_FragColor = vec4(uColor, glow * uIntensity);
+  }
+`
+
 const TEXTURE_PATHS: Record<string, string> = {
   mercury: mercuryTex,
   venus: venusTex,
@@ -51,6 +92,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   const isSelected = selectedObject?.id === object.id
 
   const [hovered, setHovered] = useState(false)
+  const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const cloudsRef = useRef<THREE.Mesh>(null)
 
@@ -92,14 +134,13 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   }, [isSaturn, radius])
 
   useFrame(() => {
-    if (!meshRef.current) return
+    if (!groupRef.current) return
+    // Scale the whole group (planet + clouds + atmosphere + rings) on hover
     const target = hovered || isSelected ? 1.2 : 1.0
-    meshRef.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
+    groupRef.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
     // Slow rotation for visual interest
-    meshRef.current.rotation.y += 0.001
-    if (cloudsRef.current) {
-      cloudsRef.current.rotation.y += 0.0015
-    }
+    if (meshRef.current) meshRef.current.rotation.y += 0.001
+    if (cloudsRef.current) cloudsRef.current.rotation.y += 0.0015
   })
 
   const handleClick = (e: { stopPropagation: () => void }) => {
@@ -115,6 +156,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
   return (
     <group position={position}>
+     <group ref={groupRef}>
       <mesh
         ref={meshRef}
         onClick={handleClick}
@@ -164,6 +206,31 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
           />
         </mesh>
       )}
+
+      {/* Atmospheric Fresnel glow */}
+      {ATMOSPHERE[object.id] && (() => {
+        const [color, intensity, exponent, scale] = ATMOSPHERE[object.id]
+        return (
+          <mesh>
+            <sphereGeometry args={[radius * scale, 64, 64]} />
+            <shaderMaterial
+              vertexShader={atmosVertexShader}
+              fragmentShader={atmosFragmentShader}
+              uniforms={{
+                uColor: { value: new THREE.Color(color) },
+                uIntensity: { value: intensity },
+                uExponent: { value: exponent },
+              }}
+              transparent
+              blending={THREE.AdditiveBlending}
+              side={THREE.FrontSide}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })()}
+
+     </group>
 
       {/* Always-visible small label, larger when selected */}
       <Html
