@@ -16,9 +16,10 @@ export default function SunMesh() {
 
   const sunTexture = useLoader(THREE.TextureLoader, sunTexturePath)
 
-  useFrame(() => {
+  // Carrington rotation period: 25.38 days = 2,192,832 seconds
+  useFrame((_state, delta) => {
     if (sunRef.current) {
-      sunRef.current.rotation.y += 0.0005
+      sunRef.current.rotation.y += ((2 * Math.PI) / 2_192_832) * delta
     }
   })
 

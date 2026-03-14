@@ -11,12 +11,30 @@ import mercuryTex from '../../assets/textures/8k_mercury.jpg'
 import venusTex from '../../assets/textures/8k_venus_surface.jpg'
 import earthTex from '../../assets/textures/8k_earth_daymap.jpg'
 import earthCloudsTex from '../../assets/textures/8k_earth_clouds.jpg'
+import earthNightTex from '../../assets/textures/8k_earth_nightmap.jpg'
 import marsTex from '../../assets/textures/8k_mars.jpg'
 import jupiterTex from '../../assets/textures/8k_jupiter.jpg'
 import saturnTex from '../../assets/textures/8k_saturn.jpg'
 import saturnRingTex from '../../assets/textures/8k_saturn_ring_alpha.png'
 import uranusTex from '../../assets/textures/2k_uranus.jpg'
 import neptuneTex from '../../assets/textures/2k_neptune.jpg'
+
+// Rotation speed multipliers relative to Earth (1.0) — based on real sidereal periods.
+// Base visual speed is slow enough to appreciate the day/night terminator.
+// Venus is retrograde (negative). Gas giants spin ~2.5× faster than Earth.
+// Real-time rotation: Earth completes 2π rad in 86164s (sidereal day).
+// 2π / 86164 ≈ 0.0000729 rad/s. useFrame delta is in seconds.
+const BASE_ROTATION_RAD_S = (2 * Math.PI) / 86164
+const ROTATION_SPEED: Record<string, number> = {
+  mercury:  0.017,  // 58.6 day period
+  venus:   -0.004,  // 243 days, retrograde
+  earth:    1.0,
+  mars:     0.97,
+  jupiter:  2.44,
+  saturn:   2.27,
+  uranus:   1.39,
+  neptune:  1.49,
+}
 
 // Atmosphere config: [color, intensity, exponent, scale]
 // Real atmosphere ratios are tiny (Earth = 1.016, Jupiter = 1.001) — invisible at scene scale.
@@ -56,6 +74,40 @@ const atmosFragmentShader = /* glsl */ `
     // Result: glow peaks near the planet surface and diffuses to transparent
     float glow = pow(rim, 1.5) * pow(1.0 - rim, uExponent) * 4.0;
     gl_FragColor = vec4(uColor, glow * uIntensity);
+  }
+`
+
+// Earth day/night shader — blends day texture with emissive night lights based on sun direction
+const earthVertexShader = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vNormalWorld;
+  varying vec3 vSunDir;
+  void main() {
+    vUv = uv;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vNormalWorld = normalize(mat3(modelMatrix) * normal);
+    // Sun is at world origin
+    vSunDir = normalize(-worldPos.xyz);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`
+
+const earthFragmentShader = /* glsl */ `
+  uniform sampler2D uDayMap;
+  uniform sampler2D uNightMap;
+  varying vec2 vUv;
+  varying vec3 vNormalWorld;
+  varying vec3 vSunDir;
+  void main() {
+    vec3 day = texture2D(uDayMap, vUv).rgb;
+    vec3 night = texture2D(uNightMap, vUv).rgb;
+    float NdotL = dot(vNormalWorld, vSunDir);
+    // Smooth transition at the terminator
+    float blend = smoothstep(-0.1, 0.2, NdotL);
+    // Day: texture * lambertian, Night: emissive city lights
+    vec3 dayLit = day * max(NdotL, 0.0) + day * 0.03;
+    vec3 nightLit = night * 1.5;
+    gl_FragColor = vec4(mix(nightLit, dayLit, blend), 1.0);
   }
 `
 
@@ -105,7 +157,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
     THREE.TextureLoader,
     hasTexture
       ? isEarth
-        ? [texturePath, earthCloudsTex]
+        ? [texturePath, earthCloudsTex, earthNightTex]
         : isSaturn
           ? [texturePath, saturnRingTex]
           : [texturePath]
@@ -114,6 +166,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
   const mainTexture = textures[0] ?? null
   const secondaryTexture = textures[1] ?? null
+  const nightTexture = isEarth ? (textures[2] ?? null) : null
 
   // Saturn ring geometry — flat annulus
   const ringGeometry = useMemo(() => {
@@ -133,14 +186,36 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
     return geo
   }, [isSaturn, radius])
 
-  useFrame(() => {
+  useFrame((_state, delta) => {
     if (!groupRef.current) return
-    // Scale the whole group (planet + clouds + atmosphere + rings) on hover
     const target = hovered || isSelected ? 1.2 : 1.0
     groupRef.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
-    // Slow rotation for visual interest
-    if (meshRef.current) meshRef.current.rotation.y += 0.001
-    if (cloudsRef.current) cloudsRef.current.rotation.y += 0.0015
+
+    if (isEarth && meshRef.current) {
+      // Absolute rotation so the lit hemisphere matches real geography.
+      // Subsolar longitude ≈ (12 − UTCh) × 15° — the meridian where it's noon.
+      const now = useStore.getState().simulatedTime ?? new Date()
+      const utcH = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600
+      const sunLon = (12 - utcH) * (Math.PI / 12)
+      meshRef.current.rotation.y = Math.atan2(position[2], -position[0]) - sunLon
+      if (cloudsRef.current) cloudsRef.current.rotation.y = meshRef.current.rotation.y + 0.02
+    } else if (isTidallyLocked && meshRef.current) {
+      // Moon always shows near side toward Earth
+      const { objects, objectsUpdatedAt } = useStore.getState()
+      const earth = objects.find(o => o.id === 'earth')
+      if (earth) {
+        const now = useStore.getState().simulatedTime ?? new Date()
+        const ep = extrapolatePosition(earth, now, objectsUpdatedAt)
+        const earthPos = positionToScene(ep.x, ep.y, ep.z)
+        const dx = earthPos[0] - position[0]
+        const dz = earthPos[2] - position[2]
+        meshRef.current.rotation.y = Math.atan2(-dz, dx)
+      }
+    } else {
+      const speed = BASE_ROTATION_RAD_S * (ROTATION_SPEED[object.id] ?? 1.0) * delta
+      if (meshRef.current) meshRef.current.rotation.y += speed
+      if (cloudsRef.current) cloudsRef.current.rotation.y += speed * 1.5
+    }
   })
 
   const handleClick = (e: { stopPropagation: () => void }) => {
@@ -153,6 +228,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   }
 
   const isMoon = object.type === 'moon'
+  const isTidallyLocked = object.id === 'moon'
 
   return (
     <group position={position}>
@@ -164,7 +240,16 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}
       >
         <sphereGeometry args={[radius, 64, 64]} />
-        {hasTexture ? (
+        {isEarth && mainTexture && nightTexture ? (
+          <shaderMaterial
+            vertexShader={earthVertexShader}
+            fragmentShader={earthFragmentShader}
+            uniforms={{
+              uDayMap: { value: mainTexture },
+              uNightMap: { value: nightTexture },
+            }}
+          />
+        ) : hasTexture ? (
           <meshStandardMaterial
             map={mainTexture}
             roughness={isMoon ? 0.9 : 0.7}
