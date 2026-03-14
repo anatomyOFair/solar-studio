@@ -39,6 +39,9 @@ interface StoreState {
   setShowCrescentZones: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
+  isTonightSkyOpen: boolean
+  openTonightSky: () => void
+  closeTonightSky: () => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -169,6 +172,9 @@ export const useStore = create<StoreState>((set) => ({
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
+  isTonightSkyOpen: false,
+  openTonightSky: () => set({ isTonightSkyOpen: true }),
+  closeTonightSky: () => set({ isTonightSkyOpen: false }),
 }))
 
 export function getEffectiveTime(): Date {

@@ -191,7 +191,7 @@ export function visibilityScoreToPercentage(visibilityScore: number): number {
  * Convert RA/Dec (equatorial coordinates) to altitude at observer location.
  * Used for planets and other objects not covered by SunCalc.
  */
-function raDecToAltitude(raDeg: number, decDeg: number, observerLat: number, observerLon: number, time: Date): number {
+export function raDecToAltitude(raDeg: number, decDeg: number, observerLat: number, observerLon: number, time: Date): number {
   const DEG = Math.PI / 180
 
   // Julian Date

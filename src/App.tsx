@@ -7,6 +7,7 @@ import TimeSlider from './components/nav/TimeSlider'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
 import UserReportsPanel from './components/ui/UserReportsPanel'
+import TonightsSky from './components/ui/TonightsSky'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
 import { useStore } from './store/store'
@@ -48,6 +49,7 @@ function App() {
             <VisibilityMap />
             <ObjectTracker />
             <UserReportsPanel />
+            <TonightsSky />
           </>
         ) : (
           <>

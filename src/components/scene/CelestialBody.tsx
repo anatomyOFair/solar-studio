@@ -41,13 +41,13 @@ const ROTATION_SPEED: Record<string, number> = {
 // We exaggerate uniformly but preserve relative proportions and use real colors/opacities.
 // Venus = thickest visible haze, Mars = thinnest, gas giants = subtle (their "surface" IS atmosphere).
 const ATMOSPHERE: Record<string, [string, number, number, number]> = {
-  earth:   ['#6BA3D6', 0.20, 2.5, 1.05],  // thin transparent blue limb
-  venus:   ['#e8d5a0', 0.30, 2.0, 1.04],  // thick opaque yellow-white sulfuric haze
-  mars:    ['#c4836a', 0.08, 3.5, 1.03],  // very thin reddish-tan dust haze
-  jupiter: ['#d4a56a', 0.10, 3.0, 1.02],  // subtle warm glow at cloud tops
-  saturn:  ['#c9b87a', 0.08, 3.0, 1.02],  // faint golden haze
-  uranus:  ['#7fdbda', 0.12, 3.0, 1.02],  // pale cyan methane glow
-  neptune: ['#4a6bdf', 0.15, 3.0, 1.02],  // deep blue methane haze
+  earth:   ['#6BA3D6', 0.45, 2.2, 1.07],  // thin transparent blue limb
+  venus:   ['#e8d5a0', 0.6, 1.9, 1.07],   // thick opaque yellow-white sulfuric haze
+  mars:    ['#c4836a', 0.2, 3.2, 1.05],   // very thin reddish-tan dust haze
+  jupiter: ['#d4a56a', 0.28, 2.8, 1.04],  // subtle warm glow at cloud tops
+  saturn:  ['#c9b87a', 0.2, 2.8, 1.04],   // faint golden haze
+  uranus:  ['#7fdbda', 0.3, 2.8, 1.04],   // pale cyan methane glow
+  neptune: ['#4a6bdf', 0.35, 2.8, 1.04],  // deep blue methane haze
 }
 
 const atmosVertexShader = /* glsl */ `
