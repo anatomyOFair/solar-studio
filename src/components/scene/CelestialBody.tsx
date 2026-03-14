@@ -104,7 +104,11 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
-    setSelectedObject(isSelected ? null : object)
+    if (isSelected) {
+      setSelectedObject(null)
+    } else {
+      setSelectedObject(object)
+    }
   }
 
   const isMoon = object.type === 'moon'
