@@ -11,6 +11,7 @@ import HomeView from './components/ui/HomeView'
 import LoadingScreen from './components/scene/LoadingScreen'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
+import ObservationModal from './components/logbook/ObservationModal'
 import { useStore } from './store/store'
 import { colors } from './constants'
 
@@ -64,6 +65,7 @@ function App() {
       <LoadingScreen />
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
+      <ObservationModal />
     </div>
   )
 }

@@ -4,13 +4,13 @@ import {
   faLocationDot,
   faRotateRight,
   faCalendarDays,
-  faBookOpen,
 } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { useStore } from '../../store/store'
 import { colors, spacing, sizes } from '../../constants'
 import TonightsSky from './TonightsSky'
 import AltitudeChart from './AltitudeChart'
+import ObservationLogCard from './ObservationLogCard'
 
 const DEFAULT_LOCATION = { lat: 40.7, lon: -74.0, label: 'New York' }
 
@@ -175,12 +175,18 @@ export default function HomeView() {
       </div>
 
       {/* Observation Log — spans 2 columns */}
-      <PlaceholderCard
-        icon={faBookOpen}
-        title="Observation Log"
-        description="Your personal stargazing journal"
-        style={{ gridColumn: '2 / 4' }}
-      />
+      <div
+        style={{
+          ...glassCard,
+          gridColumn: '2 / 4',
+          padding: spacing.md,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <ObservationLogCard />
+      </div>
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Map } from 'leaflet'
-import type { CelestialObject, UserReport } from '../types'
+import type { CelestialObject, UserReport, ObservationLogEntry } from '../types'
 import type { TourDef } from '../data/tours'
 
 interface StoreState {
@@ -58,6 +58,14 @@ interface StoreState {
   userLocation: { lat: number; lon: number; label: string } | null
   setUserLocation: (loc: { lat: number; lon: number; label: string } | null) => void
   fetchUserLocation: () => Promise<void>
+  // Observation Log
+  observationLogEntries: ObservationLogEntry[]
+  fetchObservationLog: () => Promise<void>
+  addObservationLogEntry: (entry: Omit<ObservationLogEntry, 'id' | 'user_id' | 'created_at'>) => Promise<void>
+  deleteObservationLogEntry: (id: string) => Promise<void>
+  isObservationModalOpen: boolean
+  openObservationModal: () => void
+  closeObservationModal: () => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -269,6 +277,58 @@ export const useStore = create<StoreState>((set) => ({
       }
     )
   },
+  // Observation Log
+  observationLogEntries: [],
+  fetchObservationLog: async () => {
+    const user = useStore.getState().user
+    if (!user) return
+    try {
+      const { supabase } = await import('../lib/supabase')
+      const { data, error } = await supabase
+        .from('observation_log')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('observed_at', { ascending: false })
+        .limit(20)
+
+      if (error) {
+        console.error('Error fetching observation log:', error)
+      }
+      if (data) {
+        set({ observationLogEntries: data as ObservationLogEntry[] })
+      }
+    } catch (err) {
+      console.error('Error fetching observation log:', err)
+    }
+  },
+  addObservationLogEntry: async (entry) => {
+    const user = useStore.getState().user
+    if (!user) return
+    const { supabase } = await import('../lib/supabase')
+    const { error } = await supabase
+      .from('observation_log')
+      .insert({
+        id: crypto.randomUUID(),
+        user_id: user.id,
+        ...entry,
+      })
+
+    if (error) throw error
+    useStore.getState().fetchObservationLog()
+  },
+  deleteObservationLogEntry: async (id: string) => {
+    const { supabase } = await import('../lib/supabase')
+    const { error } = await supabase
+      .from('observation_log')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    useStore.getState().fetchObservationLog()
+  },
+  isObservationModalOpen: false,
+  openObservationModal: () => set({ isObservationModalOpen: true }),
+  closeObservationModal: () => set({ isObservationModalOpen: false }),
 }))
 
 export function getEffectiveTime(): Date {

@@ -334,7 +334,7 @@ export default function ObjectTracker() {
                     paddingLeft: sizes.inputs.paddingHorizontal,
                     paddingRight: sizes.inputs.paddingHorizontal,
                     backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                     borderRadius: sizes.inputs.borderRadius,
                     color: colors.white,
                     fontSize: sizes.fonts.sm

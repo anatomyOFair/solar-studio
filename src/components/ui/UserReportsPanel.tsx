@@ -265,7 +265,7 @@ export default function UserReportsPanel() {
                 className=""
                 style={{
                   backgroundColor: colors.navbar.background,
-                  border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                  border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                   color: colors.white,
                   fontSize: sizes.fonts.sm,
                   backdropFilter: `blur(${sizes.blur.default})`,

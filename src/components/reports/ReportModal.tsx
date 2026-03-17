@@ -247,7 +247,7 @@ export default function ReportModal() {
                                 paddingLeft: sizes.inputs.paddingLeftWithIcon,
                                 paddingRight: sizes.inputs.paddingHorizontal,
                                 backgroundColor: colors.transparent,
-                                border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                                border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                                 borderRadius: sizes.inputs.borderRadius,
                                 color: location ? colors.white : colors.text.muted,
                                 fontSize: sizes.fonts.sm,

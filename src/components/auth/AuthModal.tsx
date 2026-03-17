@@ -205,7 +205,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                         paddingLeft: sizes.inputs.paddingLeftWithIcon,
                         paddingRight: sizes.inputs.paddingHorizontal,
                         backgroundColor: colors.transparent,
-                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                         borderRadius: sizes.inputs.borderRadius,
                         color: colors.white,
                         fontSize: sizes.fonts.sm
@@ -233,7 +233,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     paddingLeft: sizes.inputs.paddingLeftWithIcon,
                     paddingRight: sizes.inputs.paddingHorizontal,
                     backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                     borderRadius: sizes.inputs.borderRadius,
                     color: colors.white,
                     fontSize: sizes.fonts.sm
@@ -260,7 +260,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     paddingLeft: sizes.inputs.paddingLeftWithIcon,
                     paddingRight: sizes.inputs.paddingHorizontal,
                     backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                     borderRadius: sizes.inputs.borderRadius,
                     color: colors.white,
                     fontSize: sizes.fonts.sm
@@ -288,7 +288,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                         paddingLeft: sizes.inputs.paddingLeftWithIcon,
                         paddingRight: sizes.inputs.paddingHorizontal,
                         backgroundColor: colors.transparent,
-                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                         borderRadius: sizes.inputs.borderRadius, // Changed to lg
                         color: colors.white,
                         fontSize: sizes.fonts.sm
@@ -312,7 +312,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                     paddingTop: sizes.inputs.paddingVertical,
                     paddingBottom: sizes.inputs.paddingVertical,
                     backgroundColor: colors.navbar.background,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.background}`,
+                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
                     borderRadius: sizes.inputs.borderRadius,
                     color: colors.white,
                     fontSize: sizes.fonts.sm,

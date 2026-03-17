@@ -84,3 +84,17 @@ export interface UserReport {
   image_url?: string | null
   created_at: string
 }
+
+export interface ObservationLogEntry {
+  id: string
+  user_id: string
+  object_id: string
+  notes: string | null
+  equipment: string | null
+  rating: number | null
+  observed_at: string
+  location_label: string | null
+  lat: number | null
+  lon: number | null
+  created_at: string
+}
