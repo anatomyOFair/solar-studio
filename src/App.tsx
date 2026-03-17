@@ -23,6 +23,7 @@ function App() {
   const activeTour = useStore((state) => state.activeTour)
   const fetchObjects = useStore((state) => state.fetchObjects)
   const setDataReady = useStore((state) => state.setDataReady)
+  const nightVision = useStore((state) => state.nightVision)
 
   // Prefetch data + auth on mount
   useEffect(() => {
@@ -44,7 +45,7 @@ function App() {
   }, [setSession, fetchObjects, setDataReady])
 
   return (
-    <div className="text-white" style={{ backgroundColor: colors.background.darker, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
+    <div className={`text-white${nightVision && viewMode !== '3d' ? ' night-vision' : ''}`} style={{ backgroundColor: colors.background.darker, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative', ...(nightVision && viewMode !== '3d' ? { filter: 'url(#night-vision-filter)' } : {}) }}>
         <TopNav />
         {viewMode !== 'home' && !activeTour && <TimeSlider />}
         <SideNav />
@@ -66,6 +67,14 @@ function App() {
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
       <ObservationModal />
+      {/* SVG filter for night-vision mode — maps all RGB to red channel */}
+      <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
+        <defs>
+          <filter id="night-vision-filter" colorInterpolationFilters="sRGB">
+            <feColorMatrix type="matrix" values="0.33 0.33 0.33 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   )
 }

@@ -69,6 +69,9 @@ interface StoreState {
   isObservationModalOpen: boolean
   openObservationModal: () => void
   closeObservationModal: () => void
+  // Night Vision
+  nightVision: boolean
+  toggleNightVision: () => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -335,6 +338,9 @@ export const useStore = create<StoreState>((set) => ({
   isObservationModalOpen: false,
   openObservationModal: () => set({ isObservationModalOpen: true }),
   closeObservationModal: () => set({ isObservationModalOpen: false }),
+  // Night Vision
+  nightVision: false,
+  toggleNightVision: () => set((state) => ({ nightVision: !state.nightVision })),
 }))
 
 export function getEffectiveTime(): Date {

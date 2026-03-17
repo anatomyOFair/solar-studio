@@ -1,16 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faLocationDot,
   faRotateRight,
-  faCalendarDays,
 } from '@fortawesome/free-solid-svg-icons'
-import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { useStore } from '../../store/store'
 import { colors, spacing, sizes } from '../../constants'
 import TonightsSky from './TonightsSky'
 import AltitudeChart from './AltitudeChart'
 import ObservationLogCard from './ObservationLogCard'
+import UpcomingEventsPanel from './UpcomingEventsPanel'
 
 const DEFAULT_LOCATION = { lat: 40.7, lon: -74.0, label: 'New York' }
 
@@ -21,39 +20,6 @@ const glassCard = {
   border: `1px solid ${colors.navbar.border}`,
   borderRadius: sizes.borderRadius.xl,
 } as const
-
-function PlaceholderCard({ icon, title, description, style }: {
-  icon: IconDefinition
-  title: string
-  description: string
-  style?: React.CSSProperties
-}) {
-  return (
-    <div
-      style={{
-        ...glassCard,
-        padding: spacing.lg,
-        ...style,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: spacing.sm,
-      }}
-    >
-      <FontAwesomeIcon
-        icon={icon}
-        style={{ color: colors.text.muted, fontSize: '24px', opacity: 0.5 }}
-      />
-      <span style={{ color: colors.text.secondary, fontSize: '14px', fontWeight: 500 }}>
-        {title}
-      </span>
-      <span style={{ color: colors.text.muted, fontSize: '12px' }}>
-        {description}
-      </span>
-    </div>
-  )
-}
 
 export default function HomeView() {
   const userLocation = useStore((state) => state.userLocation)
@@ -70,6 +36,7 @@ export default function HomeView() {
   }, [objects.length, fetchObjects])
 
   const location = userLocation ?? DEFAULT_LOCATION
+  const [chartObjectId, setChartObjectId] = useState('moon')
 
   return (
     <div
@@ -141,11 +108,17 @@ export default function HomeView() {
       </div>
 
       {/* Upcoming Events */}
-      <PlaceholderCard
-        icon={faCalendarDays}
-        title="Upcoming Events"
-        description="Conjunctions, eclipses, meteor showers"
-      />
+      <div
+        style={{
+          ...glassCard,
+          padding: spacing.md,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <UpcomingEventsPanel />
+      </div>
 
       {/* Altitude Chart */}
       <div
@@ -157,20 +130,40 @@ export default function HomeView() {
           overflow: 'hidden',
         }}
       >
-        <h3
-          style={{
-            color: colors.text.secondary,
-            fontSize: '13px',
-            fontWeight: 500,
-            margin: 0,
-            marginBottom: spacing.sm,
-            flexShrink: 0,
-          }}
-        >
-          Altitude Chart
-        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm, flexShrink: 0 }}>
+          <h3
+            style={{
+              color: colors.text.secondary,
+              fontSize: '13px',
+              fontWeight: 500,
+              margin: 0,
+            }}
+          >
+            Altitude
+          </h3>
+          <select
+            value={chartObjectId}
+            onChange={(e) => setChartObjectId(e.target.value)}
+            style={{
+              background: 'transparent',
+              border: `1px solid ${colors.navbar.border}`,
+              borderRadius: '6px',
+              color: colors.text.secondary,
+              fontSize: '11px',
+              padding: '1px 6px',
+              fontFamily: 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            {objects.map((obj) => (
+              <option key={obj.id} value={obj.id} style={{ backgroundColor: colors.navbar.base }}>
+                {obj.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div style={{ flex: 1, minHeight: 0 }}>
-          <AltitudeChart location={location} />
+          <AltitudeChart location={location} objectId={chartObjectId} />
         </div>
       </div>
 

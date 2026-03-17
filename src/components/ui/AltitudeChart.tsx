@@ -15,18 +15,20 @@ function formatTimeShort(date: Date, isLocalTime: boolean): string {
 
 interface AltitudeChartProps {
   location: { lat: number; lon: number }
+  objectId: string
 }
 
-export default function AltitudeChart({ location }: AltitudeChartProps) {
-  const selectedObject = useStore((state) => state.selectedObject)
+export default function AltitudeChart({ location, objectId }: AltitudeChartProps) {
+  const objects = useStore((state) => state.objects)
   const simulatedTime = useStore((state) => state.simulatedTime)
   const isLocalTime = useStore((state) => state.isLocalTime)
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
+  const chartObject = objects.find((o) => o.id === objectId) ?? null
   const effectiveTime = simulatedTime ?? new Date()
 
   const { points, nightWindow, minAlt, maxAlt } = useMemo(() => {
-    if (!selectedObject) return { points: [], nightWindow: null, minAlt: -20, maxAlt: 90 }
+    if (!chartObject) return { points: [], nightWindow: null, minAlt: -20, maxAlt: 90 }
 
     const nw = getNightWindow(location.lat, location.lon, effectiveTime)
     if (!nw.isValidNight && !nw.isPolarNight) return { points: [], nightWindow: nw, minAlt: -20, maxAlt: 90 }
@@ -41,7 +43,7 @@ export default function AltitudeChart({ location }: AltitudeChartProps) {
     const pts: { time: Date; alt: number }[] = []
     for (let t = startMs; t <= endMs; t += STEP_MS) {
       const time = new Date(t)
-      pts.push({ time, alt: getCurrentAltitude(selectedObject, location.lat, location.lon, time) })
+      pts.push({ time, alt: getCurrentAltitude(chartObject, location.lat, location.lon, time) })
     }
 
     let lo = 0
@@ -55,10 +57,9 @@ export default function AltitudeChart({ location }: AltitudeChartProps) {
     const maxA = Math.max(30, Math.ceil(hi / 10) * 10 + 5)
 
     return { points: pts, nightWindow: nw, minAlt: minA, maxAlt: maxA }
-  }, [selectedObject, location.lat, location.lon, effectiveTime])
+  }, [chartObject, location.lat, location.lon, effectiveTime])
 
-  // Empty state
-  if (!selectedObject) {
+  if (!chartObject || points.length === 0) {
     return (
       <div
         style={{
@@ -71,25 +72,7 @@ export default function AltitudeChart({ location }: AltitudeChartProps) {
           fontSize: '12px',
         }}
       >
-        Select an object to see its altitude curve
-      </div>
-    )
-  }
-
-  if (points.length === 0) {
-    return (
-      <div
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.text.muted,
-          fontSize: '12px',
-        }}
-      >
-        No night window available
+        {!chartObject ? 'Select an object' : 'No night window available'}
       </div>
     )
   }
@@ -311,7 +294,7 @@ export default function AltitudeChart({ location }: AltitudeChartProps) {
         fontWeight="500"
         fontFamily="inherit"
       >
-        {selectedObject.name}
+        {chartObject.name}
       </text>
     </svg>
   )

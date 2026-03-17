@@ -81,13 +81,11 @@ function NavButton({ active, onClick, icon, label, title }: {
 export default function SideNav() {
   const viewMode = useStore((state) => state.viewMode)
   const setViewMode = useStore((state) => state.setViewMode)
+  const nightVision = useStore((state) => state.nightVision)
+  const toggleNightVision = useStore((state) => state.toggleNightVision)
 
   const handleUserClick = () => {
     // TODO: Implement location functionality
-  }
-
-  const handleInfoClick = () => {
-    // TODO: Implement settings functionality
   }
 
   return (
@@ -117,7 +115,7 @@ export default function SideNav() {
         <NavButton onClick={() => setViewMode('2d')} icon={faMap} label="map" title="Map" active={viewMode === '2d'} />
         <NavButton onClick={() => setViewMode('3d')} icon={faEarth} label="3D view" title="3D View" active={viewMode === '3d'} />
         <NavButton onClick={handleUserClick} icon={faLocationArrow} label="location" />
-        <NavButton onClick={handleInfoClick} icon={faGear} label="settings" />
+        <NavButton onClick={toggleNightVision} icon={faGear} label="night vision" title="Night Vision" active={nightVision} />
       </div>
     </nav>
   )
