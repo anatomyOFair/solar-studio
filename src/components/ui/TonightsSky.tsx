@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faChevronLeft } from '@fortawesome/free-solid-svg-icons'
+import { faSliders } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
 import { getVisibilityColor } from '../../utils/visibilityCalculator'
 import { computeTonightObjects, getNightWindow, type TonightObject, type NightWindow } from '../../utils/tonightSky'
 import { getWeatherForUserLocation } from '../../utils/weatherService'
-import { colors, spacing, sizes, shadows } from '../../constants'
+import { colors, spacing, sizes } from '../../constants'
 
 const TYPE_COLORS: Record<string, string> = {
   planet: '#38bdf8',
@@ -29,138 +29,186 @@ function formatAltitude(alt: number): string {
   return `${alt.toFixed(1)}\u00B0`
 }
 
-export default function TonightsSky() {
-  const isOpen = useStore((state) => state.isTonightSkyOpen)
-  const closeTonightSky = useStore((state) => state.closeTonightSky)
+interface TonightsSkyProps {
+  location: { lat: number; lon: number }
+}
+
+export default function TonightsSky({ location }: TonightsSkyProps) {
   const setSelectedObject = useStore((state) => state.setSelectedObject)
   const selectedObject = useStore((state) => state.selectedObject)
   const isLocalTime = useStore((state) => state.isLocalTime)
   const objects = useStore((state) => state.objects)
-  const map = useStore((state) => state.map)
   const simulatedTime = useStore((state) => state.simulatedTime)
 
   const [tonightObjects, setTonightObjects] = useState<TonightObject[]>([])
   const [nightWindow, setNightWindow] = useState<NightWindow | null>(null)
   const [loading, setLoading] = useState(false)
-  const [center, setCenter] = useState<{ lat: number; lon: number } | null>(null)
+  const [sortBy, setSortBy] = useState<'visibility' | 'name' | 'altitude'>('visibility')
+  const [typeFilter, setTypeFilter] = useState<string | null>(null)
+  const [filterOpen, setFilterOpen] = useState(false)
+  const filterRef = useRef<HTMLDivElement>(null)
 
-  // Track map center (debounced)
-  const updateCenter = useCallback(() => {
-    if (!map) return
-    const c = map.getCenter()
-    setCenter({ lat: c.lat, lon: c.lng })
-  }, [map])
-
+  // Close popover on outside click
   useEffect(() => {
-    if (!map || !isOpen) return
-    updateCenter()
-
-    let timeout: ReturnType<typeof setTimeout>
-    const onMove = () => {
-      clearTimeout(timeout)
-      timeout = setTimeout(updateCenter, 500)
+    if (!filterOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false)
+      }
     }
-    map.on('moveend', onMove)
-    return () => {
-      map.off('moveend', onMove)
-      clearTimeout(timeout)
-    }
-  }, [map, isOpen, updateCenter])
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [filterOpen])
 
   // Compute tonight's objects
   useEffect(() => {
-    if (!center || !isOpen || objects.length === 0) return
+    if (objects.length === 0) return
 
     let cancelled = false
     setLoading(true)
     const effectiveTime = simulatedTime ?? new Date()
 
-    getWeatherForUserLocation(center.lat, center.lon).then((weather) => {
+    getWeatherForUserLocation(location.lat, location.lon).then((weather) => {
       if (cancelled) return
-      const window = getNightWindow(center.lat, center.lon, effectiveTime)
-      const results = computeTonightObjects(objects, center.lat, center.lon, effectiveTime, weather)
+      const window = getNightWindow(location.lat, location.lon, effectiveTime)
+      const results = computeTonightObjects(objects, location.lat, location.lon, effectiveTime, weather)
       setNightWindow(window)
       setTonightObjects(results)
       setLoading(false)
     }).catch(() => {
       if (cancelled) return
-      // Compute without weather data (fallback)
-      const window = getNightWindow(center.lat, center.lon, effectiveTime)
+      const window = getNightWindow(location.lat, location.lon, effectiveTime)
       const fallbackWeather = { cloudCover: 0.3, precipitation: 0, fog: 0, extinctionCoeff: 0.2 }
-      const results = computeTonightObjects(objects, center.lat, center.lon, effectiveTime, fallbackWeather)
+      const results = computeTonightObjects(objects, location.lat, location.lon, effectiveTime, fallbackWeather)
       setNightWindow(window)
       setTonightObjects(results)
       setLoading(false)
     })
 
     return () => { cancelled = true }
-  }, [center, objects, simulatedTime, isOpen])
+  }, [location.lat, location.lon, objects, simulatedTime])
+
+  const availableTypes = useMemo(() => {
+    const types = new Set(tonightObjects.map((o) => o.object.type))
+    return Array.from(types).sort()
+  }, [tonightObjects])
+
+  const displayObjects = useMemo(() => {
+    let list = typeFilter
+      ? tonightObjects.filter((o) => o.object.type === typeFilter)
+      : tonightObjects
+    if (sortBy === 'name') {
+      list = [...list].sort((a, b) => a.object.name.localeCompare(b.object.name))
+    } else if (sortBy === 'altitude') {
+      list = [...list].sort((a, b) => b.currentAltitude - a.currentAltitude)
+    }
+    // 'visibility' is the default sort from computeTonightObjects
+    return list
+  }, [tonightObjects, sortBy, typeFilter])
+
+  const chipStyle = (active: boolean) => ({
+    padding: '3px 10px',
+    fontSize: '11px',
+    fontWeight: 500 as const,
+    borderRadius: sizes.borderRadius.full,
+    border: `1px solid ${active ? 'rgba(255,255,255,0.25)' : 'transparent'}`,
+    backgroundColor: active ? 'rgba(255,255,255,0.1)' : 'transparent',
+    color: active ? colors.text.primary : colors.text.muted,
+    cursor: 'pointer',
+    transition: 'all 150ms ease',
+  })
 
   return (
-    <div
-      className="fixed flex flex-col"
-      style={{
-        top: `calc(${spacing.md} + 48px + ${spacing.sm})`,
-        left: `calc(${spacing.md} + 48px + ${spacing.sm})`,
-        zIndex: sizes.zIndex.fixed,
-        width: sizes.panel.width,
-        maxHeight: `calc(100vh - 120px - ${spacing.xl})`,
-        borderRadius: sizes.borderRadius.xl,
-        border: `${sizes.panel.borderWidth} solid ${colors.navbar.border}`,
-        backgroundColor: colors.navbar.background,
-        backdropFilter: `blur(${sizes.blur.default})`,
-        WebkitBackdropFilter: `blur(${sizes.blur.default})`,
-        boxShadow: shadows.lg,
-        padding: spacing.md,
-        transform: isOpen ? 'translateX(0)' : `translateX(calc(-100% - ${spacing.lg}))`,
-        transition: 'transform 250ms ease, opacity 200ms ease',
-        overflow: 'hidden',
-        pointerEvents: isOpen ? 'auto' : 'none',
-      }}
-    >
-      {/* Header */}
+    <div className="flex flex-col" style={{ width: '100%' }}>
+      {/* Night window + Filter row */}
       <div className="flex items-center justify-between" style={{ marginBottom: spacing.sm }}>
-        <h3
-          className="text-lg font-semibold tracking-wide uppercase"
-          style={{ color: colors.text.primary, letterSpacing: '0.08em', margin: 0 }}
-        >
-          Tonight's Sky
-        </h3>
-        <button
-          type="button"
-          onClick={closeTonightSky}
-          className="transition-colors hover:text-white"
-          style={{
-            color: colors.text.muted,
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: spacing.sm,
-          }}
-        >
-          <FontAwesomeIcon icon={faChevronLeft} />
-        </button>
+        {/* Night window summary */}
+        <div style={{ fontSize: sizes.fonts.xs, color: nightWindow?.isPolarNight ? colors.status.success : colors.text.muted }}>
+          {nightWindow && nightWindow.isValidNight && !nightWindow.isPolarNight && (
+            <>Sunset {formatTime(nightWindow.sunset, isLocalTime)} &rarr; Sunrise {formatTime(nightWindow.sunrise, isLocalTime)}</>
+          )}
+          {nightWindow && !nightWindow.isValidNight && (
+            <>24-hour daylight &mdash; no night viewing</>
+          )}
+          {nightWindow && nightWindow.isPolarNight && (
+            <>Polar night &mdash; extended viewing window</>
+          )}
+        </div>
+
+        {/* Filter button */}
+        {tonightObjects.length > 0 && (
+          <div ref={filterRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              style={{
+                ...chipStyle(filterOpen || sortBy !== 'visibility' || typeFilter !== null),
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <FontAwesomeIcon icon={faSliders} style={{ fontSize: '10px' }} />
+              <span>Filter</span>
+            </button>
+
+            {filterOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                right: 0,
+                minWidth: '180px',
+                backgroundColor: colors.navbar.base,
+                border: `1px solid ${colors.navbar.border}`,
+                borderRadius: sizes.borderRadius.lg,
+                padding: spacing.sm,
+                zIndex: sizes.zIndex.dropdown,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: spacing.sm,
+              }}
+            >
+              {/* Sort */}
+              <div>
+                <span style={{ fontSize: '11px', color: colors.text.muted, display: 'block', marginBottom: '4px' }}>Sort by</span>
+                <div className="flex flex-wrap" style={{ gap: '4px' }}>
+                  {(['visibility', 'name', 'altitude'] as const).map((s) => (
+                    <button key={s} onClick={() => setSortBy(s)} style={chipStyle(sortBy === s)}>
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Type */}
+              <div>
+                <span style={{ fontSize: '11px', color: colors.text.muted, display: 'block', marginBottom: '4px' }}>Type</span>
+                <div className="flex flex-wrap" style={{ gap: '4px' }}>
+                  <button onClick={() => setTypeFilter(null)} style={chipStyle(typeFilter === null)}>
+                    All
+                  </button>
+                  {availableTypes.map((t) => (
+                    <button key={t} onClick={() => setTypeFilter(t)} style={chipStyle(typeFilter === t)}>
+                      <span style={{
+                        display: 'inline-block',
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: TYPE_COLORS[t] || '#94a3b8',
+                        marginRight: '4px',
+                      }} />
+                      {t.replace('_', ' ')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Night window summary */}
-      {nightWindow && nightWindow.isValidNight && !nightWindow.isPolarNight && (
-        <div style={{ fontSize: sizes.fonts.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
-          Sunset {formatTime(nightWindow.sunset, isLocalTime)} &rarr; Sunrise {formatTime(nightWindow.sunrise, isLocalTime)}
-        </div>
-      )}
-      {nightWindow && !nightWindow.isValidNight && (
-        <div style={{ fontSize: sizes.fonts.xs, color: colors.text.muted, marginBottom: spacing.sm }}>
-          24-hour daylight &mdash; no night viewing
-        </div>
-      )}
-      {nightWindow && nightWindow.isPolarNight && (
-        <div style={{ fontSize: sizes.fonts.xs, color: colors.status.success, marginBottom: spacing.sm }}>
-          Polar night &mdash; extended viewing window
-        </div>
-      )}
-
       {/* Object list */}
-      <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, marginRight: `-${spacing.sm}`, paddingRight: spacing.sm }}>
+      <div className="flex-1" style={{ minHeight: 0 }}>
         {loading ? (
           <div
             className="flex items-center justify-center"
@@ -168,16 +216,9 @@ export default function TonightsSky() {
           >
             Calculating...
           </div>
-        ) : tonightObjects.length === 0 ? (
-          <div
-            className="flex items-center justify-center text-center"
-            style={{ color: colors.text.muted, padding: spacing.xl, fontSize: sizes.fonts.sm }}
-          >
-            No celestial objects visible tonight from this location.
-          </div>
         ) : (
-          <div className="flex flex-col" style={{ gap: spacing.sm }}>
-            {tonightObjects.map((item) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing.sm }}>
+            {displayObjects.map((item) => {
               const isSelected = selectedObject?.id === item.object.id
               const scorePercent = Math.round(item.peakVisibilityScore * 100)
               const typeColor = TYPE_COLORS[item.object.type] || '#94a3b8'

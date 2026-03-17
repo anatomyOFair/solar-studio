@@ -7,10 +7,11 @@ import TimeSlider from './components/nav/TimeSlider'
 import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
 import UserReportsPanel from './components/ui/UserReportsPanel'
-import TonightsSky from './components/ui/TonightsSky'
+import HomeView from './components/ui/HomeView'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
 import { useStore } from './store/store'
+import { colors } from './constants'
 
 function App() {
   const isAuthModalOpen = useStore((state) => state.isAuthModalOpen)
@@ -39,25 +40,24 @@ function App() {
   }, [setSession])
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <div className="h-screen w-full"> 
+    <div className="text-white" style={{ backgroundColor: colors.background.darker, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
         <TopNav />
-        <TimeSlider />
+        {viewMode !== 'home' && <TimeSlider />}
         <SideNav />
-        {viewMode === '2d' ? (
+        {viewMode === 'home' && <HomeView />}
+        {viewMode === '2d' && (
           <>
             <VisibilityMap />
             <ObjectTracker />
             <UserReportsPanel />
-            <TonightsSky />
           </>
-        ) : (
+        )}
+        {viewMode === '3d' && (
           <>
             <SolarSystemScene />
             <InfoPanel />
           </>
         )}
-      </div>
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
     </div>

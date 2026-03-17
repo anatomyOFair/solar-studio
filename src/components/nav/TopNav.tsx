@@ -8,7 +8,7 @@ import {
   faSearch,
   faUser,
   faRightToBracket,
-  faSignOutAlt
+  faSignOutAlt,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
 
@@ -119,8 +119,10 @@ export default function TopNav() {
     toggleLocalTime()
   }
 
+  const VIEW_LABELS = { home: 'Home', '2d': 'Map', '3d': '3D' } as const
   const handleViewToggle = () => {
-    setViewMode(viewMode === '2d' ? '3d' : '2d')
+    const next = viewMode === 'home' ? '2d' : viewMode === '2d' ? '3d' : 'home'
+    setViewMode(next)
   }
 
   const handleUserClick = () => {
@@ -179,7 +181,7 @@ export default function TopNav() {
           style={{ backgroundColor: 'transparent', color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
         >
           <FontAwesomeIcon icon={faCamera} style={{ color: 'white', fontSize: '18px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{viewMode === '3d' ? '3D' : 'Map'}</span>
+          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{VIEW_LABELS[viewMode]}</span>
         </button>
 
         {/* 4. History */}

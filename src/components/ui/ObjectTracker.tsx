@@ -34,12 +34,17 @@ export default function ObjectTracker() {
   const setSelectedObject = useStore((state) => state.setSelectedObject)
   const objects = useStore((state) => state.objects)
   const fetchObjects = useStore((state) => state.fetchObjects)
-  const visualizationMode = useStore((state) => state.visualizationMode)
+  const setVisualizationMode = useStore((state) => state.setVisualizationMode)
   const showCrescentZones = useStore((state) => state.showCrescentZones)
   const setShowCrescentZones = useStore((state) => state.setShowCrescentZones)
   const simulatedTime = useStore((state) => state.simulatedTime)
 
   const showCrescentToggle = selectedObject?.id === 'moon' && isNearNewMoon(simulatedTime ?? new Date())
+
+  // Auto-enable visibility overlay when an object is selected, disable when deselected
+  useEffect(() => {
+    setVisualizationMode(selectedObject ? 'hex' : 'none')
+  }, [selectedObject, setVisualizationMode])
 
   // Auto-disable crescent zones when Moon is deselected or not near new moon
   useEffect(() => {
@@ -80,7 +85,7 @@ export default function ObjectTracker() {
         <div
           className="fixed"
           style={{
-            bottom: `calc(${spacing.md} + 110px)`,
+            bottom: `calc(${spacing.md} + 130px)`,
             left: spacing.md,
             zIndex: sizes.zIndex.fixed,
             backgroundColor: colors.navbar.background,
@@ -171,7 +176,7 @@ export default function ObjectTracker() {
       </div>
 
       {/* Legend — beside the object tracker */}
-      {(showCrescentZones || visualizationMode === 'hex') && (
+      {(showCrescentZones || !!selectedObject) && (
         <div
           className="fixed"
           style={{

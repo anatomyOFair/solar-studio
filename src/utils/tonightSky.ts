@@ -262,17 +262,12 @@ export function computeTonightObjects(
 
     const riseSet = getRiseSetForObject(obj, effectiveTime, lat, lon)
 
-    if (!isUpDuringNight(riseSet, nightWindow)) continue
-
     const transit = getTransitForObject(obj, lat, lon, effectiveTime)
     const currentAlt = getCurrentAltitude(obj, lat, lon, effectiveTime)
 
-    // Compute peak visibility at transit time (or current time if transit is not during night)
+    // Compute peak visibility at transit time (or current time if no transit)
     const scoreTime = transit.time ?? effectiveTime
     const peakScore = calculateCelestialVisibilityScore(lat, lon, scoreTime, weather, obj)
-
-    // Skip objects with essentially zero visibility
-    if (peakScore < 0.02 && currentAlt < -5) continue
 
     results.push({
       object: obj,

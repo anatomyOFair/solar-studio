@@ -25,8 +25,8 @@ interface StoreState {
   logout: () => Promise<void>
 
   // UI Slice
-  viewMode: '2d' | '3d'
-  setViewMode: (mode: '2d' | '3d') => void
+  viewMode: 'home' | '2d' | '3d'
+  setViewMode: (mode: 'home' | '2d' | '3d') => void
   isLocalTime: boolean
   toggleLocalTime: () => void
   isAuthModalOpen: boolean
@@ -39,9 +39,10 @@ interface StoreState {
   setShowCrescentZones: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
-  isTonightSkyOpen: boolean
-  openTonightSky: () => void
-  closeTonightSky: () => void
+  // Location
+  userLocation: { lat: number; lon: number; label: string } | null
+  setUserLocation: (loc: { lat: number; lon: number; label: string } | null) => void
+  fetchUserLocation: () => Promise<void>
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -158,7 +159,7 @@ export const useStore = create<StoreState>((set) => ({
   },
 
   // UI Slice
-  viewMode: '2d',
+  viewMode: 'home',
   setViewMode: (mode) => set({ viewMode: mode }),
   isLocalTime: false,
   toggleLocalTime: () => set((state) => ({ isLocalTime: !state.isLocalTime })),
@@ -172,12 +173,34 @@ export const useStore = create<StoreState>((set) => ({
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
-  isTonightSkyOpen: false,
-  openTonightSky: () => set({ isTonightSkyOpen: true }),
-  closeTonightSky: () => set({ isTonightSkyOpen: false }),
+  // Location
+  userLocation: null,
+  setUserLocation: (loc) => set({ userLocation: loc }),
+  fetchUserLocation: async () => {
+    if (!navigator.geolocation) {
+      set({ userLocation: { lat: 40.7, lon: -74.0, label: 'New York' } })
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        let label = `${latitude.toFixed(1)}°, ${longitude.toFixed(1)}°`
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
+          const data = await res.json()
+          if (data?.address) {
+            label = data.address.city || data.address.town || data.address.village || data.address.county || label
+          }
+        } catch { /* use coordinate fallback */ }
+        set({ userLocation: { lat: latitude, lon: longitude, label } })
+      },
+      () => {
+        set({ userLocation: { lat: 40.7, lon: -74.0, label: 'New York' } })
+      }
+    )
+  },
 }))
 
 export function getEffectiveTime(): Date {
   return useStore.getState().simulatedTime ?? new Date()
 }
-

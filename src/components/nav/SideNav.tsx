@@ -1,11 +1,10 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faHome,
-  faStar,
-  faGear,
+  faMap,
   faEarth,
   faLocationArrow,
-  faLayerGroup
+  faGear,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes } from '../../constants'
 import { useStore } from '../../store/store'
@@ -51,8 +50,8 @@ function NavButton({ active, onClick, icon, label, title }: {
         <rect
           x={1}
           y={1}
-          width={SVG_SIZE - 2}
-          height={SVG_SIZE - 2}
+          width={RECT_W}
+          height={RECT_W}
           rx={RECT_R}
           ry={RECT_R}
           fill="none"
@@ -80,43 +79,15 @@ function NavButton({ active, onClick, icon, label, title }: {
 }
 
 export default function SideNav() {
-  const visualizationMode = useStore((state) => state.visualizationMode)
-  const setVisualizationMode = useStore((state) => state.setVisualizationMode)
   const viewMode = useStore((state) => state.viewMode)
   const setViewMode = useStore((state) => state.setViewMode)
 
-  const isTonightSkyOpen = useStore((state) => state.isTonightSkyOpen)
-  const openTonightSky = useStore((state) => state.openTonightSky)
-  const closeTonightSky = useStore((state) => state.closeTonightSky)
-
-  const handleHomeClick = () => {
-    // TODO: Implement home functionality
-  }
-
-  const handleLayersClick = () => {
-    if (visualizationMode === 'hex') return // already active, don't deselect
-    setVisualizationMode('hex')
-    if (isTonightSkyOpen) closeTonightSky()
-  }
-
-  const handleTonightSkyToggle = () => {
-    if (isTonightSkyOpen) return // already active, don't deselect
-    openTonightSky()
-    if (visualizationMode === 'hex') setVisualizationMode('none')
-  }
-
-  const handleViewToggle = () => {
-    if (isTonightSkyOpen) closeTonightSky()
-    if (visualizationMode === 'hex') setVisualizationMode('none')
-    setViewMode(viewMode === '2d' ? '3d' : '2d')
-  }
-
   const handleUserClick = () => {
-    // TODO: Implement user functionality
+    // TODO: Implement location functionality
   }
 
   const handleInfoClick = () => {
-    // TODO: Implement info functionality
+    // TODO: Implement settings functionality
   }
 
   return (
@@ -142,12 +113,11 @@ export default function SideNav() {
         className="flex flex-col items-center h-full"
         style={{ justifyContent: 'space-between' }}
       >
-        <NavButton onClick={handleHomeClick} icon={faHome} label="home" />
-        <NavButton onClick={handleLayersClick} icon={faLayerGroup} label="toggle visibility overlay" title={`Overlay: ${visualizationMode === 'none' ? 'Off' : 'On'}`} active={visualizationMode === 'hex'} />
-        <NavButton onClick={handleTonightSkyToggle} icon={faStar} label="tonight's sky" title={`Tonight's Sky: ${isTonightSkyOpen ? 'On' : 'Off'}`} active={isTonightSkyOpen} />
-        <NavButton onClick={handleViewToggle} icon={faEarth} label="toggle 2D/3D view" title={viewMode === '2d' ? 'Switch to 3D' : 'Switch to Map'} />
-        <NavButton onClick={handleUserClick} icon={faLocationArrow} label="user" />
-        <NavButton onClick={handleInfoClick} icon={faGear} label="info" />
+        <NavButton onClick={() => setViewMode('home')} icon={faHome} label="home" title="Home" active={viewMode === 'home'} />
+        <NavButton onClick={() => setViewMode('2d')} icon={faMap} label="map" title="Map" active={viewMode === '2d'} />
+        <NavButton onClick={() => setViewMode('3d')} icon={faEarth} label="3D view" title="3D View" active={viewMode === '3d'} />
+        <NavButton onClick={handleUserClick} icon={faLocationArrow} label="location" />
+        <NavButton onClick={handleInfoClick} icon={faGear} label="settings" />
       </div>
     </nav>
   )
