@@ -10,6 +10,7 @@ import CelestialBody from './CelestialBody'
 import Starfield from './Starfield'
 import SunMesh from './SunMesh'
 import OrbitRing from './OrbitRing'
+import AsteroidBelt from './AsteroidBelt'
 import TourOverlay from './TourOverlay'
 import TourPanel from './TourPanel'
 import CameraControlsImpl from 'camera-controls'
@@ -123,6 +124,7 @@ function Scene() {
       <ambientLight intensity={0.08} />
       <Starfield />
       <SunMesh />
+      <AsteroidBelt />
       {orbitData.map((orbit) => (
         <OrbitRing key={orbit.id} radius={orbit.radius} tiltX={orbit.tiltX} tiltZ={orbit.tiltZ} />
       ))}
