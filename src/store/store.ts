@@ -45,6 +45,9 @@ interface StoreState {
   setDataReady: (ready: boolean) => void
   sceneReady: boolean
   setSceneReady: (ready: boolean) => void
+  // Camera HUD
+  cameraDistAu: number
+  setCameraDistAu: (v: number) => void
   // Tour
   tours: TourDef[]
   fetchTours: () => Promise<void>
@@ -201,6 +204,9 @@ export const useStore = create<StoreState>((set) => ({
   setDataReady: (ready) => set({ dataReady: ready }),
   sceneReady: false,
   setSceneReady: (ready) => set({ sceneReady: ready }),
+  // Camera HUD
+  cameraDistAu: 0,
+  setCameraDistAu: (v) => set({ cameraDistAu: v }),
   // Tour
   tours: [],
   fetchTours: async () => {

@@ -4,7 +4,7 @@ import { EffectComposer, Bloom } from '@react-three/postprocessing'
 import { Suspense, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useStore } from '../../store/store'
-import { positionToScene, radiusToScene } from '../../utils/sceneScaling'
+import { positionToScene, radiusToScene, sceneToAu } from '../../utils/sceneScaling'
 import { extrapolatePosition } from '../../utils/extrapolatePosition'
 import CelestialBody from './CelestialBody'
 import Starfield from './Starfield'
@@ -13,6 +13,7 @@ import OrbitRing from './OrbitRing'
 import AsteroidBelt from './AsteroidBelt'
 import TourOverlay from './TourOverlay'
 import TourPanel from './TourPanel'
+import CameraDistanceHUD from './CameraDistanceHUD'
 import CameraControlsImpl from 'camera-controls'
 
 const PLANET_IDS = new Set(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'])
@@ -29,7 +30,9 @@ function Scene() {
   const selectedObject = useStore((state) => state.selectedObject)
   const controlsRef = useRef<CameraControlsImpl>(null)
   const setSceneReady = useStore((state) => state.setSceneReady)
+  const setCameraDistAu = useStore((state) => state.setCameraDistAu)
   const frameCount = useRef(0)
+  const lastCamAu = useRef(0)
 
   useEffect(() => {
     if (objects.length === 0) {
@@ -113,6 +116,13 @@ function Scene() {
       frameCount.current++
       if (frameCount.current === 10) setSceneReady(true)
     }
+
+    // Camera distance from Sun (throttled — only update when value shifts meaningfully)
+    const camAu = sceneToAu(controlsRef.current.camera.position.length())
+    if (Math.abs(camAu - lastCamAu.current) > 0.01) {
+      lastCamAu.current = camAu
+      setCameraDistAu(camAu)
+    }
   })
 
   const orbitData = useMemo(() => {
@@ -128,7 +138,9 @@ function Scene() {
         const theta = Math.atan2(sz, sx)
         return {
           id: obj.id,
+          name: obj.name,
           radius,
+          distanceAu: sceneToAu(radius),
           tiltX: -alpha * Math.sin(theta),
           tiltZ: alpha * Math.cos(theta),
         }
@@ -142,7 +154,7 @@ function Scene() {
       <SunMesh />
       <AsteroidBelt />
       {orbitData.map((orbit) => (
-        <OrbitRing key={orbit.id} radius={orbit.radius} tiltX={orbit.tiltX} tiltZ={orbit.tiltZ} />
+        <OrbitRing key={orbit.id} radius={orbit.radius} tiltX={orbit.tiltX} tiltZ={orbit.tiltZ} distanceAu={orbit.distanceAu} />
       ))}
       <CameraControls
         ref={controlsRef}
@@ -201,6 +213,7 @@ export default function SolarSystemScene() {
           <Scene />
         </Suspense>
       </Canvas>
+      <CameraDistanceHUD />
       <TourPanel />
       <TourOverlay />
     </div>

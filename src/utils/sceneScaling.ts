@@ -14,6 +14,11 @@ export function auToScene(au: number): number {
   return Math.pow(Math.abs(au) * AU_SCALE, POSITION_EXPONENT)
 }
 
+/** Convert scene units back to AU (inverse of auToScene) */
+export function sceneToAu(scene: number): number {
+  return Math.pow(scene, 1 / POSITION_EXPONENT) / AU_SCALE
+}
+
 /**
  * Convert heliocentric x,y,z (AU) to scene position [x, y, z].
  * Compresses distance while preserving direction,

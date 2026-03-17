@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react'
+import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 
 interface OrbitRingProps {
@@ -7,6 +8,8 @@ interface OrbitRingProps {
   /** Tilt angle in radians (inclination from XZ plane) */
   tiltX?: number
   tiltZ?: number
+  /** Real distance from sun in AU (shown as label) */
+  distanceAu?: number
 }
 
 const SEGMENTS = 128
@@ -15,7 +18,7 @@ const SEGMENTS = 128
  * Tilted circle representing a planet's orbit.
  * The tilt matches the planet's orbital inclination.
  */
-export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0 }: OrbitRingProps) {
+export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0, distanceAu }: OrbitRingProps) {
   const lineRef = useRef<THREE.Line>(null)
 
   const geometry = useMemo(() => {
@@ -34,6 +37,20 @@ export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0 }: OrbitRingPro
   return (
     <group rotation={[tiltX, 0, tiltZ]}>
       <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />
+      {distanceAu != null && (
+        <Html position={[radius, 0, 0]} center style={{ pointerEvents: 'none' }}>
+          <div style={{
+            color: 'rgba(255, 255, 255, 0.3)',
+            fontSize: 9,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            letterSpacing: '0.03em',
+          }}>
+            {distanceAu.toFixed(1)} AU
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
