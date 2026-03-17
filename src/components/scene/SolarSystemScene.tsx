@@ -21,6 +21,7 @@ const PLANET_IDS = new Set(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'sat
 const OVERVIEW_POS: [number, number, number] = [0, 40, 60]
 const BOUNDS_MIN = new THREE.Vector3(-40, -20, -40)
 const BOUNDS_MAX = new THREE.Vector3(40, 20, 40)
+const MAX_DIST = 80
 
 function Scene() {
   const objects = useStore((state) => state.objects)
@@ -101,9 +102,6 @@ function Scene() {
     }
   }, [selectedObject])
 
-  // Clamp camera-controls internal target vectors directly.
-  // This avoids fighting with the drag system — the target simply can't exceed bounds.
-  // Spherical offset (viewing angle) is untouched, so no rotation side-effects.
   // Clamp camera-controls + signal scene readiness after textures are GPU-bound
   useFrame(() => {
     if (!controlsRef.current) return
@@ -159,7 +157,7 @@ function Scene() {
       <CameraControls
         ref={controlsRef}
         minDistance={0.5}
-        maxDistance={80}
+        maxDistance={MAX_DIST}
         smoothTime={0.4}
         draggingSmoothTime={0.15}
         truckSpeed={5}

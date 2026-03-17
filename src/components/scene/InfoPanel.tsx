@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { useStore } from '../../store/store'
 import { DESCRIPTIONS } from '../../utils/descriptions'
 import { PLANET_COLORS, DEFAULT_COLOR } from '../../utils/sceneScaling'
@@ -5,6 +6,23 @@ import { PLANET_COLORS, DEFAULT_COLOR } from '../../utils/sceneScaling'
 export default function InfoPanel() {
   const selectedObject = useStore((state) => state.selectedObject)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
+  const factoids = useStore((state) => state.factoids)
+  const fetchFactoids = useStore((state) => state.fetchFactoids)
+
+  const facts = selectedObject ? factoids[selectedObject.id] ?? [] : []
+  const [factIdx, setFactIdx] = useState(0)
+
+  // Fetch factoids on first mount
+  useEffect(() => {
+    if (Object.keys(factoids).length === 0) fetchFactoids()
+  }, [factoids, fetchFactoids])
+
+  // Pick a random starting fact when object changes
+  useEffect(() => {
+    if (facts.length > 0) {
+      setFactIdx(Math.floor(Math.random() * facts.length))
+    }
+  }, [selectedObject?.id, facts.length])
 
   if (!selectedObject) return null
 
@@ -17,10 +35,16 @@ export default function InfoPanel() {
   const z = selectedObject.z ?? 0
   const sunDistAu = Math.sqrt(x * x + y * y + z * z)
   const sunDistKm = sunDistAu * 149_597_870.7
+  const sunLightMin = sunDistAu * 8.317
 
   const formatDistance = (km: number) => {
     if (km >= 1_000_000) return `${(km / 1_000_000).toFixed(1)}M km`
     return `${Math.round(km).toLocaleString()} km`
+  }
+
+  const formatLightTime = (lightMin: number) => {
+    if (lightMin >= 60) return `${(lightMin / 60).toFixed(1)} light-hr`
+    return `${lightMin.toFixed(1)} light-min`
   }
 
   const stats: { label: string; value: string }[] = [
@@ -28,6 +52,7 @@ export default function InfoPanel() {
     { label: 'Radius', value: selectedObject.radius_km ? `${selectedObject.radius_km.toLocaleString()} km` : '—' },
     { label: 'From Sun (AU)', value: sunDistAu > 0 ? `${sunDistAu.toFixed(4)} AU` : '—' },
     { label: 'From Sun', value: sunDistAu > 0 ? formatDistance(sunDistKm) : '—' },
+    { label: 'Light time', value: sunDistAu > 0 ? formatLightTime(sunLightMin) : '—' },
     { label: 'Magnitude', value: selectedObject.magnitude != null ? selectedObject.magnitude.toFixed(1) : '—' },
   ]
 
@@ -123,7 +148,7 @@ export default function InfoPanel() {
 
       {/* Description */}
       {description && (
-        <div style={{ padding: '16px 20px' }}>
+        <div style={{ padding: '16px 20px', borderBottom: facts.length > 0 ? '1px solid rgba(255, 255, 255, 0.08)' : undefined }}>
           <p style={{
             margin: 0,
             fontSize: 13,
@@ -131,6 +156,26 @@ export default function InfoPanel() {
             color: 'rgba(255,255,255,0.7)',
           }}>
             {description}
+          </p>
+        </div>
+      )}
+
+      {/* Did You Know */}
+      {facts.length > 0 && (
+        <div style={{ padding: '14px 20px' }}>
+          <div style={{ marginBottom: 8 }}>
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Did you know?
+            </span>
+          </div>
+          <p style={{
+            margin: 0,
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.6)',
+            fontStyle: 'italic',
+          }}>
+            {facts[factIdx]}
           </p>
         </div>
       )}
