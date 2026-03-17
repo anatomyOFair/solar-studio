@@ -2,23 +2,22 @@
  * Scaling utilities for converting real astronomical units
  * to Three.js scene coordinates.
  *
- * The solar system spans ~30 AU (Neptune) but inner planets are < 2 AU.
- * We use power-law compression so everything is visible in one scene.
+ * Uses power-law compression so all planets fit in one view,
+ * with exaggerated body sizes for visibility.
  */
 
 const AU_SCALE = 20
 const POSITION_EXPONENT = 0.55
 
-/** Compress a distance (AU) to scene units */
+/** Convert a distance (AU) to scene units */
 export function auToScene(au: number): number {
   return Math.pow(Math.abs(au) * AU_SCALE, POSITION_EXPONENT)
 }
 
 /**
  * Convert heliocentric x,y,z (AU) to scene position [x, y, z].
- * Compresses the total distance while preserving direction,
- * then swaps axes: astronomical y → scene -z, astronomical z → scene y
- * to put the ecliptic plane on the XZ plane in Three.js.
+ * Compresses distance while preserving direction,
+ * swaps axes: astronomical y → scene -z, z → scene y
  */
 export function positionToScene(x: number, y: number, z: number): [number, number, number] {
   const dist = Math.sqrt(x * x + y * y + z * z)
@@ -31,18 +30,15 @@ export function positionToScene(x: number, y: number, z: number): [number, numbe
   ]
 }
 
-/**
- * Convert real radius (km) to display radius using square-root scaling.
- * Sqrt is the standard for interactive orreries because humans judge
- * size by area (area ∝ r²), so sqrt makes visual areas proportional
- * to real radii. Sun is capped to avoid engulfing inner planets.
- */
-const BASE_PLANET_SIZE = 0.3   // Earth = 0.3 scene units
-const MIN_PLANET_SIZE = 0.12   // minimum clickable size
+/** Convert real radius (km) to display radius — power-law scaling */
+const SUN_RADIUS = 1.4
+const SIZE_BASE = 0.08      // Earth-sized planet = 0.08 scene units
+const SIZE_EXPONENT = 0.65  // between linear (1.0) and sqrt (0.5)
+const MIN_PLANET_SIZE = 0.025
 
 export function radiusToScene(radiusKm: number, id: string): number {
-  if (id === 'sun') return 2.0
-  return Math.max(MIN_PLANET_SIZE, Math.sqrt(radiusKm / 6371) * BASE_PLANET_SIZE)
+  if (id === 'sun') return SUN_RADIUS
+  return Math.max(MIN_PLANET_SIZE, Math.pow(radiusKm / 6371, SIZE_EXPONENT) * SIZE_BASE)
 }
 
 /** Planet colors by object ID */

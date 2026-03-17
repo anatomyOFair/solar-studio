@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Map } from 'leaflet'
 import type { CelestialObject, UserReport } from '../types'
+import type { TourDef } from '../data/tours'
 
 interface StoreState {
   map: Map | null
@@ -39,6 +40,15 @@ interface StoreState {
   setShowCrescentZones: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
+  // Tour
+  tours: TourDef[]
+  fetchTours: () => Promise<void>
+  activeTour: TourDef | null
+  tourStep: number
+  startTour: (tour: TourDef) => void
+  endTour: () => void
+  nextTourStep: () => void
+  prevTourStep: () => void
   // Location
   userLocation: { lat: number; lon: number; label: string } | null
   setUserLocation: (loc: { lat: number; lon: number; label: string } | null) => void
@@ -173,6 +183,56 @@ export const useStore = create<StoreState>((set) => ({
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
+  // Tour
+  tours: [],
+  fetchTours: async () => {
+    const { supabase } = await import('../lib/supabase')
+    try {
+      const { data: toursData, error: toursErr } = await supabase
+        .from('tours')
+        .select('*')
+        .order('sort_order')
+      if (toursErr || !toursData?.length) return
+
+      const { data: stopsData, error: stopsErr } = await supabase
+        .from('tour_stops')
+        .select('*')
+        .order('step_order')
+      if (stopsErr) return
+
+      const tours: TourDef[] = toursData.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        stops: (stopsData ?? [])
+          .filter((s: any) => s.tour_id === t.id)
+          .map((s: any) => ({ objectId: s.object_id, narration: s.narration })),
+      }))
+      set({ tours })
+    } catch {
+      // DB unavailable — tours panel stays hidden
+    }
+  },
+  activeTour: null,
+  tourStep: 0,
+  startTour: (tour) => set((state) => {
+    const obj = state.objects.find((o) => o.id === tour.stops[0]?.objectId) ?? null
+    return { activeTour: tour, tourStep: 0, selectedObject: obj, viewMode: '3d' }
+  }),
+  endTour: () => set({ activeTour: null, tourStep: 0, selectedObject: null }),
+  nextTourStep: () => set((state) => {
+    if (!state.activeTour) return {}
+    const next = state.tourStep + 1
+    if (next >= state.activeTour.stops.length) return { activeTour: null, tourStep: 0, selectedObject: null }
+    const obj = state.objects.find((o) => o.id === state.activeTour!.stops[next].objectId) ?? null
+    return { tourStep: next, selectedObject: obj }
+  }),
+  prevTourStep: () => set((state) => {
+    if (!state.activeTour) return {}
+    const prev = Math.max(0, state.tourStep - 1)
+    const obj = state.objects.find((o) => o.id === state.activeTour!.stops[prev].objectId) ?? null
+    return { tourStep: prev, selectedObject: obj }
+  }),
   // Location
   userLocation: null,
   setUserLocation: (loc) => set({ userLocation: loc }),
@@ -204,3 +264,4 @@ export const useStore = create<StoreState>((set) => ({
 export function getEffectiveTime(): Date {
   return useStore.getState().simulatedTime ?? new Date()
 }
+

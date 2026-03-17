@@ -38,7 +38,7 @@ export default function InfoPanel() {
   return (
     <div style={{
       position: 'fixed',
-      top: 64,
+      top: 80,
       right: 16,
       width: 320,
       maxHeight: 'calc(100vh - 96px)',

@@ -10,6 +10,8 @@ import CelestialBody from './CelestialBody'
 import Starfield from './Starfield'
 import SunMesh from './SunMesh'
 import OrbitRing from './OrbitRing'
+import TourOverlay from './TourOverlay'
+import TourPanel from './TourPanel'
 import CameraControlsImpl from 'camera-controls'
 
 const PLANET_IDS = new Set(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'])
@@ -181,6 +183,8 @@ export default function SolarSystemScene() {
           <Scene />
         </Suspense>
       </Canvas>
+      <TourPanel />
+      <TourOverlay />
     </div>
   )
 }

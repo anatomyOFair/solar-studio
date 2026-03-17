@@ -18,6 +18,7 @@ function App() {
   const closeAuthModal = useStore((state) => state.closeAuthModal)
   const setSession = useStore((state) => state.setSession)
   const viewMode = useStore((state) => state.viewMode)
+  const activeTour = useStore((state) => state.activeTour)
 
   useEffect(() => {
     // Dynamic import to avoid circular dependencies if any, though standard import is fine too.
@@ -42,7 +43,7 @@ function App() {
   return (
     <div className="text-white" style={{ backgroundColor: colors.background.darker, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
         <TopNav />
-        {viewMode !== 'home' && <TimeSlider />}
+        {viewMode !== 'home' && !activeTour && <TimeSlider />}
         <SideNav />
         {viewMode === 'home' && <HomeView />}
         {viewMode === '2d' && (
@@ -55,7 +56,7 @@ function App() {
         {viewMode === '3d' && (
           <>
             <SolarSystemScene />
-            <InfoPanel />
+            {!activeTour && <InfoPanel />}
           </>
         )}
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
