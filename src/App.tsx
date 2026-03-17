@@ -8,6 +8,7 @@ import SideNav from './components/nav/SideNav'
 import ObjectTracker from './components/ui/ObjectTracker'
 import UserReportsPanel from './components/ui/UserReportsPanel'
 import HomeView from './components/ui/HomeView'
+import LoadingScreen from './components/scene/LoadingScreen'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
 import { useStore } from './store/store'
@@ -19,17 +20,18 @@ function App() {
   const setSession = useStore((state) => state.setSession)
   const viewMode = useStore((state) => state.viewMode)
   const activeTour = useStore((state) => state.activeTour)
+  const fetchObjects = useStore((state) => state.fetchObjects)
+  const setDataReady = useStore((state) => state.setDataReady)
 
+  // Prefetch data + auth on mount
   useEffect(() => {
-    // Dynamic import to avoid circular dependencies if any, though standard import is fine too.
-    // Putting it inside effect to ensure client exists.
+    fetchObjects().finally(() => setDataReady(true))
+
     import('./lib/supabase').then(({ supabase }) => {
-        // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session)
         })
 
-        // Listen for changes
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -38,7 +40,7 @@ function App() {
 
         return () => subscription.unsubscribe()
     })
-  }, [setSession])
+  }, [setSession, fetchObjects, setDataReady])
 
   return (
     <div className="text-white" style={{ backgroundColor: colors.background.darker, width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
@@ -59,6 +61,7 @@ function App() {
             {!activeTour && <InfoPanel />}
           </>
         )}
+      <LoadingScreen />
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
     </div>

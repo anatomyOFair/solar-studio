@@ -40,6 +40,11 @@ interface StoreState {
   setShowCrescentZones: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
+  // Loading
+  dataReady: boolean
+  setDataReady: (ready: boolean) => void
+  sceneReady: boolean
+  setSceneReady: (ready: boolean) => void
   // Tour
   tours: TourDef[]
   fetchTours: () => Promise<void>
@@ -183,6 +188,11 @@ export const useStore = create<StoreState>((set) => ({
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
+  // Loading
+  dataReady: false,
+  setDataReady: (ready) => set({ dataReady: ready }),
+  sceneReady: false,
+  setSceneReady: (ready) => set({ sceneReady: ready }),
   // Tour
   tours: [],
   fetchTours: async () => {

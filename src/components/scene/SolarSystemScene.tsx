@@ -28,12 +28,21 @@ function Scene() {
   const fetchObjects = useStore((state) => state.fetchObjects)
   const selectedObject = useStore((state) => state.selectedObject)
   const controlsRef = useRef<CameraControlsImpl>(null)
+  const setSceneReady = useStore((state) => state.setSceneReady)
+  const frameCount = useRef(0)
 
   useEffect(() => {
     if (objects.length === 0) {
       fetchObjects()
     }
   }, [objects.length, fetchObjects])
+
+  // Reset sceneReady on mount, signal ready after a few frames
+  useEffect(() => {
+    frameCount.current = 0
+    useStore.getState().setSceneReady(false)
+    return () => { useStore.getState().setSceneReady(false) }
+  }, [])
 
   // Configure mouse buttons: middle-drag = pan, Shift+left-drag = pan
   useEffect(() => {
@@ -92,11 +101,18 @@ function Scene() {
   // Clamp camera-controls internal target vectors directly.
   // This avoids fighting with the drag system — the target simply can't exceed bounds.
   // Spherical offset (viewing angle) is untouched, so no rotation side-effects.
+  // Clamp camera-controls + signal scene readiness after textures are GPU-bound
   useFrame(() => {
     if (!controlsRef.current) return
     const c = controlsRef.current as any // eslint-disable-line @typescript-eslint/no-explicit-any
     ;(c._targetEnd as THREE.Vector3).clamp(BOUNDS_MIN, BOUNDS_MAX)
     ;(c._target as THREE.Vector3).clamp(BOUNDS_MIN, BOUNDS_MAX)
+
+    // Wait a few frames for textures to upload to GPU before revealing
+    if (frameCount.current < 10) {
+      frameCount.current++
+      if (frameCount.current === 10) setSceneReady(true)
+    }
   })
 
   const orbitData = useMemo(() => {
