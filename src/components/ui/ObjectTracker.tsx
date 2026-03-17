@@ -37,6 +37,8 @@ export default function ObjectTracker() {
   const setVisualizationMode = useStore((state) => state.setVisualizationMode)
   const showCrescentZones = useStore((state) => state.showCrescentZones)
   const setShowCrescentZones = useStore((state) => state.setShowCrescentZones)
+  const showConstellationLines = useStore((state) => state.showConstellationLines)
+  const setShowConstellationLines = useStore((state) => state.setShowConstellationLines)
   const simulatedTime = useStore((state) => state.simulatedTime)
 
   const showCrescentToggle = selectedObject?.id === 'moon' && isNearNewMoon(simulatedTime ?? new Date())
@@ -80,6 +82,49 @@ export default function ObjectTracker() {
 
   return (
     <>
+      {/* Constellation Lines toggle — always visible */}
+      <div
+        className="fixed"
+        style={{
+          bottom: `calc(${spacing.md} + 130px${showCrescentToggle ? ' + 40px' : ''})`,
+          left: spacing.md,
+          zIndex: sizes.zIndex.fixed,
+          backgroundColor: colors.navbar.background,
+          backdropFilter: `blur(${sizes.blur.default})`,
+          WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          border: `1px solid ${colors.navbar.border}`,
+          borderRadius: sizes.borderRadius.xl,
+          padding: `${spacing.xs} ${spacing.sm}`,
+        }}
+      >
+        <button
+          onClick={() => setShowConstellationLines(!showConstellationLines)}
+          className="flex items-center transition-all"
+          style={{
+            gap: spacing.sm,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: colors.text.primary,
+            fontSize: '12px',
+            fontWeight: 500,
+            padding: '4px 6px',
+            borderRadius: '6px',
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: showConstellationLines ? 'rgba(255, 220, 150, 0.8)' : colors.text.muted,
+              transition: 'all 0.2s ease',
+            }}
+          />
+          Constellations
+        </button>
+      </div>
+
       {/* Crescent Visibility Zones toggle — only when Moon selected + near new moon */}
       {showCrescentToggle && (
         <div

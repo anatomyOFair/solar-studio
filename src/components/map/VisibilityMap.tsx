@@ -9,6 +9,7 @@ import VisibilityTooltip from './VisibilityTooltip'
 import HexGridLayer from './layers/HexGridLayer'
 import CrescentVisibilityLayer from './layers/CrescentVisibilityLayer'
 import VectorLayer from './layers/VectorLayer'
+import ConstellationLinesLayer from './layers/ConstellationLinesLayer'
 
 const DefaultIcon = L.icon({
   iconUrl: icon,
@@ -143,6 +144,7 @@ interface VisibilityMapProps {
 export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
   const visualizationMode = useStore((state) => state.visualizationMode)
   const showCrescentZones = useStore((state) => state.showCrescentZones)
+  const showConstellationLines = useStore((state) => state.showConstellationLines)
 
   return (
     <div className={`w-full h-full ${className}`} style={{ margin: 0, padding: 0, zIndex: 0, position: 'relative' }}>
@@ -170,6 +172,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
         />
         <MapConfigurator />
         <VectorLayer />
+        {showConstellationLines && <ConstellationLinesLayer />}
 
         {visualizationMode === 'hex' && !showCrescentZones && <HexGridLayer />}
         {showCrescentZones && <CrescentVisibilityLayer />}

@@ -38,6 +38,8 @@ interface StoreState {
   closeReportModal: () => void
   showCrescentZones: boolean
   setShowCrescentZones: (show: boolean) => void
+  showConstellationLines: boolean
+  setShowConstellationLines: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
   // Loading
@@ -48,6 +50,9 @@ interface StoreState {
   // Camera HUD
   cameraDistAu: number
   setCameraDistAu: (v: number) => void
+  // Factoids
+  factoids: Record<string, string[]>
+  fetchFactoids: () => Promise<void>
   // Tour
   tours: TourDef[]
   fetchTours: () => Promise<void>
@@ -200,6 +205,8 @@ export const useStore = create<StoreState>((set) => ({
   closeReportModal: () => set({ isReportModalOpen: false }),
   showCrescentZones: false,
   setShowCrescentZones: (show) => set({ showCrescentZones: show, ...(show ? { visualizationMode: 'none' } : {}) }),
+  showConstellationLines: false,
+  setShowConstellationLines: (show) => set({ showConstellationLines: show }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
   // Loading
@@ -210,6 +217,20 @@ export const useStore = create<StoreState>((set) => ({
   // Camera HUD
   cameraDistAu: 0,
   setCameraDistAu: (v) => set({ cameraDistAu: v }),
+  // Factoids
+  factoids: {},
+  fetchFactoids: async () => {
+    const { supabase } = await import('../lib/supabase')
+    try {
+      const { data, error } = await supabase.from('factoids').select('object_id, content')
+      if (error || !data?.length) return
+      const grouped: Record<string, string[]> = {}
+      for (const row of data) {
+        ;(grouped[row.object_id] ??= []).push(row.content)
+      }
+      set({ factoids: grouped })
+    } catch { /* DB unavailable */ }
+  },
   // Tour
   tours: [],
   fetchTours: async () => {

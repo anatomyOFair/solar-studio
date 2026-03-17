@@ -107,19 +107,6 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* Upcoming Events */}
-      <div
-        style={{
-          ...glassCard,
-          padding: spacing.md,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <UpcomingEventsPanel />
-      </div>
-
       {/* Altitude Chart */}
       <div
         style={{
@@ -165,6 +152,19 @@ export default function HomeView() {
         <div style={{ flex: 1, minHeight: 0 }}>
           <AltitudeChart location={location} objectId={chartObjectId} />
         </div>
+      </div>
+
+      {/* Upcoming Events */}
+      <div
+        style={{
+          ...glassCard,
+          padding: spacing.md,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <UpcomingEventsPanel />
       </div>
 
       {/* Observation Log — spans 2 columns */}
