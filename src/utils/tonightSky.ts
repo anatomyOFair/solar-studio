@@ -199,7 +199,7 @@ function sampleMaxAltitude(
 
 // ── Current Altitude ───────────────────────────────────────────────────
 
-function getCurrentAltitude(object: CelestialObject, lat: number, lon: number, time: Date): number {
+export function getCurrentAltitude(object: CelestialObject, lat: number, lon: number, time: Date): number {
   if (object.id === 'moon') {
     const pos = SunCalc.getMoonPosition(time, lat, lon)
     return pos.altitude * (180 / Math.PI)

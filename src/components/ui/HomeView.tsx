@@ -4,13 +4,13 @@ import {
   faLocationDot,
   faRotateRight,
   faCalendarDays,
-  faChartLine,
   faBookOpen,
 } from '@fortawesome/free-solid-svg-icons'
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { useStore } from '../../store/store'
 import { colors, spacing, sizes } from '../../constants'
 import TonightsSky from './TonightsSky'
+import AltitudeChart from './AltitudeChart'
 
 const DEFAULT_LOCATION = { lat: 40.7, lon: -74.0, label: 'New York' }
 
@@ -148,11 +148,31 @@ export default function HomeView() {
       />
 
       {/* Altitude Chart */}
-      <PlaceholderCard
-        icon={faChartLine}
-        title="Altitude Chart"
-        description="Object altitude curve over tonight"
-      />
+      <div
+        style={{
+          ...glassCard,
+          padding: spacing.md,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <h3
+          style={{
+            color: colors.text.secondary,
+            fontSize: '13px',
+            fontWeight: 500,
+            margin: 0,
+            marginBottom: spacing.sm,
+            flexShrink: 0,
+          }}
+        >
+          Altitude Chart
+        </h3>
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <AltitudeChart location={location} />
+        </div>
+      </div>
 
       {/* Observation Log — spans 2 columns */}
       <PlaceholderCard
