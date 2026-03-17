@@ -1,12 +1,13 @@
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faMeteor, faMoon, faCircle, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
+import { faMeteor, faMoon, faCircle, faEyeSlash, faBolt, faStar } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
 import { colors, spacing, sizes } from '../../constants'
 import {
   getUpcomingEvents,
   groupEventsByDay,
   type CelestialEvent,
+  type EventDay,
 } from '../../utils/celestialEvents'
 
 const EVENT_STYLES: Record<CelestialEvent['type'], { color: string; icon: any }> = {
@@ -14,7 +15,8 @@ const EVENT_STYLES: Record<CelestialEvent['type'], { color: string; icon: any }>
   meteor_shower:  { color: '#34d399', icon: faMeteor },
   lunar_phase:    { color: '#e2e8f0', icon: faMoon },
   eclipse:        { color: '#f59e0b', icon: faEyeSlash },
-  special:        { color: '#c084fc', icon: faCircle },
+  aurora:         { color: '#a78bfa', icon: faBolt },
+  special:        { color: '#c084fc', icon: faStar },
 }
 
 export default function UpcomingEventsPanel() {
@@ -22,9 +24,26 @@ export default function UpcomingEventsPanel() {
   const simulatedTime = useStore((state) => state.simulatedTime)
   const now = simulatedTime ?? new Date()
 
-  const days = useMemo(() => {
-    const events = getUpcomingEvents(objects, now)
-    return groupEventsByDay(events, now)
+  const [days, setDays] = useState<EventDay[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Load events from Supabase cache (populated by backend refresh script)
+  useEffect(() => {
+    if (objects.length === 0) return
+
+    let cancelled = false
+    setLoading(true)
+
+    const load = async () => {
+      const events = await getUpcomingEvents(objects, now)
+      if (!cancelled) {
+        setDays(groupEventsByDay(events, now))
+        setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [objects, now.toDateString()])
 
@@ -44,7 +63,14 @@ export default function UpcomingEventsPanel() {
       </h3>
 
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-        {days.length === 0 ? (
+        {loading ? (
+          <div
+            className="flex items-center justify-center"
+            style={{ color: colors.text.muted, padding: spacing.xl, fontSize: sizes.fonts.sm }}
+          >
+            Loading...
+          </div>
+        ) : days.length === 0 ? (
           <div
             style={{
               display: 'flex',
@@ -57,7 +83,7 @@ export default function UpcomingEventsPanel() {
             }}
           >
             <FontAwesomeIcon icon={faMoon} style={{ fontSize: '20px', opacity: 0.4 }} />
-            <span style={{ fontSize: '12px' }}>No events in the next 2 weeks</span>
+            <span style={{ fontSize: '12px' }}>No upcoming events</span>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>

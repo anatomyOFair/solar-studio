@@ -6,123 +6,12 @@ import type { CelestialObject } from '../types'
 export interface CelestialEvent {
   id: string
   name: string
-  type: 'meteor_shower' | 'lunar_phase' | 'conjunction' | 'eclipse' | 'special'
+  type: 'meteor_shower' | 'lunar_phase' | 'conjunction' | 'eclipse' | 'aurora' | 'special'
   date: Date
   description: string
 }
 
-// ── Meteor Showers (annual peaks) ──────────────────────────────────────
-
-const METEOR_SHOWERS = [
-  { name: 'Quadrantids',     month: 0,  day: 3,  zhr: 120, parent: '2003 EH1' },
-  { name: 'Lyrids',          month: 3,  day: 22, zhr: 18,  parent: 'C/1861 G1 Thatcher' },
-  { name: 'Eta Aquariids',   month: 4,  day: 6,  zhr: 50,  parent: '1P/Halley' },
-  { name: 'Delta Aquariids', month: 6,  day: 30, zhr: 25,  parent: '96P/Machholz' },
-  { name: 'Perseids',        month: 7,  day: 12, zhr: 100, parent: '109P/Swift-Tuttle' },
-  { name: 'Draconids',       month: 9,  day: 8,  zhr: 10,  parent: '21P/Giacobini-Zinner' },
-  { name: 'Orionids',        month: 9,  day: 21, zhr: 20,  parent: '1P/Halley' },
-  { name: 'Leonids',         month: 10, day: 17, zhr: 15,  parent: '55P/Tempel-Tuttle' },
-  { name: 'Geminids',        month: 11, day: 14, zhr: 150, parent: '3200 Phaethon' },
-  { name: 'Ursids',          month: 11, day: 22, zhr: 10,  parent: '8P/Tuttle' },
-]
-
-// ── Known Eclipses (2025–2027) ─────────────────────────────────────────
-
-const ECLIPSES = [
-  { date: '2025-03-14', name: 'Total Lunar Eclipse',     desc: 'Visible from Americas, Europe, Africa' },
-  { date: '2025-03-29', name: 'Partial Solar Eclipse',    desc: 'Visible from NW Africa, Europe, N Russia' },
-  { date: '2025-09-07', name: 'Total Lunar Eclipse',     desc: 'Visible from Europe, Africa, Asia, Australia' },
-  { date: '2025-09-21', name: 'Partial Solar Eclipse',    desc: 'Visible from S Pacific, New Zealand, Antarctica' },
-  { date: '2026-02-17', name: 'Penumbral Lunar Eclipse', desc: 'Visible from Americas, Europe, Africa' },
-  { date: '2026-03-03', name: 'Total Lunar Eclipse',     desc: 'Visible from E Asia, Australia, Pacific, Americas' },
-  { date: '2026-08-12', name: 'Total Solar Eclipse',     desc: 'Visible from Arctic, Greenland, Iceland, Spain' },
-  { date: '2026-08-28', name: 'Partial Lunar Eclipse',   desc: 'Visible from E Pacific, Americas, Europe, Africa' },
-  { date: '2027-02-06', name: 'Penumbral Lunar Eclipse', desc: 'Visible from Americas, Europe, Africa, W Asia' },
-  { date: '2027-02-20', name: 'Annular Solar Eclipse',   desc: 'Visible from S America, Atlantic, Africa' },
-  { date: '2027-07-18', name: 'Penumbral Lunar Eclipse', desc: 'Visible from Americas, Europe, Africa' },
-  { date: '2027-08-02', name: 'Total Solar Eclipse',     desc: 'Visible from N Africa, Mediterranean, Arabian Peninsula' },
-]
-
-// ── Lunar Phases ───────────────────────────────────────────────────────
-
-const PHASE_DEFS = [
-  { target: 0,    name: 'New Moon',      desc: 'Moon between Earth and Sun — invisible' },
-  { target: 0.25, name: 'First Quarter', desc: 'Half-lit, waxing — visible in evening sky' },
-  { target: 0.5,  name: 'Full Moon',     desc: 'Fully illuminated — visible all night' },
-  { target: 0.75, name: 'Last Quarter',  desc: 'Half-lit, waning — visible in morning sky' },
-]
-
-function computeLunarPhases(from: Date, days: number): CelestialEvent[] {
-  const events: CelestialEvent[] = []
-  let prevPhase = SunCalc.getMoonIllumination(from).phase
-
-  for (let h = 6; h <= days * 24; h += 6) {
-    const t = new Date(from.getTime() + h * 3600000)
-    const cur = SunCalc.getMoonIllumination(t).phase
-
-    for (const p of PHASE_DEFS) {
-      const crossed =
-        (p.target === 0 && prevPhase > 0.9 && cur < 0.1) ||
-        (p.target > 0 && prevPhase < p.target && cur >= p.target)
-
-      if (crossed) {
-        events.push({
-          id: `lunar-${p.name.toLowerCase().replace(/\s/g, '-')}-${t.toISOString().slice(0, 10)}`,
-          name: p.name,
-          type: 'lunar_phase',
-          date: t,
-          description: p.desc,
-        })
-      }
-    }
-    prevPhase = cur
-  }
-
-  return events
-}
-
-// ── Meteor Showers ─────────────────────────────────────────────────────
-
-function computeMeteorShowers(from: Date, days: number): CelestialEvent[] {
-  const events: CelestialEvent[] = []
-  const end = from.getTime() + days * 86400000
-  const year = from.getFullYear()
-
-  for (const s of METEOR_SHOWERS) {
-    for (const y of [year, year + 1]) {
-      const peak = new Date(y, s.month, s.day)
-      if (peak.getTime() >= from.getTime() && peak.getTime() <= end) {
-        events.push({
-          id: `meteor-${s.name.toLowerCase().replace(/\s/g, '-')}-${y}`,
-          name: `${s.name} Peak`,
-          type: 'meteor_shower',
-          date: peak,
-          description: `~${s.zhr} meteors/hr at peak · Parent: ${s.parent}`,
-        })
-      }
-    }
-  }
-
-  return events
-}
-
-// ── Eclipses ───────────────────────────────────────────────────────────
-
-function computeEclipses(from: Date, days: number): CelestialEvent[] {
-  const end = from.getTime() + days * 86400000
-
-  return ECLIPSES
-    .map((e) => ({
-      id: `eclipse-${e.date}`,
-      name: e.name,
-      type: 'eclipse' as const,
-      date: new Date(e.date + 'T00:00:00'),
-      description: e.desc,
-    }))
-    .filter((e) => e.date.getTime() >= from.getTime() && e.date.getTime() <= end)
-}
-
-// ── Conjunctions ───────────────────────────────────────────────────────
+// ── Conjunctions (computed live from store positions) ───────────────────
 
 function angularSeparation(ra1: number, dec1: number, ra2: number, dec2: number): number {
   const RAD = Math.PI / 180
@@ -163,22 +52,98 @@ function computeConjunctions(objects: CelestialObject[]): CelestialEvent[] {
   return events
 }
 
+// ── Fallback: locally computed events (used when DB is empty) ──────────
+
+const PHASE_DEFS = [
+  { target: 0,    name: 'New Moon',      desc: 'Moon between Earth and Sun — invisible' },
+  { target: 0.25, name: 'First Quarter', desc: 'Half-lit, waxing — visible in evening sky' },
+  { target: 0.5,  name: 'Full Moon',     desc: 'Fully illuminated — visible all night' },
+  { target: 0.75, name: 'Last Quarter',  desc: 'Half-lit, waning — visible in morning sky' },
+]
+
+function computeLunarPhases(from: Date, days: number): CelestialEvent[] {
+  const events: CelestialEvent[] = []
+  let prevPhase = SunCalc.getMoonIllumination(from).phase
+
+  for (let h = 6; h <= days * 24; h += 6) {
+    const t = new Date(from.getTime() + h * 3600000)
+    const cur = SunCalc.getMoonIllumination(t).phase
+
+    for (const p of PHASE_DEFS) {
+      const crossed =
+        (p.target === 0 && prevPhase > 0.9 && cur < 0.1) ||
+        (p.target > 0 && prevPhase < p.target && cur >= p.target)
+
+      if (crossed) {
+        events.push({
+          id: `lunar-${p.name.toLowerCase().replace(/\s/g, '-')}-${t.toISOString().slice(0, 10)}`,
+          name: p.name,
+          type: 'lunar_phase',
+          date: t,
+          description: p.desc,
+        })
+      }
+    }
+    prevPhase = cur
+  }
+
+  return events
+}
+
+// ── Fetch cached events from Supabase ──────────────────────────────────
+
+async function fetchCachedEvents(from: Date): Promise<CelestialEvent[]> {
+  try {
+    const { supabase } = await import('../lib/supabase')
+    const until = new Date(from.getTime() + 180 * 86400000) // ~6 months
+
+    const { data, error } = await supabase
+      .from('celestial_events')
+      .select('*')
+      .gte('event_date', from.toISOString().slice(0, 10))
+      .lte('event_date', until.toISOString().slice(0, 10))
+      .order('event_date')
+
+    if (error || !data?.length) return []
+
+    return data.map((row: any) => ({
+      id: row.id,
+      name: row.name,
+      type: row.type as CelestialEvent['type'],
+      date: new Date(row.event_date + 'T00:00:00'),
+      description: row.description ?? '',
+    }))
+  } catch {
+    return []
+  }
+}
+
 // ── Public API ──────────────────────────────────────────────────────────
 
-const WINDOW_DAYS = 14
-
-export function getUpcomingEvents(
+export async function getUpcomingEvents(
   objects: CelestialObject[],
   from?: Date,
-): CelestialEvent[] {
+): Promise<CelestialEvent[]> {
   const now = from ?? new Date()
 
-  const events = [
-    ...computeConjunctions(objects),
-    ...computeLunarPhases(now, WINDOW_DAYS),
-    ...computeMeteorShowers(now, WINDOW_DAYS),
-    ...computeEclipses(now, WINDOW_DAYS),
-  ]
+  const [cached, conjunctions] = await Promise.all([
+    fetchCachedEvents(now),
+    Promise.resolve(computeConjunctions(objects)),
+  ])
+
+  let events: CelestialEvent[]
+
+  if (cached.length > 0) {
+    // DB has data — use it + add live conjunctions
+    const seen = new Set(cached.map((e) => e.id))
+    events = [...cached, ...conjunctions.filter((e) => !seen.has(e.id))]
+  } else {
+    // DB empty or table doesn't exist — fall back to local computation
+    events = [
+      ...conjunctions,
+      ...computeLunarPhases(now, 180),
+    ]
+  }
 
   events.sort((a, b) => a.date.getTime() - b.date.getTime())
   return events
