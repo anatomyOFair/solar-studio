@@ -1,7 +1,8 @@
 """
 Moon position refresh script
-Fetches moon positions relative to their parent planet from JPL Horizons,
-then computes heliocentric positions by adding the parent's position.
+Fetches moon positions relative to their parent planet from JPL Horizons.
+Stores parent-relative offsets directly — the frontend positions moons
+relative to their parent's scene position.
 Run hourly via scheduler.
 """
 
@@ -30,21 +31,6 @@ MOONS = [
     ("ganymede", "Ganymede", "503", "jupiter", "599", 2634.1),
     ("europa",   "Europa",   "502", "jupiter", "599", 1560.8),
 ]
-
-
-def get_parent_position(parent_id: str) -> tuple[float, float, float] | None:
-    """Get parent planet's heliocentric position from DB."""
-    try:
-        resp = supabase.table("celestial_objects") \
-            .select("x, y, z") \
-            .eq("id", parent_id) \
-            .single() \
-            .execute()
-        d = resp.data
-        return (d["x"], d["y"], d["z"])
-    except Exception as e:
-        print(f"  Error reading parent {parent_id}: {e}")
-        return None
 
 
 def fetch_moon(name: str, jpl_id: str, parent_jpl_id: str) -> dict | None:
@@ -91,23 +77,14 @@ def refresh_moons():
     for moon_id, name, jpl_id, parent_id, parent_jpl_id, radius in MOONS:
         print(f"  Fetching {name} (parent: {parent_id})...")
 
-        parent_pos = get_parent_position(parent_id)
-        if not parent_pos:
-            print(f"    ✗ Parent {parent_id} not in DB — run refresh_planets first")
-            errors += 1
-            continue
-
         data = fetch_moon(name, jpl_id, parent_jpl_id)
         if not data:
             errors += 1
             continue
 
-        # Heliocentric = parent + offset
-        px, py, pz = parent_pos
-        x = px + data["offset_x"]
-        y = py + data["offset_y"]
-        z = pz + data["offset_z"]
-
+        # Store parent-relative offset directly in x/y/z.
+        # The frontend knows to treat these as offsets via parent_body field.
+        # Velocity is also parent-relative (from Horizons query centered on parent).
         record = {
             "id": moon_id,
             "name": name,
@@ -115,7 +92,7 @@ def refresh_moons():
             "jpl_horizons_id": jpl_id,
             "parent_body": parent_id,
             "radius_km": radius,
-            "x": x, "y": y, "z": z,
+            "x": data["offset_x"], "y": data["offset_y"], "z": data["offset_z"],
             "vx": data["vx"], "vy": data["vy"], "vz": data["vz"],
             "ra": data["ra"], "dec": data["dec"],
             "distance_au": data["distance_au"],
@@ -128,7 +105,6 @@ def refresh_moons():
             supabase.table("celestial_objects").upsert(record, on_conflict="id").execute()
             success += 1
             print(f"    ✓ {name}: offset=({data['offset_x']:.6f}, {data['offset_y']:.6f}, {data['offset_z']:.6f}) AU")
-            print(f"      helio=({x:.4f}, {y:.4f}, {z:.4f}) AU")
         except Exception as e:
             errors += 1
             print(f"    ✗ Upsert failed: {e}")

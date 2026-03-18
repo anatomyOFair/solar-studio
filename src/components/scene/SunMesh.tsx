@@ -53,11 +53,8 @@ export default function SunMesh() {
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
-    if (isSelected) {
-      setSelectedObject(null)
-    } else if (sunObj) {
-      setSelectedObject(sunObj)
-    }
+    if (isSelected) return // Already focused — don't unfocus
+    if (sunObj) setSelectedObject(sunObj)
   }
 
   return (

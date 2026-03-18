@@ -69,8 +69,6 @@ function App() {
       <ReportModal />
       <ObservationModal />
       <HintOverlay />
-      {/* DEV: replay tour */}
-      <button onClick={() => { localStorage.removeItem('solar-studio:hints-state'); location.reload() }} style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 99999, fontSize: 10, opacity: 0.5, background: '#333', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>Replay Tour</button>
       {/* SVG filter for night-vision mode — maps all RGB to red channel */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
         <defs>

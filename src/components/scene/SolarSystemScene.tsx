@@ -1,10 +1,10 @@
 import { Canvas, useFrame } from '@react-three/fiber'
 import { CameraControls } from '@react-three/drei'
 import { EffectComposer, Bloom } from '@react-three/postprocessing'
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
 import { useStore } from '../../store/store'
-import { positionToScene, radiusToScene, sceneToAu } from '../../utils/sceneScaling'
+import { positionToScene, radiusToScene, moonOffsetToScene, sceneToAu } from '../../utils/sceneScaling'
 import { extrapolatePosition } from '../../utils/extrapolatePosition'
 import CelestialBody from './CelestialBody'
 import Starfield from './Starfield'
@@ -87,20 +87,47 @@ function Scene() {
     if (selectedObject) {
       const effectiveTime = simulatedTime ?? new Date()
       const { x, y, z } = extrapolatePosition(selectedObject, effectiveTime, objectsUpdatedAt)
-      const [tx, ty, tz] = positionToScene(x, y, z)
-      const radius = radiusToScene(selectedObject.radius_km ?? 1000, selectedObject.id)
+      const isMoon = selectedObject.type === 'moon'
+
+      let tx: number, ty: number, tz: number
+      if (isMoon && selectedObject.parent_body) {
+        // Moon x/y/z are parent-relative offsets — position relative to parent
+        const parent = objects.find(o => o.id === selectedObject.parent_body)
+        if (parent) {
+          const p = extrapolatePosition(parent, effectiveTime, objectsUpdatedAt)
+          const parentScene = positionToScene(p.x, p.y, p.z)
+          const offset = moonOffsetToScene(x, y, z, parent.radius_km ?? 6371, parent.id)
+          tx = parentScene[0] + offset[0]
+          ty = parentScene[1] + offset[1]
+          tz = parentScene[2] + offset[2]
+        } else {
+          ;[tx, ty, tz] = positionToScene(x, y, z)
+        }
+      } else {
+        ;[tx, ty, tz] = positionToScene(x, y, z)
+      }
+
+      const radius = radiusToScene(selectedObject.radius_km ?? 1000, selectedObject.id) * (isMoon ? 0.5 : 1)
 
       const dist = Math.max(radius * 6, 3)
+
+      // Approach from the camera's current direction to avoid spinning
+      const cam = controlsRef.current.camera.position
+      const dirX = cam.x - tx
+      const dirY = cam.y - ty
+      const dirZ = cam.z - tz
+      const dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ) || 1
       controlsRef.current.setLookAt(
-        tx + dist * 0.5, ty + dist * 0.4, tz + dist * 0.7,
+        tx + (dirX / dirLen) * dist,
+        ty + (dirY / dirLen) * dist,
+        tz + (dirZ / dirLen) * dist,
         tx, ty, tz,
         true
       )
     } else {
-      // Gently pull back from current view, don't jump to full overview
-      const pullDist = Math.min(Math.max(controlsRef.current.distance * 2, 20), 40)
+      // Pull back gently — setTarget + dolly, clamped
       controlsRef.current.setTarget(0, 0, 0, true)
-      controlsRef.current.dollyTo(pullDist, true)
+      controlsRef.current.dollyTo(30, true)
     }
   }, [selectedObject])
 
@@ -160,9 +187,10 @@ function Scene() {
         ref={controlsRef}
         minDistance={0.5}
         maxDistance={MAX_DIST}
-        smoothTime={0.4}
-        draggingSmoothTime={0.15}
+        smoothTime={0.2}
+        draggingSmoothTime={0.1}
         truckSpeed={5}
+        restThreshold={0.005}
       />
       {objects.map((obj) => (
         <CelestialBody key={obj.id} object={obj} />
@@ -186,7 +214,7 @@ function Scene() {
 const deepSpaceBg = `radial-gradient(ellipse at 30% 40%, #0a0e1a 0%, #050810 40%, #020408 100%)`
 
 export default function SolarSystemScene() {
-  // Escape key to deselect (× button in InfoPanel also works)
+  // Escape key to deselect (× button in ScenePanel also works)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -197,9 +225,24 @@ export default function SolarSystemScene() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Click on empty canvas = deselect, but not on drag
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY }
+  }, [])
+  const handlePointerMissed = useCallback((e: MouseEvent) => {
+    if (pointerDownPos.current) {
+      const dx = e.clientX - pointerDownPos.current.x
+      const dy = e.clientY - pointerDownPos.current.y
+      if (dx * dx + dy * dy > 36) return // drag, not click
+    }
+    useStore.getState().setSelectedObject(null)
+  }, [])
+
   return (
     <div
       data-hint="scene-3d"
+      onPointerDown={handlePointerDown}
       style={{
         width: '100%',
         height: '100%',
@@ -212,6 +255,7 @@ export default function SolarSystemScene() {
       <Canvas
         camera={{ position: OVERVIEW_POS, fov: 50 }}
         gl={{ alpha: true }}
+        onPointerMissed={handlePointerMissed}
       >
         <Suspense fallback={null}>
           <Scene />

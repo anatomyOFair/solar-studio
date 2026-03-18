@@ -19,6 +19,7 @@ export interface CelestialObject {
   z?: number
 
   // Velocity (AU/day) for animation
+  // For moons: relative to parent planet. For planets: heliocentric.
   vx?: number
   vy?: number
   vz?: number

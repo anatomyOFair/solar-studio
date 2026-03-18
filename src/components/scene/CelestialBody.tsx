@@ -2,7 +2,7 @@ import { useState, useRef, useMemo } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
-import { positionToScene, radiusToScene, PLANET_COLORS, DEFAULT_COLOR } from '../../utils/sceneScaling'
+import { positionToScene, radiusToScene, moonOffsetToScene, PLANET_COLORS, DEFAULT_COLOR } from '../../utils/sceneScaling'
 import { extrapolatePosition } from '../../utils/extrapolatePosition'
 import { useStore } from '../../store/store'
 import type { CelestialObject } from '../../types'
@@ -129,14 +129,37 @@ interface CelestialBodyProps {
 function TexturedPlanet({ object }: CelestialBodyProps) {
   const simulatedTime = useStore((state) => state.simulatedTime)
   const objectsUpdatedAt = useStore((state) => state.objectsUpdatedAt)
+  const objects = useStore((state) => state.objects)
+  const isMoon = object.type === 'moon'
+  const isTidallyLocked = object.id === 'moon'
+
+  const parentObj = useMemo(() => {
+    if (!object.parent_body) return null
+    return objects.find(o => o.id === object.parent_body) ?? null
+  }, [object.parent_body, objects])
+
+  // For moons: x/y/z are parent-relative offsets (AU), vx/vy/vz are parent-relative velocity
+  // For planets: x/y/z are heliocentric (AU)
   const { x, y, z } = useMemo(() => {
     const effectiveTime = simulatedTime ?? new Date()
     return extrapolatePosition(object, effectiveTime, objectsUpdatedAt)
   }, [object, simulatedTime, objectsUpdatedAt])
 
-  const radius = radiusToScene(object.radius_km ?? 1000, object.id)
+  const radius = radiusToScene(object.radius_km ?? 1000, object.id) * (isMoon ? 0.5 : 1)
   const color = PLANET_COLORS[object.id] ?? DEFAULT_COLOR
-  const position = positionToScene(x, y, z)
+
+  // Moons: x/y/z IS the offset from parent — scale it and add to parent's scene position
+  const position = useMemo((): [number, number, number] => {
+    if (!parentObj) return positionToScene(x, y, z)
+    const effectiveTime = simulatedTime ?? new Date()
+    const p = extrapolatePosition(parentObj, effectiveTime, objectsUpdatedAt)
+    const parentScene = positionToScene(p.x, p.y, p.z)
+    const offset = moonOffsetToScene(
+      x, y, z,
+      parentObj.radius_km ?? 6371, parentObj.id,
+    )
+    return [parentScene[0] + offset[0], parentScene[1] + offset[1], parentScene[2] + offset[2]]
+  }, [x, y, z, parentObj, simulatedTime, objectsUpdatedAt])
 
   const selectedObject = useStore((state) => state.selectedObject)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
@@ -144,6 +167,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   const isSelected = selectedObject?.id === object.id
 
   const [hovered, setHovered] = useState(false)
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null)
   const groupRef = useRef<THREE.Group>(null)
   const meshRef = useRef<THREE.Mesh>(null)
   const cloudsRef = useRef<THREE.Mesh>(null)
@@ -218,23 +242,28 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
     }
   })
 
-  const handleClick = (e: { stopPropagation: () => void }) => {
-    e.stopPropagation()
-    if (isSelected) {
-      setSelectedObject(null)
-    } else {
-      setSelectedObject(object)
-    }
+  const handlePointerDown = (e: { stopPropagation: () => void; clientX: number; clientY: number }) => {
+    pointerDownPos.current = { x: e.clientX, y: e.clientY }
   }
 
-  const isMoon = object.type === 'moon'
-  const isTidallyLocked = object.id === 'moon'
+  const handleClick = (e: { stopPropagation: () => void; clientX: number; clientY: number }) => {
+    e.stopPropagation()
+    if (isSelected) return // Already focused — don't unfocus
+    // Ignore drag-releases — only act on actual clicks
+    if (pointerDownPos.current) {
+      const dx = e.clientX - pointerDownPos.current.x
+      const dy = e.clientY - pointerDownPos.current.y
+      if (dx * dx + dy * dy > 36) return // >6px movement = drag
+    }
+    setSelectedObject(object)
+  }
 
   return (
     <group position={position}>
      <group ref={groupRef}>
       <mesh
         ref={meshRef}
+        onPointerDown={handlePointerDown}
         onClick={handleClick}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer' }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}
