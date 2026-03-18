@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
 import type { CelestialObject, CelestialObjectType } from '../../types'
 import { colors, spacing, sizes, shadows } from '../../constants'
@@ -322,12 +324,12 @@ export default function ObjectTracker() {
           />
 
           <div
-            className="fixed p-0"
+            className="fixed"
             style={{
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: sizes.modal.width,
+              width: '420px',
               maxWidth: sizes.modal.maxWidth,
               maxHeight: sizes.modal.maxHeight,
               zIndex: sizes.zIndex.modal,
@@ -338,121 +340,165 @@ export default function ObjectTracker() {
               borderRadius: sizes.borderRadius['2xl'],
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: shadows.lg, // Assuming shadows is imported
-              overflow: 'hidden'
+              boxShadow: shadows.lg,
+              overflow: 'hidden',
+              padding: 0,
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close button */}
+            <button
+              onClick={() => setIsSelectorOpen(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                zIndex: 1,
+                background: 'transparent',
+                border: 'none',
+                color: colors.text.muted,
+                cursor: 'pointer',
+                padding: '4px',
+                fontSize: '16px',
+                lineHeight: 1,
+                transition: 'color 150ms ease',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+            >
+              <FontAwesomeIcon icon={faXmark} />
+            </button>
+
             {/* Header */}
-            <div style={{ 
-                paddingTop: sizes.modal.headerPaddingTop, 
-                paddingBottom: sizes.modal.headerPaddingBottom, 
-                paddingLeft: sizes.modal.paddingContent, 
-                paddingRight: sizes.modal.paddingContent, 
-                textAlign: 'center',
-                borderBottom: `1px solid ${colors.navbar.border}`
+            <div style={{
+              paddingTop: sizes.modal.headerPaddingTop,
+              paddingBottom: sizes.modal.headerPaddingBottom,
+              paddingLeft: '24px',
+              paddingRight: '24px',
+              textAlign: 'center',
+              borderBottom: `1px solid ${colors.navbar.border}`,
             }}>
-               <h2 className="text-xl font-bold mb-1" style={{ color: colors.white }}>
-                  Select Object
-               </h2>
-               <p className="text-sm" style={{ color: colors.text.muted }}>
-                  to track visibility
-               </p>
+              <h2 className="text-xl font-bold" style={{ color: colors.white }}>
+                Select Object
+              </h2>
+              <p className="text-sm mt-1" style={{ color: colors.text.muted }}>
+                to track visibility
+              </p>
             </div>
 
             {/* Content */}
-            <div style={{ 
-                padding: sizes.modal.paddingContent, 
-                display: 'flex', 
-                flexDirection: 'column', 
-                flex: 1, 
-                overflow: 'hidden',
-                gap: spacing.lg
+            <div style={{
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              flex: 1,
+              overflow: 'hidden',
+              gap: '16px',
             }}>
-                {/* Search */}
-                <input
+              {/* Search */}
+              <input
                 type="text"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                autoFocus
                 className="w-full transition-all focus:outline-none focus:ring-0"
                 style={{
-                    paddingTop: sizes.inputs.paddingVertical,
-                    paddingBottom: sizes.inputs.paddingVertical,
-                    paddingLeft: sizes.inputs.paddingHorizontal,
-                    paddingRight: sizes.inputs.paddingHorizontal,
-                    backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                    borderRadius: sizes.inputs.borderRadius,
-                    color: colors.white,
-                    fontSize: sizes.fonts.sm
+                  paddingTop: '10px',
+                  paddingBottom: '10px',
+                  paddingLeft: sizes.inputs.paddingHorizontal,
+                  paddingRight: sizes.inputs.paddingHorizontal,
+                  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                  border: `1px solid ${colors.navbar.border}`,
+                  borderRadius: sizes.inputs.borderRadius,
+                  color: colors.white,
+                  fontSize: sizes.fonts.sm,
                 }}
-                />
+                onFocus={(e) => (e.currentTarget.style.boxShadow = `0 0 0 1px ${colors.accent}`)}
+                onBlur={(e) => (e.currentTarget.style.boxShadow = 'none')}
+              />
 
-                {/* Object List */}
-                <div className="flex-1 overflow-y-auto pr-2">
+              {/* Object List */}
+              <div className="flex-1 overflow-y-auto" style={{ marginRight: '-8px', paddingRight: '8px' }}>
                 {groupedObjects.length === 0 ? (
-                    <div className="text-center py-8 text-sm" style={{ color: colors.text.muted }}>
+                  <div className="text-center py-8 text-sm" style={{ color: colors.text.muted }}>
                     No objects found
-                    </div>
+                  </div>
                 ) : (
-                    groupedObjects.map((group) => (
-                    <div key={group.type} style={{ marginBottom: spacing.md }}>
-                        <div
-                          className="text-xs font-semibold uppercase"
-                          style={{ color: colors.text.muted, marginBottom: spacing.sm, letterSpacing: '0.06em' }}
-                        >
-                          {group.label}
-                        </div>
-                        <div className="space-y-1">
-                        {group.objects.map((object) => (
-                          <button
+                  groupedObjects.map((group) => (
+                    <div key={group.type} style={{ marginBottom: '16px' }}>
+                      <div
+                        className="text-xs font-semibold uppercase"
+                        style={{
+                          color: colors.text.muted,
+                          marginBottom: '6px',
+                          letterSpacing: '0.06em',
+                          paddingLeft: '10px',
+                          borderLeft: `2px solid ${colors.accent}`,
+                        }}
+                      >
+                        {group.label}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        {group.objects.map((object) => {
+                          const isSelected = selectedObject?.id === object.id
+                          return (
+                            <button
                               key={object.id}
                               onClick={() => handleSelectObject(object)}
-                              className="w-full text-left rounded-lg px-4 py-2.5 transition-all flex items-center justify-between group"
+                              className="w-full text-left transition-all flex items-center justify-between"
                               style={{
-                              backgroundColor:
-                                  selectedObject?.id === object.id ? 'rgba(201, 165, 92, 0.1)' : 'rgba(255, 255, 255, 0.03)',
-                              border: `1px solid ${
-                                  selectedObject?.id === object.id
-                                  ? colors.accent
-                                  : 'transparent'
-                              }`,
-                              color: colors.white,
+                                padding: '8px 12px',
+                                borderRadius: '6px',
+                                backgroundColor: isSelected ? 'rgba(201, 165, 92, 0.1)' : 'transparent',
+                                border: `1px solid ${isSelected ? colors.accent : 'transparent'}`,
+                                color: isSelected ? colors.accent : colors.white,
+                                cursor: 'pointer',
                               }}
-                          >
+                              onMouseEnter={(e) => {
+                                if (!isSelected) e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'
+                              }}
+                              onMouseLeave={(e) => {
+                                if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent'
+                              }}
+                            >
                               <span className="font-medium text-sm">{object.name}</span>
-                              {selectedObject?.id === object.id && (
-                                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.accent, boxShadow: '0 0 8px rgba(201, 165, 92, 0.5)' }} />
+                              {isSelected && (
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: colors.accent,
+                                    boxShadow: '0 0 8px rgba(201, 165, 92, 0.5)',
+                                  }}
+                                />
                               )}
-                          </button>
-                        ))}
-                        </div>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
-                    ))
+                  ))
                 )}
-                </div>
+              </div>
 
-                {/* Footer / Cancel */}
-                <button
-                    onClick={() => setIsSelectorOpen(false)}
-                    className="font-medium transition-all hover:brightness-110 active:scale-[0.98]"
-                    style={{
-                        width: '100%',
-                        marginTop: spacing.lg,
-                        paddingTop: sizes.inputs.paddingVertical,
-                        paddingBottom: sizes.inputs.paddingVertical,
-                        backgroundColor: colors.navbar.background,
-                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                        borderRadius: sizes.inputs.borderRadius,
-                        color: colors.white,
-                        fontSize: sizes.fonts.sm,
-                        backdropFilter: 'blur(12px)',
-                        WebkitBackdropFilter: 'blur(12px)',
-                    }}
-                >
-                    Cancel
-                </button>
+              {/* Cancel */}
+              <button
+                onClick={() => setIsSelectorOpen(false)}
+                className="transition-all active:scale-[0.98]"
+                style={{
+                  width: '100%',
+                  paddingTop: sizes.inputs.paddingVertical,
+                  paddingBottom: sizes.inputs.paddingVertical,
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  color: colors.text.muted,
+                  fontSize: sizes.fonts.sm,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </>

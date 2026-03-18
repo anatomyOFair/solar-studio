@@ -214,7 +214,7 @@ export default function TimeSlider() {
         onClick={handleReset}
         style={{
           fontSize: '11px',
-          color: isActive ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
+          color: isActive ? (isMissionMode ? activeMission!.color : colors.accent) : colors.text.muted,
           whiteSpace: 'nowrap',
           cursor: isActive ? 'pointer' : 'default',
           userSelect: 'none',
@@ -229,7 +229,7 @@ export default function TimeSlider() {
         style={{
           background: 'none',
           border: 'none',
-          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
+          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.accent) : colors.text.muted,
           cursor: 'pointer',
           padding: '2px 4px',
           fontSize: '12px',
@@ -246,7 +246,7 @@ export default function TimeSlider() {
         onClick={handleSpeedCycle}
         style={{
           fontSize: '10px',
-          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
+          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.accent) : colors.text.muted,
           whiteSpace: 'nowrap',
           cursor: 'pointer',
           userSelect: 'none',
@@ -267,7 +267,7 @@ export default function TimeSlider() {
         onChange={handleSliderChange}
         style={{
           flex: 1,
-          accentColor: isMissionMode ? activeMission!.color : colors.primary[500],
+          accentColor: isMissionMode ? activeMission!.color : colors.accent,
           cursor: 'pointer',
         }}
       />

@@ -103,7 +103,7 @@ const ConstellationGridLayer = L.GridLayer.extend({
 
     return tile
   },
-})
+}) as unknown as { new (options?: L.GridLayerOptions): L.GridLayer }
 
 export default function ConstellationLinesLayer() {
   const map = useMap()

@@ -13,30 +13,50 @@ export default function ObservationModal() {
   const user = useStore((state) => state.user)
 
   const [objectId, setObjectId] = useState('')
+  const [objectName, setObjectName] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [rating, setRating] = useState(0)
   const [equipment, setEquipment] = useState('')
   const [notes, setNotes] = useState('')
-  const [observedAt, setObservedAt] = useState(() =>
-    new Date().toISOString().slice(0, 16),
-  )
+  const [observedDate, setObservedDate] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  })
+  const [observedTime, setObservedTime] = useState(() => {
+    const now = new Date()
+    const h = String(now.getHours()).padStart(2, '0')
+    const m = String(Math.floor(now.getMinutes() / 5) * 5).padStart(2, '0')
+    return `${h}:${m}`
+  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   if (!isOpen) return null
 
+  const filteredSuggestions = objectName.trim().length > 0
+    ? objects.filter((obj) => obj.name.toLowerCase().includes(objectName.toLowerCase())).slice(0, 8)
+    : []
+
   const resetForm = () => {
     setObjectId('')
+    setObjectName('')
+    setShowSuggestions(false)
     setRating(0)
     setEquipment('')
     setNotes('')
-    setObservedAt(new Date().toISOString().slice(0, 16))
+    const now = new Date()
+    setObservedDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`)
+    const h2 = String(now.getHours()).padStart(2, '0')
+    const m2 = String(Math.floor(now.getMinutes() / 5) * 5).padStart(2, '0')
+    setObservedTime(`${h2}:${m2}`)
     setError(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!objectId) {
-      setError('Please select an object')
+    const resolvedId = objectId || objectName.trim()
+    if (!resolvedId) {
+      setError('Please enter an object name')
       return
     }
     if (!user) {
@@ -49,11 +69,11 @@ export default function ObservationModal() {
 
     try {
       await addEntry({
-        object_id: objectId,
+        object_id: resolvedId,
         notes: notes.trim() || null,
         equipment: equipment.trim() || null,
         rating: rating > 0 ? rating : null,
-        observed_at: new Date(observedAt).toISOString(),
+        observed_at: new Date(`${observedDate}T${observedTime}`).toISOString(),
         location_label: userLocation?.label ?? null,
         lat: userLocation?.lat ?? null,
         lon: userLocation?.lon ?? null,
@@ -186,38 +206,148 @@ export default function ObservationModal() {
             onSubmit={handleSubmit}
             style={{ display: 'flex', flexDirection: 'column', gap: sizes.inputs.gap }}
           >
-            {/* Object Selector */}
-            <div>
+            {/* Object Input */}
+            <div style={{ position: 'relative' }}>
               <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: colors.white }}
               >
                 Object
               </label>
-              <select
-                value={objectId}
-                onChange={(e) => setObjectId(e.target.value)}
-                style={{
-                  ...inputStyle,
-                  appearance: 'none',
-                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 16px center',
+              <input
+                type="text"
+                value={objectName}
+                onChange={(e) => {
+                  const val = e.target.value
+                  setObjectName(val)
+                  setObjectId('')
+                  setShowSuggestions(val.trim().length > 0)
                 }}
+                onFocus={() => {
+                  if (objectName.trim().length > 0) setShowSuggestions(true)
+                }}
+                onBlur={() => {
+                  // Delay to allow click on suggestion
+                  setTimeout(() => setShowSuggestions(false), 150)
+                }}
+                placeholder="e.g., Mars, Sirius, M31, Orion Nebula..."
+                style={inputStyle}
+              />
+              {showSuggestions && filteredSuggestions.length > 0 && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    marginTop: '4px',
+                    backgroundColor: colors.navbar.base,
+                    border: `1px solid ${colors.navbar.border}`,
+                    borderRadius: sizes.inputs.borderRadius,
+                    overflow: 'hidden',
+                    zIndex: 10,
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                  }}
+                >
+                  {filteredSuggestions.map((obj) => (
+                    <button
+                      key={obj.id}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setObjectId(obj.id)
+                        setObjectName(obj.name)
+                        setShowSuggestions(false)
+                      }}
+                      style={{
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 16px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: colors.white,
+                        fontSize: sizes.fonts.sm,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        transition: 'background-color 100ms ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <span>{obj.name}</span>
+                      <span style={{ marginLeft: '8px', color: colors.text.muted, fontSize: '12px' }}>
+                        {obj.type}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Date & Time */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-2"
+                style={{ color: colors.white }}
               >
-                <option value="" style={{ backgroundColor: colors.navbar.base }}>
-                  Select an object...
-                </option>
-                {objects.map((obj) => (
-                  <option
-                    key={obj.id}
-                    value={obj.id}
-                    style={{ backgroundColor: colors.navbar.base }}
-                  >
-                    {obj.name}
-                  </option>
-                ))}
-              </select>
+                Date & Time
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="date"
+                  value={observedDate}
+                  onChange={(e) => setObservedDate(e.target.value)}
+                  style={{
+                    ...inputStyle,
+                    flex: 1,
+                    colorScheme: 'dark',
+                  }}
+                />
+                <select
+                  value={observedTime.split(':')[0]}
+                  onChange={(e) => setObservedTime(`${e.target.value}:${observedTime.split(':')[1]}`)}
+                  style={{
+                    ...inputStyle,
+                    width: '70px',
+                    flex: 'none',
+                    colorScheme: 'dark',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 10px center',
+                    paddingRight: '28px',
+                  }}
+                >
+                  {Array.from({ length: 24 }, (_, i) => {
+                    const val = String(i).padStart(2, '0')
+                    return <option key={val} value={val}>{val}</option>
+                  })}
+                </select>
+                <span style={{ color: colors.text.muted, alignSelf: 'center', fontSize: '16px', fontWeight: 600 }}>:</span>
+                <select
+                  value={observedTime.split(':')[1]}
+                  onChange={(e) => setObservedTime(`${observedTime.split(':')[0]}:${e.target.value}`)}
+                  style={{
+                    ...inputStyle,
+                    width: '70px',
+                    flex: 'none',
+                    colorScheme: 'dark',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 10px center',
+                    paddingRight: '28px',
+                  }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const val = String(i * 5).padStart(2, '0')
+                    return <option key={val} value={val}>{val}</option>
+                  })}
+                </select>
+              </div>
             </div>
 
             {/* Rating */}
@@ -279,29 +409,10 @@ export default function ObservationModal() {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="What did you observe? Seeing conditions, details..."
-                rows={4}
+                rows={3}
                 style={{
                   ...inputStyle,
                   resize: 'vertical',
-                }}
-              />
-            </div>
-
-            {/* Date & Time */}
-            <div>
-              <label
-                className="block text-sm font-medium mb-2"
-                style={{ color: colors.white }}
-              >
-                Date & Time
-              </label>
-              <input
-                type="datetime-local"
-                value={observedAt}
-                onChange={(e) => setObservedAt(e.target.value)}
-                style={{
-                  ...inputStyle,
-                  colorScheme: 'dark',
                 }}
               />
             </div>
@@ -331,7 +442,7 @@ export default function ObservationModal() {
             <div style={{ marginTop: spacing.xl }}>
               <button
                 type="submit"
-                disabled={isLoading || !objectId}
+                disabled={isLoading || !(objectId || objectName.trim())}
                 className="font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   width: '100%',
@@ -344,7 +455,7 @@ export default function ObservationModal() {
                   fontSize: sizes.fonts.sm,
                   fontFamily: 'inherit',
                   fontWeight: 600,
-                  cursor: isLoading || !objectId ? 'not-allowed' : 'pointer',
+                  cursor: isLoading || !(objectId || objectName.trim()) ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isLoading ? 'Saving...' : 'Save Entry'}
