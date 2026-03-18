@@ -12,8 +12,8 @@ import SunMesh from './SunMesh'
 import OrbitRing from './OrbitRing'
 import AsteroidBelt from './AsteroidBelt'
 import TourOverlay from './TourOverlay'
-import TourPanel from './TourPanel'
 import CameraDistanceHUD from './CameraDistanceHUD'
+import MissionTrajectory from './MissionTrajectory'
 import CameraControlsImpl from 'camera-controls'
 
 const PLANET_IDS = new Set(['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune'])
@@ -32,14 +32,16 @@ function Scene() {
   const controlsRef = useRef<CameraControlsImpl>(null)
   const setSceneReady = useStore((state) => state.setSceneReady)
   const setCameraDistAu = useStore((state) => state.setCameraDistAu)
+  const activeMission = useStore((state) => state.activeMission)
+  const missions = useStore((state) => state.missions)
+  const fetchMissions = useStore((state) => state.fetchMissions)
   const frameCount = useRef(0)
   const lastCamAu = useRef(0)
 
   useEffect(() => {
-    if (objects.length === 0) {
-      fetchObjects()
-    }
-  }, [objects.length, fetchObjects])
+    if (objects.length === 0) fetchObjects()
+    if (missions.length === 0) fetchMissions()
+  }, [objects.length, fetchObjects, missions.length, fetchMissions])
 
   // Reset sceneReady on mount, signal ready after a few frames
   useEffect(() => {
@@ -165,6 +167,9 @@ function Scene() {
       {objects.map((obj) => (
         <CelestialBody key={obj.id} object={obj} />
       ))}
+      {activeMission && (
+        <MissionTrajectory key={activeMission.id} mission={activeMission} />
+      )}
       <EffectComposer>
         <Bloom
           mipmapBlur
@@ -194,6 +199,7 @@ export default function SolarSystemScene() {
 
   return (
     <div
+      data-hint="scene-3d"
       style={{
         width: '100%',
         height: '100%',
@@ -212,7 +218,6 @@ export default function SolarSystemScene() {
         </Suspense>
       </Canvas>
       <CameraDistanceHUD />
-      <TourPanel />
       <TourOverlay />
     </div>
   )

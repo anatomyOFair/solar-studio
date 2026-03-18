@@ -27,9 +27,7 @@ export default function HomeView() {
   const objects = useStore((state) => state.objects)
   const fetchObjects = useStore((state) => state.fetchObjects)
 
-  useEffect(() => {
-    if (!userLocation) fetchUserLocation()
-  }, [userLocation, fetchUserLocation])
+  // Location is now opt-in via Settings toggle — no auto-fetch
 
   useEffect(() => {
     if (objects.length === 0) fetchObjects()

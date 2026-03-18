@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from 'react'
+import { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons'
@@ -8,18 +8,49 @@ const FORECAST_HOURS = 5 * 24 // 5 days ahead
 const SPEEDS = [1, 6, 24] // hours of sim time per second of real time
 const SPEED_LABELS = ['1h/s', '6h/s', '24h/s']
 
+const MISSION_SPEEDS = [30 * 24, 365 * 24, 365 * 24 * 5] // 1 month/s, 1 year/s, 5 years/s
+const MISSION_SPEED_LABELS = ['1mo/s', '1yr/s', '5yr/s']
+
 export default function TimeSlider() {
   const simulatedTime = useStore((state) => state.simulatedTime)
   const setSimulatedTime = useStore((state) => state.setSimulatedTime)
+  const missionTime = useStore((state) => state.missionTime)
+  const setMissionTime = useStore((state) => state.setMissionTime)
+  const activeMission = useStore((state) => state.activeMission)
   const nowRef = useRef(Date.now())
   const [isPlaying, setIsPlaying] = useState(false)
   const [speedIndex, setSpeedIndex] = useState(0)
   const rafRef = useRef<number>(0)
   const lastFrameRef = useRef<number>(0)
 
-  if (!simulatedTime) {
+  // Mission epoch range
+  const missionRange = useMemo(() => {
+    if (!activeMission || activeMission.waypoints.length < 2) return null
+    const epochs = activeMission.waypoints.map((w) => new Date(w.epoch).getTime())
+    return { start: Math.min(...epochs), end: Math.max(...epochs) }
+  }, [activeMission])
+
+  const isMissionMode = !!missionRange
+
+  // Reset speed index when switching modes
+  useEffect(() => {
+    setSpeedIndex(0)
+    setIsPlaying(false)
+  }, [isMissionMode])
+
+  // Jump to mission start when mission is activated
+  useEffect(() => {
+    if (missionRange) {
+      setMissionTime(new Date(missionRange.start))
+    }
+  }, [missionRange, setMissionTime])
+
+  if (!simulatedTime && !isMissionMode) {
     nowRef.current = Date.now()
   }
+
+  const speeds = isMissionMode ? MISSION_SPEEDS : SPEEDS
+  const speedLabels = isMissionMode ? MISSION_SPEED_LABELS : SPEED_LABELS
 
   // Animation loop
   useEffect(() => {
@@ -36,19 +67,29 @@ export default function TimeSlider() {
       lastFrameRef.current = timestamp
 
       const store = useStore.getState()
-      const now = nowRef.current
-      const current = store.simulatedTime?.getTime() ?? now
-      const advanceMs = deltaMs * SPEEDS[speedIndex] * 3600_000 / 1000
-      const next = current + advanceMs
-      const maxTime = now + FORECAST_HOURS * 3600_000
+      const advanceMs = deltaMs * speeds[speedIndex] * 3600_000 / 1000
 
-      if (next >= maxTime) {
-        store.setSimulatedTime(new Date(maxTime))
-        setIsPlaying(false)
-        return
+      if (missionRange) {
+        const current = store.missionTime?.getTime() ?? missionRange.start
+        const next = current + advanceMs
+        if (next >= missionRange.end) {
+          store.setMissionTime(new Date(missionRange.end))
+          setIsPlaying(false)
+          return
+        }
+        store.setMissionTime(new Date(next))
+      } else {
+        const current = store.simulatedTime?.getTime() ?? nowRef.current
+        const next = current + advanceMs
+        const maxTime = nowRef.current + FORECAST_HOURS * 3600_000
+        if (next >= maxTime) {
+          store.setSimulatedTime(new Date(maxTime))
+          setIsPlaying(false)
+          return
+        }
+        store.setSimulatedTime(new Date(next))
       }
 
-      store.setSimulatedTime(new Date(next))
       rafRef.current = requestAnimationFrame(tick)
     }
 
@@ -59,46 +100,93 @@ export default function TimeSlider() {
       cancelAnimationFrame(rafRef.current)
       lastFrameRef.current = 0
     }
-  }, [isPlaying, speedIndex])
+  }, [isPlaying, speedIndex, speeds, missionRange])
 
   const handlePlayPause = useCallback(() => {
     if (!isPlaying) {
-      // If at the start, nudge time forward so slider is active
       const store = useStore.getState()
-      if (!store.simulatedTime) {
-        store.setSimulatedTime(new Date(nowRef.current + 1000))
+      if (missionRange) {
+        if (store.missionTime && store.missionTime.getTime() >= missionRange.end) {
+          store.setMissionTime(new Date(missionRange.start))
+        } else if (!store.missionTime) {
+          store.setMissionTime(new Date(missionRange.start))
+        }
+      } else {
+        if (!store.simulatedTime) {
+          store.setSimulatedTime(new Date(nowRef.current + 1000))
+        }
       }
     }
     setIsPlaying((prev) => !prev)
-  }, [isPlaying])
+  }, [isPlaying, missionRange])
 
   const handleSpeedCycle = useCallback(() => {
-    setSpeedIndex((prev) => (prev + 1) % SPEEDS.length)
-  }, [])
+    setSpeedIndex((prev) => (prev + 1) % speeds.length)
+  }, [speeds.length])
 
   const handleSliderChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const hoursOffset = parseFloat(e.target.value)
+      const value = parseFloat(e.target.value)
       setIsPlaying(false)
-      if (hoursOffset === 0) {
-        setSimulatedTime(null)
+      if (missionRange) {
+        const t = value / 1000
+        const time = missionRange.start + t * (missionRange.end - missionRange.start)
+        setMissionTime(new Date(time))
       } else {
-        setSimulatedTime(new Date(nowRef.current + hoursOffset * 3600_000))
+        if (value === 0) {
+          setSimulatedTime(null)
+        } else {
+          setSimulatedTime(new Date(nowRef.current + value * 3600_000))
+        }
       }
     },
-    [setSimulatedTime]
+    [setSimulatedTime, setMissionTime, missionRange]
   )
 
   const handleReset = useCallback(() => {
     setIsPlaying(false)
-    setSimulatedTime(null)
-  }, [setSimulatedTime])
+    if (missionRange) {
+      setMissionTime(new Date(missionRange.start))
+    } else {
+      setSimulatedTime(null)
+    }
+  }, [setSimulatedTime, setMissionTime, missionRange])
 
-  const currentOffset = simulatedTime
-    ? (simulatedTime.getTime() - nowRef.current) / 3600_000
-    : 0
+  // Slider value
+  let sliderValue: number
+  let sliderMin: number
+  let sliderMax: number
+  let sliderStep: number
 
-  const isActive = currentOffset > 0
+  if (missionRange) {
+    const currentMs = missionTime?.getTime() ?? missionRange.start
+    const t = (currentMs - missionRange.start) / (missionRange.end - missionRange.start)
+    sliderValue = Math.max(0, Math.min(1000, t * 1000))
+    sliderMin = 0
+    sliderMax = 1000
+    sliderStep = 1
+  } else {
+    sliderValue = simulatedTime
+      ? (simulatedTime.getTime() - nowRef.current) / 3600_000
+      : 0
+    sliderMin = 0
+    sliderMax = FORECAST_HOURS
+    sliderStep = 1
+  }
+
+  const isActive = missionRange ? true : sliderValue > 0
+
+  // Format date label for mission mode
+  const dateLabel = missionRange && missionTime
+    ? missionTime.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    : null
+
+  const startLabel = missionRange
+    ? new Date(missionRange.start).getFullYear().toString()
+    : null
+  const endLabel = missionRange
+    ? new Date(missionRange.end).getFullYear().toString()
+    : null
 
   return (
     <div
@@ -114,7 +202,7 @@ export default function TimeSlider() {
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
         WebkitBackdropFilter: `blur(${sizes.blur.default})`,
-        border: `1px solid ${colors.navbar.border}`,
+        border: `1px solid ${isMissionMode ? activeMission!.color + '44' : colors.navbar.border}`,
         borderRadius: sizes.borderRadius.xl,
         padding: `${spacing.xs} ${spacing.sm}`,
         display: 'flex',
@@ -126,14 +214,14 @@ export default function TimeSlider() {
         onClick={handleReset}
         style={{
           fontSize: '11px',
-          color: isActive ? colors.primary[400] : colors.text.muted,
+          color: isActive ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
           whiteSpace: 'nowrap',
           cursor: isActive ? 'pointer' : 'default',
           userSelect: 'none',
           fontWeight: 500,
         }}
       >
-        Now
+        {isMissionMode ? startLabel : 'Now'}
       </span>
 
       <button
@@ -141,7 +229,7 @@ export default function TimeSlider() {
         style={{
           background: 'none',
           border: 'none',
-          color: isPlaying ? colors.primary[400] : colors.text.muted,
+          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
           cursor: 'pointer',
           padding: '2px 4px',
           fontSize: '12px',
@@ -149,6 +237,7 @@ export default function TimeSlider() {
           alignItems: 'center',
         }}
         title={isPlaying ? 'Pause' : 'Play time-lapse'}
+        data-hint="time-slider"
       >
         <FontAwesomeIcon icon={isPlaying ? faPause : faPlay} />
       </button>
@@ -157,7 +246,7 @@ export default function TimeSlider() {
         onClick={handleSpeedCycle}
         style={{
           fontSize: '10px',
-          color: isPlaying ? colors.primary[400] : colors.text.muted,
+          color: isPlaying ? (isMissionMode ? activeMission!.color : colors.primary[400]) : colors.text.muted,
           whiteSpace: 'nowrap',
           cursor: 'pointer',
           userSelect: 'none',
@@ -166,19 +255,19 @@ export default function TimeSlider() {
         }}
         title="Click to change speed"
       >
-        {SPEED_LABELS[speedIndex]}
+        {speedLabels[speedIndex]}
       </span>
 
       <input
         type="range"
-        min={0}
-        max={FORECAST_HOURS}
-        step={1}
-        value={currentOffset}
+        min={sliderMin}
+        max={sliderMax}
+        step={sliderStep}
+        value={sliderValue}
         onChange={handleSliderChange}
         style={{
           flex: 1,
-          accentColor: colors.primary[500],
+          accentColor: isMissionMode ? activeMission!.color : colors.primary[500],
           cursor: 'pointer',
         }}
       />
@@ -186,12 +275,14 @@ export default function TimeSlider() {
       <span
         style={{
           fontSize: '11px',
-          color: colors.text.muted,
+          color: isMissionMode ? colors.text.secondary : colors.text.muted,
           whiteSpace: 'nowrap',
           userSelect: 'none',
+          minWidth: isMissionMode ? '60px' : undefined,
+          textAlign: 'right',
         }}
       >
-        +5d
+        {isMissionMode ? (dateLabel ?? endLabel) : '+5d'}
       </span>
     </div>
   )

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import VisibilityMap from './components/map/VisibilityMap'
 import SolarSystemScene from './components/scene/SolarSystemScene'
-import InfoPanel from './components/scene/InfoPanel'
+import ScenePanel from './components/scene/ScenePanel'
 import TopNav from './components/nav/TopNav'
 import TimeSlider from './components/nav/TimeSlider'
 import SideNav from './components/nav/SideNav'
@@ -12,6 +12,7 @@ import LoadingScreen from './components/scene/LoadingScreen'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
 import ObservationModal from './components/logbook/ObservationModal'
+import HintOverlay from './components/ui/HintOverlay'
 import { useStore } from './store/store'
 import { colors } from './constants'
 
@@ -60,13 +61,16 @@ function App() {
         {viewMode === '3d' && (
           <>
             <SolarSystemScene />
-            {!activeTour && <InfoPanel />}
+            <ScenePanel />
           </>
         )}
       <LoadingScreen />
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
       <ObservationModal />
+      <HintOverlay />
+      {/* DEV: replay tour */}
+      <button onClick={() => { localStorage.removeItem('solar-studio:hints-state'); location.reload() }} style={{ position: 'fixed', bottom: 4, right: 4, zIndex: 99999, fontSize: 10, opacity: 0.5, background: '#333', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer' }}>Replay Tour</button>
       {/* SVG filter for night-vision mode — maps all RGB to red channel */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
         <defs>

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -6,9 +7,9 @@ import {
   faCamera,
   faClockRotateLeft,
   faSearch,
-  faUser,
-  faRightToBracket,
+  faGear,
   faSignOutAlt,
+  faRightToBracket,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
 
@@ -35,6 +36,200 @@ function fuzzyMatch(query: string, target: string): { match: boolean; score: num
   return { match: qi === q.length, score }
 }
 
+// ── Toggle Row ───────────────────────────────────────────────────────────
+
+function ToggleRow({ label, checked, onChange }: {
+  label: string
+  checked: boolean
+  onChange: (v: boolean) => void
+}) {
+  return (
+    <div
+      onClick={() => onChange(!checked)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '6px 14px', cursor: 'pointer', userSelect: 'none',
+      }}
+    >
+      <span style={{ fontSize: 13, color: colors.text.secondary }}>{label}</span>
+      <div style={{
+        width: 32, height: 18, borderRadius: 9,
+        background: checked ? colors.primary[500] : 'rgba(255,255,255,0.15)',
+        position: 'relative', transition: 'background 200ms ease',
+        flexShrink: 0, marginLeft: 12,
+      }}>
+        <div style={{
+          width: 14, height: 14, borderRadius: '50%',
+          background: 'white',
+          position: 'absolute', top: 2,
+          left: checked ? 16 : 2,
+          transition: 'left 200ms ease',
+        }} />
+      </div>
+    </div>
+  )
+}
+
+// ── Settings Dropdown ────────────────────────────────────────────────────
+
+function SettingsDropdown({ onClose, menuRef, anchorRef }: {
+  onClose: () => void
+  menuRef: React.RefObject<HTMLDivElement | null>
+  anchorRef: React.RefObject<HTMLButtonElement | null>
+}) {
+  const user = useStore((state) => state.user)
+  const openAuthModal = useStore((state) => state.openAuthModal)
+  const logout = useStore((state) => state.logout)
+  const viewMode = useStore((state) => state.viewMode)
+  const nightVision = useStore((state) => state.nightVision)
+  const toggleNightVision = useStore((state) => state.toggleNightVision)
+  const showLabels = useStore((state) => state.showLabels)
+  const setShowLabels = useStore((state) => state.setShowLabels)
+  const showMissionLabels = useStore((state) => state.showMissionLabels)
+  const setShowMissionLabels = useStore((state) => state.setShowMissionLabels)
+  const userLocation = useStore((state) => state.userLocation)
+  const setUserLocation = useStore((state) => state.setUserLocation)
+  const fetchUserLocation = useStore((state) => state.fetchUserLocation)
+
+  const [pos, setPos] = useState({ top: 0, right: 0 })
+  useLayoutEffect(() => {
+    const el = anchorRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    setPos({ top: r.bottom + 12, right: window.innerWidth - r.right })
+  }, [anchorRef])
+
+  const handleLogin = () => {
+    onClose()
+    openAuthModal()
+  }
+
+  const handleLogout = async () => {
+    onClose()
+    await logout()
+  }
+
+  const sectionHeaderStyle: React.CSSProperties = {
+    fontSize: 10, color: 'rgba(255,255,255,0.35)',
+    textTransform: 'uppercase', letterSpacing: '0.06em',
+    padding: '8px 14px 4px',
+  }
+
+  const dividerStyle: React.CSSProperties = {
+    height: 1,
+    background: 'rgba(255,255,255,0.08)',
+    margin: '4px 0',
+  }
+
+  return createPortal(
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        top: pos.top,
+        right: pos.right,
+        minWidth: 220,
+        backgroundColor: colors.navbar.background,
+        backdropFilter: `blur(${sizes.blur.default})`,
+        WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+        border: `1px solid ${colors.navbar.border}`,
+        borderRadius: sizes.borderRadius.lg,
+        boxShadow: shadows.lg,
+        zIndex: sizes.zIndex.modal + 10,
+        padding: '6px 0',
+        color: 'white',
+      }}
+    >
+      {/* View-specific settings */}
+      {viewMode === 'home' && (
+        <>
+          <div style={sectionHeaderStyle}>Home</div>
+          <ToggleRow label="Night Vision" checked={nightVision} onChange={() => toggleNightVision()} />
+        </>
+      )}
+
+      {viewMode === '2d' && (
+        <>
+          <div style={sectionHeaderStyle}>Map</div>
+          <ToggleRow label="Night Vision" checked={nightVision} onChange={() => toggleNightVision()} />
+        </>
+      )}
+
+      {viewMode === '3d' && (
+        <>
+          <div style={sectionHeaderStyle}>3D View</div>
+          <ToggleRow label="Object Labels" checked={showLabels} onChange={setShowLabels} />
+          <ToggleRow label="Mission Labels" checked={showMissionLabels} onChange={setShowMissionLabels} />
+        </>
+      )}
+
+      <div style={dividerStyle} />
+
+      {/* Location */}
+      <div style={sectionHeaderStyle}>Location</div>
+      <ToggleRow
+        label={userLocation ? userLocation.label : 'Detect Location'}
+        checked={!!userLocation}
+        onChange={(on) => {
+          if (on) fetchUserLocation()
+          else setUserLocation(null)
+        }}
+      />
+
+      <div style={dividerStyle} />
+
+      {/* Account */}
+      <div style={sectionHeaderStyle}>Account</div>
+      {user ? (
+        <>
+          <div style={{ padding: '4px 14px 6px' }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>
+              {user.user_metadata?.full_name || user.email}
+            </div>
+            {user.user_metadata?.full_name && user.email && (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{user.email}</div>
+            )}
+          </div>
+          <button
+            onClick={handleLogout}
+            style={{
+              width: '100%', textAlign: 'left',
+              padding: '6px 14px',
+              background: 'transparent', border: 'none',
+              color: colors.status.error, cursor: 'pointer',
+              fontSize: 13, fontFamily: 'inherit',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+            className="hover:bg-white/5"
+          >
+            <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: 12 }} />
+            Log Out
+          </button>
+        </>
+      ) : (
+        <button
+          onClick={handleLogin}
+          style={{
+            width: '100%', textAlign: 'left',
+            padding: '6px 14px',
+            background: 'transparent', border: 'none',
+            color: colors.text.secondary, cursor: 'pointer',
+            fontSize: 13, fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}
+          className="hover:bg-white/5"
+        >
+          <FontAwesomeIcon icon={faRightToBracket} style={{ fontSize: 12, color: colors.text.muted }} />
+          Log In
+        </button>
+      )}
+    </div>,
+    document.body,
+  )
+}
+
+// ── TopNav ────────────────────────────────────────────────────────────────
+
 export default function TopNav() {
   const isLocalTime = useStore((state) => state.isLocalTime)
   const toggleLocalTime = useStore((state) => state.toggleLocalTime)
@@ -47,13 +242,12 @@ export default function TopNav() {
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
-  const user = useStore((state) => state.user)
-  const openAuthModal = useStore((state) => state.openAuthModal)
-  const logout = useStore((state) => state.logout)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  const settingsBtnRef = useRef<HTMLButtonElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (simulatedTime) return // Don't tick when simulating
@@ -65,16 +259,23 @@ export default function TopNav() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsUserMenuOpen(false)
+      if (
+        isSettingsOpen &&
+        settingsRef.current && !settingsRef.current.contains(event.target as Node) &&
+        settingsBtnRef.current && !settingsBtnRef.current.contains(event.target as Node)
+      ) {
+        setIsSettingsOpen(false)
       }
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current && !searchRef.current.contains(event.target as Node) &&
+        (!searchDropdownRef.current || !searchDropdownRef.current.contains(event.target as Node))
+      ) {
         setIsSearchFocused(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isSettingsOpen])
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return []
@@ -93,6 +294,13 @@ export default function TopNav() {
   }, [searchResults])
 
   const showSearchDropdown = isSearchFocused && searchQuery.trim().length > 0
+
+  const getSearchDropdownPos = useCallback(() => {
+    const el = searchRef.current
+    if (!el) return { top: 0, left: 0 }
+    const r = el.getBoundingClientRect()
+    return { top: r.bottom + 12, left: r.left - 8 }
+  }, [])
 
   const handleSearchSelect = (obj: typeof objects[number]) => {
     setSelectedObject(obj)
@@ -123,19 +331,6 @@ export default function TopNav() {
   const handleViewToggle = () => {
     const next = viewMode === 'home' ? '2d' : viewMode === '2d' ? '3d' : 'home'
     setViewMode(next)
-  }
-
-  const handleUserClick = () => {
-    if (user) {
-      setIsUserMenuOpen(!isUserMenuOpen)
-    } else {
-      openAuthModal()
-    }
-  }
-
-  const handleLogout = async () => {
-    setIsUserMenuOpen(false)
-    await logout()
   }
 
   return (
@@ -179,6 +374,7 @@ export default function TopNav() {
           onClick={handleViewToggle}
           className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
           style={{ backgroundColor: 'transparent', color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
+          data-hint="view-toggle"
         >
           <FontAwesomeIcon icon={faCamera} style={{ color: 'white', fontSize: '18px' }} />
           <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{VIEW_LABELS[viewMode]}</span>
@@ -191,7 +387,7 @@ export default function TopNav() {
         </div>
 
         {/* 5. Search Bar */}
-        <div className="relative flex items-center" style={{ gap: spacing.sm }} ref={searchRef}>
+        <div className="relative flex items-center" style={{ gap: spacing.sm }} ref={searchRef} data-hint="search">
           <FontAwesomeIcon icon={faSearch} style={{ color: 'white', fontSize: '18px' }} />
           <input
             type="text"
@@ -225,13 +421,14 @@ export default function TopNav() {
             }}
           />
 
-          {/* Search Results Dropdown */}
-          {showSearchDropdown && (
+          {/* Search Results Dropdown (portaled to body for backdrop-filter) */}
+          {showSearchDropdown && createPortal(
             <div
-              className="absolute flex flex-col"
+              ref={searchDropdownRef}
+              className="flex flex-col"
               style={{
-                top: 'calc(100% + 24px)',
-                left: '-8px',
+                position: 'fixed',
+                ...getSearchDropdownPos(),
                 minWidth: '220px',
                 backgroundColor: colors.navbar.background,
                 backdropFilter: `blur(${sizes.blur.default})`,
@@ -272,58 +469,36 @@ export default function TopNav() {
                   </button>
                 ))
               )}
-            </div>
+            </div>,
+            document.body,
           )}
         </div>
 
-        {/* User Profile / Login */}
-        <div className="relative" ref={menuRef}>
+        {/* 6. Settings Gear */}
+        <div className="relative" data-hint="night-vision">
           <button
-            onClick={handleUserClick}
-            className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-            style={{ backgroundColor: 'transparent', color: 'white', gap: spacing.sm, fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', cursor: 'pointer' }}
+            ref={settingsBtnRef}
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            className="flex items-center justify-center hover:opacity-80 transition-opacity bg-transparent border-none"
+            style={{
+              backgroundColor: 'transparent',
+              color: 'white',
+              cursor: 'pointer',
+              width: 36,
+              height: 36,
+            }}
+            aria-label="Settings"
+            title="Settings"
           >
-            {user ? (
-               <FontAwesomeIcon icon={faUser} style={{ color: 'white', fontSize: '18px' }} />
-            ) : (
-               <div className="flex items-center gap-2">
-                   <span className="text-sm hidden sm:block">Log In</span>
-                   <FontAwesomeIcon icon={faRightToBracket} style={{ color: 'white', fontSize: '18px' }} />
-               </div>
-            )}
+            <FontAwesomeIcon icon={faGear} style={{ color: 'white', fontSize: '18px' }} />
           </button>
 
-          {/* User Menu */}
-          {user && isUserMenuOpen && (
-            <div
-                className="absolute right-0 mt-2 flex flex-col"
-                style={{
-                    top: '100%',
-                    minWidth: '200px',
-                    backgroundColor: colors.navbar.background,
-                    backdropFilter: `blur(${sizes.blur.default})`,
-                    WebkitBackdropFilter: `blur(${sizes.blur.default})`,
-                    border: `1px solid ${colors.navbar.border}`,
-                    borderRadius: sizes.borderRadius.lg,
-                    padding: spacing.sm,
-                    boxShadow: shadows.lg,
-                    zIndex: sizes.zIndex.modal + 10 // Ensure it's on top
-                }}
-            >
-                <div className="px-3 py-2 border-b border-gray-700/50 mb-1">
-                    <span className="text-xs text-gray-400 block">Signed in as</span>
-                    <span className="text-sm font-medium text-white block truncate">
-                        {user.user_metadata?.full_name || user.email}
-                    </span>
-                </div>
-                <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-white/5 rounded-md w-full text-left transition-colors"
-                >
-                    <FontAwesomeIcon icon={faSignOutAlt} />
-                    <span>Log Out</span>
-                </button>
-            </div>
+          {isSettingsOpen && (
+            <SettingsDropdown
+              menuRef={settingsRef}
+              anchorRef={settingsBtnRef}
+              onClose={() => setIsSettingsOpen(false)}
+            />
           )}
         </div>
       </div>

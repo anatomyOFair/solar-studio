@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { auToScene } from '../../utils/sceneScaling'
 
-const COUNT = 2000
+const COUNT = 6000
 const INNER_AU = 2.1
 const OUTER_AU = 3.3
 const INNER_R = auToScene(INNER_AU)
@@ -37,7 +37,7 @@ export default function AsteroidBelt() {
       )
 
       // Random scale — tiny rocks
-      const s = 0.01 + Math.random() * 0.03
+      const s = 0.003 + Math.random() * 0.012
       dummy.scale.setScalar(s)
 
       // Random rotation for variety

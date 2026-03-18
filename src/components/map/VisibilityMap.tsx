@@ -147,7 +147,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
   const showConstellationLines = useStore((state) => state.showConstellationLines)
 
   return (
-    <div className={`w-full h-full ${className}`} style={{ margin: 0, padding: 0, zIndex: 0, position: 'relative' }}>
+    <div className={`w-full h-full ${className}`} data-hint="map" style={{ margin: 0, padding: 0, zIndex: 0, position: 'relative' }}>
       <MapContainer
         center={[0, 0]}
         zoom={4}

@@ -3,17 +3,14 @@ import {
   faHome,
   faMap,
   faEarth,
-  faLocationArrow,
-  faGear,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes } from '../../constants'
 import { useStore } from '../../store/store'
 
 // SVG rounded rect border animation
-// The drawn rect is inset by 1px on each side for stroke, so actual size = SVG_SIZE - 2
-const SVG_SIZE = 36
-const RECT_W = SVG_SIZE - 2 // 34 (actual drawn rect)
-const RECT_R = 12
+const SVG_SIZE = 46
+const RECT_W = SVG_SIZE - 2
+const RECT_R = 10
 const PERIMETER = 2 * (RECT_W - 2 * RECT_R) + 2 * (RECT_W - 2 * RECT_R) + 2 * Math.PI * RECT_R
 
 function NavButton({ active, onClick, icon, label, title }: {
@@ -26,10 +23,12 @@ function NavButton({ active, onClick, icon, label, title }: {
   return (
     <button
       onClick={onClick}
-      className="w-12 h-12 flex items-center justify-center hover:opacity-80 bg-transparent border-none"
+      className="flex items-center justify-center hover:opacity-80 bg-transparent border-none"
       style={{
         position: 'relative',
         cursor: 'pointer',
+        width: 50,
+        height: 50,
       }}
       aria-label={label}
       title={title}
@@ -78,45 +77,35 @@ function NavButton({ active, onClick, icon, label, title }: {
   )
 }
 
+// ── SideNav ──────────────────────────────────────────────────────────────
+
 export default function SideNav() {
   const viewMode = useStore((state) => state.viewMode)
   const setViewMode = useStore((state) => state.setViewMode)
-  const nightVision = useStore((state) => state.nightVision)
-  const toggleNightVision = useStore((state) => state.toggleNightVision)
-
-  const handleUserClick = () => {
-    // TODO: Implement location functionality
-  }
 
   return (
     <nav
-      className="fixed flex flex-col justify-center"
+      className="fixed flex flex-col items-center"
       style={{
         top: '50%',
         left: spacing.md,
         transform: 'translateY(-50%)',
-        width: '48px',
-        height: '40%',
-        minWidth: '48px',
+        width: '56px',
+        minWidth: '56px',
         zIndex: sizes.zIndex.fixed,
         backgroundColor: colors.navbar.background,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         border: `1px solid ${colors.navbar.border}`,
-        borderRadius: sizes.borderRadius.xl,
-        padding: `${spacing.sm} 0`,
+        borderRadius: sizes.borderRadius.lg,
+        padding: '12px 0',
+        justifyContent: 'space-between',
+        height: 192,
       }}
     >
-      <div
-        className="flex flex-col items-center h-full"
-        style={{ justifyContent: 'space-between' }}
-      >
-        <NavButton onClick={() => setViewMode('home')} icon={faHome} label="home" title="Home" active={viewMode === 'home'} />
-        <NavButton onClick={() => setViewMode('2d')} icon={faMap} label="map" title="Map" active={viewMode === '2d'} />
-        <NavButton onClick={() => setViewMode('3d')} icon={faEarth} label="3D view" title="3D View" active={viewMode === '3d'} />
-        <NavButton onClick={handleUserClick} icon={faLocationArrow} label="location" />
-        <NavButton onClick={toggleNightVision} icon={faGear} label="night vision" title="Night Vision" active={nightVision} />
-      </div>
+      <NavButton onClick={() => setViewMode('home')} icon={faHome} label="home" title="Home" active={viewMode === 'home'} />
+      <NavButton onClick={() => setViewMode('2d')} icon={faMap} label="map" title="Map" active={viewMode === '2d'} />
+      <NavButton onClick={() => setViewMode('3d')} icon={faEarth} label="3D view" title="3D View" active={viewMode === '3d'} />
     </nav>
   )
 }

@@ -14,6 +14,7 @@ export default function SunMesh() {
   const objects = useStore((state) => state.objects)
   const selectedObject = useStore((state) => state.selectedObject)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
+  const showLabels = useStore((state) => state.showLabels)
   const sunObj = objects.find((o) => o.id === 'sun') ?? null
   const isSelected = selectedObject?.id === 'sun'
   const [hovered, setHovered] = useState(false)
@@ -94,30 +95,33 @@ export default function SunMesh() {
         </mesh>
       </group>
 
-      {/* Label */}
-      <Html
-        position={[0, radius + 0.4, 0]}
-        center
-        style={{ pointerEvents: 'none' }}
-      >
-        <div style={{
-          background: isSelected ? 'rgba(10, 15, 26, 0.8)' : 'rgba(10, 15, 26, 0.45)',
-          backdropFilter: isSelected ? 'blur(12px)' : undefined,
-          WebkitBackdropFilter: isSelected ? 'blur(12px)' : undefined,
-          border: isSelected ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '6px',
-          padding: isSelected ? '4px 12px' : '2px 8px',
-          color: 'white',
-          fontSize: isSelected ? '13px' : '10px',
-          fontWeight: isSelected ? 600 : 400,
-          opacity: hovered || isSelected ? 1 : 0.6,
-          whiteSpace: 'nowrap',
-          userSelect: 'none',
-          transition: 'all 0.15s ease',
-        }}>
-          Sun
-        </div>
-      </Html>
+      {/* Label — visible when showLabels is on, or when hovered/selected */}
+      {(showLabels || isSelected || hovered) && (
+        <Html
+          position={[0, radius + 0.4, 0]}
+          center
+          zIndexRange={[1, 0]}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div style={{
+            background: isSelected ? 'rgba(10, 15, 26, 0.8)' : 'rgba(10, 15, 26, 0.45)',
+            backdropFilter: isSelected ? 'blur(12px)' : undefined,
+            WebkitBackdropFilter: isSelected ? 'blur(12px)' : undefined,
+            border: isSelected ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '6px',
+            padding: isSelected ? '4px 12px' : '2px 8px',
+            color: 'white',
+            fontSize: isSelected ? '13px' : '10px',
+            fontWeight: isSelected ? 600 : 400,
+            opacity: hovered || isSelected ? 1 : 0.6,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'all 0.15s ease',
+          }}>
+            Sun
+          </div>
+        </Html>
+      )}
 
       {/* Point light — decay=0 so all planets get consistent illumination */}
       <pointLight color="#fff5e0" intensity={2} decay={0} />

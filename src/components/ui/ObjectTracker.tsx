@@ -172,6 +172,7 @@ export default function ObjectTracker() {
 
       <div
         className="fixed cursor-pointer"
+        data-hint="object-tracker"
         style={{
           bottom: spacing.md,
           left: spacing.md,

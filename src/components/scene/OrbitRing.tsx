@@ -38,7 +38,7 @@ export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0, distanceAu }: 
     <group rotation={[tiltX, 0, tiltZ]}>
       <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />
       {distanceAu != null && (
-        <Html position={[radius, 0, 0]} center style={{ pointerEvents: 'none' }}>
+        <Html position={[radius, 0, 0]} center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{
             color: 'rgba(255, 255, 255, 0.3)',
             fontSize: 9,

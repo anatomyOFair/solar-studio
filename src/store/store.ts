@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Map } from 'leaflet'
 import type { CelestialObject, UserReport, ObservationLogEntry } from '../types'
 import type { TourDef } from '../data/tours'
+import type { MissionDef } from '../data/missions'
 
 interface StoreState {
   map: Map | null
@@ -42,6 +43,8 @@ interface StoreState {
   setShowConstellationLines: (show: boolean) => void
   simulatedTime: Date | null
   setSimulatedTime: (time: Date | null) => void
+  missionTime: Date | null
+  setMissionTime: (time: Date | null) => void
   // Loading
   dataReady: boolean
   setDataReady: (ready: boolean) => void
@@ -74,9 +77,18 @@ interface StoreState {
   isObservationModalOpen: boolean
   openObservationModal: () => void
   closeObservationModal: () => void
-  // Night Vision
+  // Settings
   nightVision: boolean
   toggleNightVision: () => void
+  showLabels: boolean
+  setShowLabels: (show: boolean) => void
+  showMissionLabels: boolean
+  setShowMissionLabels: (show: boolean) => void
+  // Missions
+  missions: MissionDef[]
+  fetchMissions: () => Promise<void>
+  activeMission: MissionDef | null
+  setActiveMission: (mission: MissionDef | null) => void
 }
 
 export const useStore = create<StoreState>((set) => ({
@@ -209,6 +221,8 @@ export const useStore = create<StoreState>((set) => ({
   setShowConstellationLines: (show) => set({ showConstellationLines: show }),
   simulatedTime: null,
   setSimulatedTime: (time) => set({ simulatedTime: time }),
+  missionTime: null,
+  setMissionTime: (time) => set({ missionTime: time }),
   // Loading
   dataReady: false,
   setDataReady: (ready) => set({ dataReady: ready }),
@@ -359,9 +373,56 @@ export const useStore = create<StoreState>((set) => ({
   isObservationModalOpen: false,
   openObservationModal: () => set({ isObservationModalOpen: true }),
   closeObservationModal: () => set({ isObservationModalOpen: false }),
-  // Night Vision
+  // Settings
   nightVision: false,
   toggleNightVision: () => set((state) => ({ nightVision: !state.nightVision })),
+  showLabels: false,
+  setShowLabels: (show) => set({ showLabels: show }),
+  showMissionLabels: true,
+  setShowMissionLabels: (show) => set({ showMissionLabels: show }),
+  // Missions
+  missions: [],
+  fetchMissions: async () => {
+    const { supabase } = await import('../lib/supabase')
+    try {
+      const { data: missionsData, error: missionsErr } = await supabase
+        .from('missions')
+        .select('*')
+        .order('sort_order')
+      if (missionsErr || !missionsData?.length) return
+
+      const { data: waypointsData, error: waypointsErr } = await supabase
+        .from('mission_waypoints')
+        .select('*')
+        .order('waypoint_order')
+      if (waypointsErr) return
+
+      const missions: MissionDef[] = missionsData.map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        description: m.description,
+        agency: m.agency,
+        launchDate: m.launch_date,
+        endDate: m.end_date,
+        status: m.status,
+        color: m.color,
+        waypoints: (waypointsData ?? [])
+          .filter((w: any) => w.mission_id === m.id)
+          .map((w: any) => ({
+            waypointOrder: w.waypoint_order,
+            label: w.label,
+            objectId: w.object_id,
+            epoch: w.epoch,
+            x: parseFloat(w.x),
+            y: parseFloat(w.y),
+            z: parseFloat(w.z),
+          })),
+      }))
+      set({ missions })
+    } catch { /* DB unavailable */ }
+  },
+  activeMission: null,
+  setActiveMission: (mission) => set({ activeMission: mission, missionTime: mission ? undefined : null }),
 }))
 
 export function getEffectiveTime(): Date {

@@ -129,7 +129,6 @@ interface CelestialBodyProps {
 function TexturedPlanet({ object }: CelestialBodyProps) {
   const simulatedTime = useStore((state) => state.simulatedTime)
   const objectsUpdatedAt = useStore((state) => state.objectsUpdatedAt)
-
   const { x, y, z } = useMemo(() => {
     const effectiveTime = simulatedTime ?? new Date()
     return extrapolatePosition(object, effectiveTime, objectsUpdatedAt)
@@ -141,6 +140,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
   const selectedObject = useStore((state) => state.selectedObject)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
+  const showLabels = useStore((state) => state.showLabels)
   const isSelected = selectedObject?.id === object.id
 
   const [hovered, setHovered] = useState(false)
@@ -317,30 +317,33 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
      </group>
 
-      {/* Always-visible small label, larger when selected */}
-      <Html
-        position={[0, radius + 0.4, 0]}
-        center
-        style={{ pointerEvents: 'none' }}
-      >
-        <div style={{
-          background: isSelected ? 'rgba(10, 15, 26, 0.8)' : 'rgba(10, 15, 26, 0.45)',
-          backdropFilter: isSelected ? 'blur(12px)' : undefined,
-          WebkitBackdropFilter: isSelected ? 'blur(12px)' : undefined,
-          border: isSelected ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '6px',
-          padding: isSelected ? '4px 12px' : '2px 8px',
-          color: 'white',
-          fontSize: isSelected ? '13px' : '10px',
-          fontWeight: isSelected ? 600 : 400,
-          opacity: hovered || isSelected ? 1 : 0.6,
-          whiteSpace: 'nowrap',
-          userSelect: 'none',
-          transition: 'all 0.15s ease',
-        }}>
-          {object.name}
-        </div>
-      </Html>
+      {/* Label — visible when showLabels is on, or when hovered/selected */}
+      {(showLabels || isSelected || hovered) && (
+        <Html
+          position={[0, radius + 0.4, 0]}
+          center
+          zIndexRange={[1, 0]}
+          style={{ pointerEvents: 'none' }}
+        >
+          <div style={{
+            background: isSelected ? 'rgba(10, 15, 26, 0.8)' : 'rgba(10, 15, 26, 0.45)',
+            backdropFilter: isSelected ? 'blur(12px)' : undefined,
+            WebkitBackdropFilter: isSelected ? 'blur(12px)' : undefined,
+            border: isSelected ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '6px',
+            padding: isSelected ? '4px 12px' : '2px 8px',
+            color: 'white',
+            fontSize: isSelected ? '13px' : '10px',
+            fontWeight: isSelected ? 600 : 400,
+            opacity: hovered || isSelected ? 1 : 0.6,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            transition: 'all 0.15s ease',
+          }}>
+            {object.name}
+          </div>
+        </Html>
+      )}
     </group>
   )
 }
