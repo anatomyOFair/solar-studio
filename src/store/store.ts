@@ -426,7 +426,7 @@ export const useStore = create<StoreState>((set) => ({
     } catch { /* DB unavailable */ }
   },
   activeMission: null,
-  setActiveMission: (mission) => set({ activeMission: mission, missionTime: mission ? undefined : null }),
+  setActiveMission: (mission) => set({ activeMission: mission, missionTime: null }),
 }))
 
 export function getEffectiveTime(): Date {

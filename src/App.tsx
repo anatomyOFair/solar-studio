@@ -36,19 +36,20 @@ function App() {
   useEffect(() => {
     fetchObjects().finally(() => setDataReady(true))
 
+    let subscription: { unsubscribe: () => void } | null = null
+
     import('./lib/supabase').then(({ supabase }) => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session)
         })
 
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        const { data } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session)
         })
-
-        return () => subscription.unsubscribe()
+        subscription = data.subscription
     })
+
+    return () => { subscription?.unsubscribe() }
   }, [setSession, fetchObjects, setDataReady])
 
   return (

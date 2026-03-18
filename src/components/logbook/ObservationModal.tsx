@@ -82,7 +82,7 @@ export default function ObservationModal() {
       onClose()
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Failed to save entry')
+      setError('Failed to save entry. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -118,7 +118,7 @@ export default function ObservationModal() {
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
         }}
-        onClick={onClose}
+        onClick={() => { resetForm(); onClose() }}
       />
 
       {/* Modal */}

@@ -40,7 +40,7 @@ const formatTimeAgo = (dateString: string) => {
 export default function UserReportsPanel() {
   const selectedObject = useStore((state) => state.selectedObject)
   const [expandedCountries, setExpandedCountries] = useState<Record<string, boolean>>({})
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const user = useStore((state) => state.user)
   const openAuthModal = useStore((state) => state.openAuthModal)
   const openReportModal = useStore((state) => state.openReportModal)
@@ -52,8 +52,10 @@ export default function UserReportsPanel() {
     if (selectedObject) {
       setIsCollapsed(false)
       fetchReports(selectedObject.id)
+    } else {
+      setIsCollapsed(true)
     }
-  }, [selectedObject?.id, selectedObject?.name, fetchReports]) 
+  }, [selectedObject?.id, fetchReports]) 
 
   const categories: ReportCategory[] = useMemo(() => {
     if (!reports.length) return [

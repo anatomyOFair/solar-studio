@@ -21,6 +21,14 @@ export default function ReportModal() {
 
   if (!isOpen) return null
 
+  const resetForm = () => {
+    setError(null)
+    setIsVisible(true)
+    setLocation(null)
+    setLocationLoading(false)
+    setImageFile(null)
+  }
+
   const handleGetLocation = () => {
     setLocationLoading(true)
     setError(null)
@@ -60,9 +68,24 @@ export default function ReportModal() {
     )
   }
 
+  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0])
+      const file = e.target.files[0]
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setError('Only JPEG, PNG, WebP, and GIF images are allowed')
+        e.target.value = ''
+        return
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        setError('Image must be under 10 MB')
+        e.target.value = ''
+        return
+      }
+      setError(null)
+      setImageFile(file)
     }
   }
 
@@ -86,7 +109,8 @@ export default function ReportModal() {
 
       // 1. Upload Image if exists
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop()
+        const extMap: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
+        const fileExt = extMap[imageFile.type] || 'jpg'
         const fileName = `${user.id}/${Date.now()}.${fileExt}`
         const { error: uploadError } = await supabase.storage
           .from('report_images')
@@ -117,13 +141,10 @@ export default function ReportModal() {
 
       if (selectedObject) fetchReports(selectedObject.id)
       onClose()
-      // Reset form
-      setIsVisible(true)
-      setLocation(null)
-      setImageFile(null)
+      resetForm()
     } catch (err: any) {
       console.error(err)
-      setError(err.message || 'Failed to submit report')
+      setError('Failed to submit report. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -144,7 +165,7 @@ export default function ReportModal() {
                 backdropFilter: `blur(${sizes.blur.default})`,
                 WebkitBackdropFilter: `blur(${sizes.blur.default})`,
             }}
-        onClick={onClose}
+        onClick={() => { resetForm(); onClose() }}
       />
 
       {/* Modal Container */}
@@ -173,7 +194,7 @@ export default function ReportModal() {
       >
         {/* Close button */}
         <button
-          onClick={onClose}
+          onClick={() => { resetForm(); onClose() }}
           style={{
             position: 'absolute',
             top: '16px',
@@ -215,8 +236,7 @@ export default function ReportModal() {
         }}>
             {error && (
                 <div className="mb-4 p-3 rounded bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
-                    {/* Sanitize error message for user */}
-                    {error.includes('violates not-null constraint') ? 'System error: Unable to save report. Please contact support.' : error}
+                    {error}
                 </div>
             )}
 
@@ -363,7 +383,7 @@ export default function ReportModal() {
                     
                     <button
                         type="button"
-                        onClick={onClose}
+                        onClick={() => { resetForm(); onClose() }}
                         className="font-medium transition-all hover:brightness-110 active:scale-[0.98]"
                         style={{
                             width: '100%',

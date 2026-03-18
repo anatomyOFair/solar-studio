@@ -26,12 +26,17 @@ export default function VisibilityTooltip() {
   const tooltipVisibleRef = useRef(false)
   const weatherCacheRef = useRef<Map<string, WeatherConditions>>(new Map())
 
-  // Load weather cache (same source as the hex grid overlay)
+  // Load weather cache and refresh every 5 minutes (matching HexGridLayer)
   useEffect(() => {
-    getAllWeatherFromCache().then((cache) => {
-      weatherCacheRef.current = cache
-    })
-  }, [])
+    const loadCache = () => {
+      getAllWeatherFromCache().then((cache) => {
+        weatherCacheRef.current = cache
+      })
+    }
+    loadCache()
+    const interval = setInterval(loadCache, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [simulatedTime])
 
   const calculateVisibilityAtPoint = useCallback(
     (lat: number, lon: number) => {

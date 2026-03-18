@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
@@ -22,6 +22,9 @@ import neptuneTex from '../../assets/textures/2k_neptune.jpg'
 // Rotation speed multipliers relative to Earth (1.0) — based on real sidereal periods.
 // Base visual speed is slow enough to appreciate the day/night terminator.
 // Venus is retrograde (negative). Gas giants spin ~2.5× faster than Earth.
+// Reusable vector for per-frame scale lerp (avoids GC pressure)
+const _scaleVec = new THREE.Vector3()
+
 // Real-time rotation: Earth completes 2π rad in 86164s (sidereal day).
 // 2π / 86164 ≈ 0.0000729 rad/s. useFrame delta is in seconds.
 const BASE_ROTATION_RAD_S = (2 * Math.PI) / 86164
@@ -210,10 +213,14 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
     return geo
   }, [isSaturn, radius])
 
+  useEffect(() => {
+    return () => { ringGeometry?.dispose() }
+  }, [ringGeometry])
+
   useFrame((_state, delta) => {
     if (!groupRef.current) return
     const target = hovered || isSelected ? 1.2 : 1.0
-    groupRef.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
+    groupRef.current.scale.lerp(_scaleVec.set(target, target, target), 0.1)
 
     if (isEarth && meshRef.current) {
       // Absolute rotation so the lit hemisphere matches real geography.

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useMemo, useEffect, useRef } from 'react'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
 
@@ -34,9 +34,18 @@ export default function OrbitRing({ radius, tiltX = 0, tiltZ = 0, distanceAu }: 
     return new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.08 })
   }, [])
 
+  const lineObject = useMemo(() => new THREE.Line(geometry, material), [geometry, material])
+
+  useEffect(() => {
+    return () => {
+      geometry.dispose()
+      material.dispose()
+    }
+  }, [geometry, material])
+
   return (
     <group rotation={[tiltX, 0, tiltZ]}>
-      <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />
+      <primitive ref={lineRef} object={lineObject} />
       {distanceAu != null && (
         <Html position={[radius, 0, 0]} center zIndexRange={[1, 0]} style={{ pointerEvents: 'none' }}>
           <div style={{

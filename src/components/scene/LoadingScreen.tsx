@@ -11,15 +11,15 @@ export default function LoadingScreen() {
   const [visible, setVisible] = useState(true)
   const prevViewMode = useRef(viewMode)
 
-  // Re-show when switching to 3D and scene isn't ready yet
+  const isReady = viewMode === '3d' ? dataReady && sceneReady : dataReady
+
+  // Re-show when switching to 3D only if scene isn't ready yet
   useEffect(() => {
-    if (viewMode === '3d' && prevViewMode.current !== '3d') {
+    if (viewMode === '3d' && prevViewMode.current !== '3d' && !isReady) {
       setVisible(true)
     }
     prevViewMode.current = viewMode
-  }, [viewMode])
-
-  const isReady = viewMode === '3d' ? dataReady && sceneReady : dataReady
+  }, [viewMode, isReady])
 
   // Fade out then unmount
   useEffect(() => {

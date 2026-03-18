@@ -223,7 +223,11 @@ export default function ObservationLogCard() {
                       {formatTimeAgo(entry.observed_at)}
                     </span>
                     <button
-                      onClick={() => deleteEntry(entry.id)}
+                      onClick={() => {
+                        if (window.confirm('Delete this observation?')) {
+                          deleteEntry(entry.id).catch((err: any) => console.error('Failed to delete:', err))
+                        }
+                      }}
                       style={{
                         background: 'transparent',
                         border: 'none',

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useEffect } from 'react'
 import * as THREE from 'three'
 import { Html } from '@react-three/drei'
 import { positionToScene } from '../../utils/sceneScaling'
@@ -41,6 +41,10 @@ export default function MissionTrajectory({ mission }: Props) {
     return new THREE.BufferGeometry().setFromPoints(points)
   }, [curve])
 
+  useEffect(() => {
+    return () => { lineGeometry?.dispose() }
+  }, [lineGeometry])
+
   // Interpolate marker position along curve
   const markerPosition = useMemo(() => {
     if (!curve || mission.waypoints.length < 2) return null
@@ -60,7 +64,7 @@ export default function MissionTrajectory({ mission }: Props) {
     <group>
       {/* Trajectory line */}
       <line>
-        <bufferGeometry attach="geometry" {...lineGeometry} />
+        <primitive object={lineGeometry} attach="geometry" />
         <lineBasicMaterial
           attach="material"
           color={mission.color}

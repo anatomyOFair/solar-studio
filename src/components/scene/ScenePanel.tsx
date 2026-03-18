@@ -32,6 +32,7 @@ const SOLAR_SYSTEM_STATS: { label: string; value: string }[] = [
 function InfoTab() {
   const selectedObject = useStore((state) => state.selectedObject)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
+  const objects = useStore((state) => state.objects)
   const factoids = useStore((state) => state.factoids)
   const fetchFactoids = useStore((state) => state.fetchFactoids)
   const missions = useStore((state) => state.missions)
@@ -214,9 +215,18 @@ function InfoTab() {
   const color = PLANET_COLORS[selectedObject.id] ?? DEFAULT_COLOR
   const description = selectedObject.description || DESCRIPTIONS[selectedObject.id] || ''
 
-  const x = selectedObject.x ?? 0
-  const y = selectedObject.y ?? 0
-  const z = selectedObject.z ?? 0
+  // For moons, x/y/z are parent-relative offsets — add parent's heliocentric position
+  let x = selectedObject.x ?? 0
+  let y = selectedObject.y ?? 0
+  let z = selectedObject.z ?? 0
+  if (selectedObject.parent_body) {
+    const parent = objects.find((o) => o.id === selectedObject.parent_body)
+    if (parent) {
+      x += parent.x ?? 0
+      y += parent.y ?? 0
+      z += parent.z ?? 0
+    }
+  }
   const sunDistAu = Math.sqrt(x * x + y * y + z * z)
   const sunDistKm = sunDistAu * 149_597_870.7
   const sunLightMin = sunDistAu * 8.317

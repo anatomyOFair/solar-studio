@@ -45,9 +45,12 @@ export default function TimeSlider() {
     }
   }, [missionRange, setMissionTime])
 
-  if (!simulatedTime && !isMissionMode) {
-    nowRef.current = Date.now()
-  }
+  // Keep "now" fresh when not simulating (in effect, not render)
+  useEffect(() => {
+    if (!simulatedTime && !isMissionMode) {
+      nowRef.current = Date.now()
+    }
+  })
 
   const speeds = isMissionMode ? MISSION_SPEEDS : SPEEDS
   const speedLabels = isMissionMode ? MISSION_SPEED_LABELS : SPEED_LABELS
@@ -160,7 +163,8 @@ export default function TimeSlider() {
 
   if (missionRange) {
     const currentMs = missionTime?.getTime() ?? missionRange.start
-    const t = (currentMs - missionRange.start) / (missionRange.end - missionRange.start)
+    const span = missionRange.end - missionRange.start
+    const t = span > 0 ? (currentMs - missionRange.start) / span : 0
     sliderValue = Math.max(0, Math.min(1000, t * 1000))
     sliderMin = 0
     sliderMax = 1000

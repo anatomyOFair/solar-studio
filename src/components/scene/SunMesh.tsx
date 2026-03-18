@@ -6,6 +6,8 @@ import { radiusToScene } from '../../utils/sceneScaling'
 import { useStore } from '../../store/store'
 import sunTexturePath from '../../assets/textures/8k_sun.jpg'
 
+const _scaleVec = new THREE.Vector3()
+
 export default function SunMesh() {
   const sunRef = useRef<THREE.Mesh>(null)
   const groupRef = useRef<THREE.Group>(null)
@@ -47,7 +49,7 @@ export default function SunMesh() {
     // Hover/select scale
     if (groupRef.current) {
       const target = hovered || isSelected ? 1.15 : 1.0
-      groupRef.current.scale.lerp(new THREE.Vector3(target, target, target), 0.1)
+      groupRef.current.scale.lerp(_scaleVec.set(target, target, target), 0.1)
     }
   })
 
