@@ -153,7 +153,6 @@ function getTransitForObject(
     return { time: null, altitude: 0 }
   }
 
-  const RAD = Math.PI / 180
   const midnight = new Date(date)
   midnight.setUTCHours(0, 0, 0, 0)
   const JD0 = midnight.getTime() / 86400000 + 2440587.5
@@ -175,8 +174,8 @@ function getTransitForObject(
 
 function sampleMaxAltitude(
   _object: CelestialObject,
-  lat: number,
-  lon: number,
+  _lat: number,
+  _lon: number,
   date: Date,
   altitudeFn: (time: Date) => number
 ): { time: Date | null; altitude: number } {
@@ -215,34 +214,6 @@ export function getCurrentAltitude(object: CelestialObject, lat: number, lon: nu
 }
 
 // ── Main Orchestrator ──────────────────────────────────────────────────
-
-function isUpDuringNight(riseSet: RiseSet, nightWindow: NightWindow): boolean {
-  if (riseSet.alwaysUp) return true
-  if (riseSet.alwaysDown) return false
-  if (!riseSet.rise || !riseSet.set) return false
-
-  const { sunset, sunrise } = nightWindow
-
-  // Object's visible interval and night window overlap check
-  // Handle wrapping: if set < rise, object wraps around midnight
-  let objStart = riseSet.rise.getTime()
-  let objEnd = riseSet.set.getTime()
-  if (objEnd < objStart) objEnd += 86400000
-
-  let nightStart = sunset.getTime()
-  let nightEnd = sunrise.getTime()
-  if (nightEnd < nightStart) nightEnd += 86400000
-
-  // Check overlap between [objStart, objEnd] and [nightStart, nightEnd]
-  // Also check shifted by ±24h to handle day-boundary cases
-  for (const shift of [0, 86400000, -86400000]) {
-    const os = objStart + shift
-    const oe = objEnd + shift
-    if (os < nightEnd && oe > nightStart) return true
-  }
-
-  return false
-}
 
 export function computeTonightObjects(
   objects: CelestialObject[],

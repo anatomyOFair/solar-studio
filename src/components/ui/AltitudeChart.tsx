@@ -27,7 +27,7 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
   const chartObject = objects.find((o) => o.id === objectId) ?? null
   const effectiveTime = simulatedTime ?? new Date()
 
-  const { points, nightWindow, minAlt, maxAlt } = useMemo(() => {
+  const { points, minAlt, maxAlt } = useMemo(() => {
     if (!chartObject) return { points: [], nightWindow: null, minAlt: -20, maxAlt: 90 }
 
     const nw = getNightWindow(location.lat, location.lon, effectiveTime)
