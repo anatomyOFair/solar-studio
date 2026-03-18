@@ -27,15 +27,20 @@ const ConstellationGridLayer = L.GridLayer.extend({
     // Buffer in pixels — skip lines far outside this tile
     const buffer = tileSize * 0.5
 
-    ctx.strokeStyle = 'rgba(255, 220, 150, 0.7)'
+    ctx.strokeStyle = '#cc8a1e'
     ctx.lineWidth = 1.5
     ctx.lineCap = 'round'
 
     for (const constellation of CONSTELLATIONS) {
       for (const [star1, star2] of constellation.lines) {
-        // RA → lon (wrapped), Dec → lat
-        const p1 = map.project(L.latLng(star1.dec, raToLon(star1.ra)), zoom)
-        const p2 = map.project(L.latLng(star2.dec, raToLon(star2.ra)), zoom)
+        // RA → lon, adjusted so the line takes the short path across the antimeridian
+        const lon1 = raToLon(star1.ra)
+        let lon2 = raToLon(star2.ra)
+        if (lon2 - lon1 > 180) lon2 -= 360
+        else if (lon1 - lon2 > 180) lon2 += 360
+
+        const p1 = map.project(L.latLng(star1.dec, lon1), zoom)
+        const p2 = map.project(L.latLng(star2.dec, lon2), zoom)
 
         const x1 = p1.x - nwPixel.x
         const y1 = p1.y - nwPixel.y
@@ -56,25 +61,40 @@ const ConstellationGridLayer = L.GridLayer.extend({
         ctx.stroke()
       }
 
-      // Draw constellation name at centroid of first line
+      // Draw constellation name at centroid
       if (constellation.lines.length > 0) {
-        let sumRa = 0
+        let sumLon = 0
         let sumDec = 0
         let count = 0
         const seen = new Set<string>()
+        // Use first star's lon as reference to handle antimeridian wrapping
+        const refLon = raToLon(constellation.lines[0][0].ra)
         for (const [s1, s2] of constellation.lines) {
           const k1 = `${s1.ra},${s1.dec}`
           const k2 = `${s2.ra},${s2.dec}`
-          if (!seen.has(k1)) { sumRa += raToLon(s1.ra); sumDec += s1.dec; count++; seen.add(k1) }
-          if (!seen.has(k2)) { sumRa += raToLon(s2.ra); sumDec += s2.dec; count++; seen.add(k2) }
+          if (!seen.has(k1)) {
+            let lon = raToLon(s1.ra)
+            if (lon - refLon > 180) lon -= 360
+            else if (refLon - lon > 180) lon += 360
+            sumLon += lon; sumDec += s1.dec; count++; seen.add(k1)
+          }
+          if (!seen.has(k2)) {
+            let lon = raToLon(s2.ra)
+            if (lon - refLon > 180) lon -= 360
+            else if (refLon - lon > 180) lon += 360
+            sumLon += lon; sumDec += s2.dec; count++; seen.add(k2)
+          }
         }
-        const centroid = map.project(L.latLng(sumDec / count, sumRa / count), zoom)
+        let avgLon = sumLon / count
+        if (avgLon > 180) avgLon -= 360
+        else if (avgLon < -180) avgLon += 360
+        const centroid = map.project(L.latLng(sumDec / count, avgLon), zoom)
         const cx = centroid.x - nwPixel.x
         const cy = centroid.y - nwPixel.y
 
         if (cx > -buffer && cx < tileSize + buffer && cy > -buffer && cy < tileSize + buffer) {
           ctx.font = '12px "Space Grotesk", sans-serif'
-          ctx.fillStyle = 'rgba(255, 220, 150, 0.55)'
+          ctx.fillStyle = '#000000'
           ctx.textAlign = 'center'
           ctx.fillText(constellation.name, cx, cy - 6)
         }
