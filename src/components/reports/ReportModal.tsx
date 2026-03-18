@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLocationDot, faCamera, faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
+import { faLocationDot, faCamera, faEye, faEyeSlash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { colors, sizes, shadows, spacing } from '../../constants'
 
 export default function ReportModal() {
@@ -140,7 +140,9 @@ export default function ReportModal() {
                 right: 0,
                 bottom: 0,
                 zIndex: sizes.zIndex.modalBackdrop,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                backgroundColor: colors.navbar.background,
+                backdropFilter: `blur(${sizes.blur.default})`,
+                WebkitBackdropFilter: `blur(${sizes.blur.default})`,
             }}
         onClick={onClose}
       />
@@ -169,11 +171,33 @@ export default function ReportModal() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            zIndex: 1,
+            background: 'transparent',
+            border: 'none',
+            color: colors.text.muted,
+            cursor: 'pointer',
+            padding: '4px',
+            fontSize: '16px',
+            lineHeight: 1,
+            transition: 'color 150ms ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+        >
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
+
         {/* Header */}
-        <div className="relative text-center" style={{ 
-            paddingTop: sizes.modal.headerPaddingTop, 
+        <div className="relative text-center" style={{
+            paddingTop: sizes.modal.headerPaddingTop,
             paddingBottom: sizes.modal.headerPaddingBottom,
-            // Border removed as requested
         }}>
             <h2 className="text-xl font-bold" style={{ color: colors.white }}>
                 Report Visibility
@@ -198,31 +222,49 @@ export default function ReportModal() {
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: sizes.inputs.gap }}>
                 
-                {/* 1. Visibility Toggle (Tab Style) */}
-                {/* Removed internal divider color to match request */}
-                <div className="flex rounded-lg overflow-hidden border" style={{ borderColor: colors.navbar.border }}>
+                {/* 1. Visibility Toggle */}
+                <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                         type="button"
                         onClick={() => setIsVisible(true)}
-                        className="flex-1 text-sm font-medium transition-all relative flex items-center justify-center gap-2"
-                        style={{ 
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
                             padding: `${spacing.md} 0`,
-                            backgroundColor: isVisible ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                            color: isVisible ? colors.white : colors.text.muted,
+                            fontSize: sizes.fonts.sm,
+                            fontWeight: 500,
+                            borderRadius: sizes.inputs.borderRadius,
+                            border: `1px solid ${isVisible ? colors.accent : colors.navbar.border}`,
+                            backgroundColor: isVisible ? 'rgba(201, 165, 92, 0.1)' : 'transparent',
+                            color: isVisible ? colors.accent : colors.text.muted,
+                            cursor: 'pointer',
+                            transition: 'all 150ms ease',
                         }}
                     >
                         <FontAwesomeIcon icon={faEye} />
                         Visible
                     </button>
-                    {/* Divider removed */}
                     <button
                         type="button"
                         onClick={() => setIsVisible(false)}
-                        className="flex-1 text-sm font-medium transition-all relative flex items-center justify-center gap-2"
-                        style={{ 
+                        style={{
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
                             padding: `${spacing.md} 0`,
-                            backgroundColor: !isVisible ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                            color: !isVisible ? colors.white : colors.text.muted
+                            fontSize: sizes.fonts.sm,
+                            fontWeight: 500,
+                            borderRadius: sizes.inputs.borderRadius,
+                            border: `1px solid ${!isVisible ? colors.accent : colors.navbar.border}`,
+                            backgroundColor: !isVisible ? 'rgba(201, 165, 92, 0.1)' : 'transparent',
+                            color: !isVisible ? colors.accent : colors.text.muted,
+                            cursor: 'pointer',
+                            transition: 'all 150ms ease',
                         }}
                     >
                         <FontAwesomeIcon icon={faEyeSlash} />
@@ -262,7 +304,6 @@ export default function ReportModal() {
 
                 {/* 3. Image Upload */}
                 <div>
-                    <label className="block text-sm font-medium mb-2" style={{ color: colors.white }}>Photo (Optional)</label>
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -270,32 +311,32 @@ export default function ReportModal() {
                         onChange={handleImageChange}
                         className="hidden"
                     />
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg border hover:bg-black/40 transition-colors text-left"
-                        style={{
-                            borderColor: 'rgba(255,255,255,0.2)',
-                            backgroundColor: 'rgba(0,0,0,0.2)',
-                            color: colors.text.muted,
-                            fontSize: sizes.fonts.sm
-                        }}
-                    >
-                        <div className="w-10 h-10 rounded bg-gray-800 flex items-center justify-center flex-shrink-0">
-                            {imageFile ? (
-                                <img 
-                                    src={URL.createObjectURL(imageFile)} 
-                                    alt="Preview" 
-                                    className="w-full h-full object-cover rounded"
-                                />
-                            ) : (
-                                <FontAwesomeIcon icon={faCamera} />
-                            )}
-                        </div>
-                        <span className="text-sm truncate">
-                            {imageFile ? imageFile.name : 'Tap to take a photo or upload'}
+                    <div className="relative">
+                        <span className="absolute top-1/2 -translate-y-1/2" style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}>
+                            <FontAwesomeIcon icon={faCamera} />
                         </span>
-                    </button>
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            style={{
+                                width: '100%',
+                                textAlign: 'left',
+                                paddingTop: sizes.inputs.paddingVertical,
+                                paddingBottom: sizes.inputs.paddingVertical,
+                                paddingLeft: sizes.inputs.paddingLeftWithIcon,
+                                paddingRight: sizes.inputs.paddingHorizontal,
+                                backgroundColor: 'transparent',
+                                border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
+                                borderRadius: sizes.inputs.borderRadius,
+                                color: imageFile ? colors.white : colors.text.muted,
+                                fontSize: sizes.fonts.sm,
+                                cursor: 'pointer',
+                                transition: 'border-color 150ms ease',
+                            }}
+                        >
+                            {imageFile ? imageFile.name : 'Photo (optional)'}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Actions */}
@@ -303,18 +344,18 @@ export default function ReportModal() {
                     <button
                         type="submit"
                         disabled={isLoading || !location}
-                        className="font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{
                             width: '100%',
                             paddingTop: sizes.inputs.paddingVertical,
                             paddingBottom: sizes.inputs.paddingVertical,
-                            backgroundColor: colors.navbar.background,
-                            border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
+                            backgroundColor: colors.accent,
+                            border: 'none',
                             borderRadius: sizes.inputs.borderRadius,
-                            color: colors.white,
+                            color: colors.navbar.base,
                             fontSize: sizes.fonts.sm,
-                            backdropFilter: 'blur(12px)',
-                            WebkitBackdropFilter: 'blur(12px)',
+                            fontWeight: 600,
+                            cursor: isLoading || !location ? 'not-allowed' : 'pointer',
                         }}
                     >
                         {isLoading ? 'Submitting...' : 'Submit Report'}

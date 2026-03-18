@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faStar } from '@fortawesome/free-solid-svg-icons'
+import { faStar, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
 import { colors, sizes, shadows, spacing } from '../../constants'
 
@@ -94,7 +94,9 @@ export default function ObservationModal() {
           right: 0,
           bottom: 0,
           zIndex: sizes.zIndex.modalBackdrop,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backgroundColor: colors.navbar.background,
+          backdropFilter: `blur(${sizes.blur.default})`,
+          WebkitBackdropFilter: `blur(${sizes.blur.default})`,
         }}
         onClick={onClose}
       />
@@ -123,6 +125,29 @@ export default function ObservationModal() {
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={() => { resetForm(); onClose() }}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            zIndex: 1,
+            background: 'transparent',
+            border: 'none',
+            color: colors.text.muted,
+            cursor: 'pointer',
+            padding: '4px',
+            fontSize: '16px',
+            lineHeight: 1,
+            transition: 'color 150ms ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+        >
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
+
         {/* Header */}
         <div
           className="relative text-center"
@@ -307,20 +332,19 @@ export default function ObservationModal() {
               <button
                 type="submit"
                 disabled={isLoading || !objectId}
-                className="font-medium transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="font-medium transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   width: '100%',
                   paddingTop: sizes.inputs.paddingVertical,
                   paddingBottom: sizes.inputs.paddingVertical,
-                  backgroundColor: colors.navbar.background,
-                  border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
+                  backgroundColor: colors.accent,
+                  border: 'none',
                   borderRadius: sizes.inputs.borderRadius,
-                  color: colors.white,
+                  color: colors.navbar.base,
                   fontSize: sizes.fonts.sm,
                   fontFamily: 'inherit',
-                  backdropFilter: 'blur(12px)',
-                  WebkitBackdropFilter: 'blur(12px)',
-                  cursor: 'pointer',
+                  fontWeight: 600,
+                  cursor: isLoading || !objectId ? 'not-allowed' : 'pointer',
                 }}
               >
                 {isLoading ? 'Saving...' : 'Save Entry'}

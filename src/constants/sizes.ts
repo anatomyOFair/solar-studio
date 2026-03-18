@@ -57,7 +57,7 @@ export const sizes = {
 
   // Input & Button standard sizes
   inputs: {
-    borderWidth: '2px',
+    borderWidth: '1px',
     paddingVertical: '12px',
     paddingHorizontal: '16px',
     paddingLeftWithIcon: '50px',

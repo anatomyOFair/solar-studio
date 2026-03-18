@@ -65,6 +65,9 @@ export const colors = {
     background: 'rgba(10, 15, 26, 0.60)',
   },
 
+  // Accent
+  accent: '#c9a55c',
+
   // Common colors
   transparent: 'transparent',
   white: '#ffffff',

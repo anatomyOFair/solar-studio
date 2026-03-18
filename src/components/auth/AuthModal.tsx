@@ -1,29 +1,47 @@
 import { useState } from 'react'
 import { useStore } from '../../store/store'
-
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEnvelope, faLock, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faEnvelope, faLock, faUser, faXmark, faCheck } from '@fortawesome/free-solid-svg-icons'
 import { colors, sizes, shadows, spacing } from '../../constants'
+
+const inputStyle: React.CSSProperties = {
+  width: '100%',
+  paddingTop: sizes.inputs.paddingVertical,
+  paddingBottom: sizes.inputs.paddingVertical,
+  paddingLeft: sizes.inputs.paddingLeftWithIcon,
+  paddingRight: sizes.inputs.paddingHorizontal,
+  backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
+  borderRadius: sizes.inputs.borderRadius,
+  color: colors.white,
+  fontSize: sizes.fonts.sm,
+  boxSizing: 'border-box' as const,
+  outline: 'none',
+  transition: 'box-shadow 150ms ease, border-color 150ms ease',
+}
+
+const focusRing = `0 0 0 1px ${colors.accent}`
 
 export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
-  
+  const [signupSuccess, setSignupSuccess] = useState(false)
+  const [focusedField, setFocusedField] = useState<string | null>(null)
+
   const setSession = useStore((state) => state.setSession)
 
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    confirm_password: '', // Added for signup
-    username: '', // Added for signup (maps to full_name)
+    confirm_password: '',
+    username: '',
   })
 
-  // Sync tab with mode (optional, or just use one state)
   const handleTabChange = (tab: 'login' | 'signup') => {
     setActiveTab(tab)
     setError(null)
+    setSignupSuccess(false)
   }
 
   if (!isOpen) return null
@@ -38,44 +56,38 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
 
       if (activeTab === 'signup') {
         if (formData.password !== formData.confirm_password) {
-            throw new Error("Passwords do not match")
+          throw new Error('Passwords do not match')
         }
 
         const { data, error: signUpError } = await supabase.auth.signUp({
-            email: formData.email,
-            password: formData.password,
-            options: {
-                data: {
-                    full_name: formData.username
-                }
-            }
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.username,
+            },
+          },
         })
 
         if (signUpError) throw signUpError
 
-        // If auto-confirm is enabled, session might be established immediately.
-        // Otherwise, user needs to check email.
         if (data.session) {
-            setSession(data.session)
-            // setUser(data.user) // handled by setSession side-effect in store logic if we wanted, but explicit set is fine too
-            onClose()
+          setSession(data.session)
+          onClose()
         } else {
-            // Email confirmation required case
-             setError('Check your email for the confirmation link.')
-             return // Don't close modal yet
+          setSignupSuccess(true)
         }
-
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
-            email: formData.email,
-            password: formData.password
+          email: formData.email,
+          password: formData.password,
         })
 
         if (signInError) throw signInError
 
         if (data.session) {
-            setSession(data.session)
-            onClose()
+          setSession(data.session)
+          onClose()
         }
       }
     } catch (err: any) {
@@ -85,32 +97,42 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
     }
   }
 
+  const handleForgotPassword = () => {
+    setError('Password reset coming soon')
+  }
+
+  const getInputStyle = (field: string): React.CSSProperties => ({
+    ...inputStyle,
+    boxShadow: focusedField === field ? focusRing : 'none',
+    borderColor: focusedField === field ? colors.accent : colors.navbar.border,
+  })
+
   return (
     <>
       {/* Backdrop */}
       <div
         style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            zIndex: sizes.zIndex.modalBackdrop,
-            backgroundColor: colors.navbar.background, // Using standard background opacity
-            backdropFilter: `blur(${sizes.blur.default})`,
-            WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: sizes.zIndex.modalBackdrop,
+          backgroundColor: colors.navbar.background,
+          backdropFilter: `blur(${sizes.blur.default})`,
+          WebkitBackdropFilter: `blur(${sizes.blur.default})`,
         }}
         onClick={onClose}
       />
 
-        {/* Modal Container */}
+      {/* Modal */}
       <div
-        className="fixed p-0"
+        className="fixed"
         style={{
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: sizes.modal.width,
+          width: '420px',
           maxWidth: sizes.modal.maxWidth,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
@@ -122,208 +144,284 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
           display: 'flex',
           flexDirection: 'column',
           boxShadow: shadows.lg,
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '16px',
+            right: '16px',
+            zIndex: 1,
+            background: 'transparent',
+            border: 'none',
+            color: colors.text.muted,
+            cursor: 'pointer',
+            padding: '4px',
+            fontSize: '16px',
+            lineHeight: 1,
+            transition: 'color 150ms ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
+          onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+        >
+          <FontAwesomeIcon icon={faXmark} />
+        </button>
+
         {/* Tabs */}
-        <div className="flex">
-            <button
-                onClick={() => handleTabChange('login')}
-                className="flex-1 text-sm font-medium transition-all relative"
-                style={{ 
-                    padding: `${spacing.md} 0`,
-                    backgroundColor: activeTab === 'login' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                    color: activeTab === 'login' ? 'white' : '#9ca3af',
-                }}
-            >
-                Log In
-            </button>
-            <button
-                onClick={() => handleTabChange('signup')}
-                className="flex-1 text-sm font-medium transition-all relative"
-                style={{ 
-                    padding: `${spacing.md} 0`,
-                    backgroundColor: activeTab === 'signup' ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
-                    color: activeTab === 'signup' ? 'white' : '#9ca3af'
-                }}
-            >
-                Sign Up
-            </button>
+        <div style={{ display: 'flex', borderBottom: `1px solid ${colors.navbar.border}` }}>
+          <button
+            onClick={() => handleTabChange('login')}
+            className="flex-1 text-sm font-medium transition-all"
+            style={{
+              padding: `${spacing.md} 0`,
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'login' ? `2px solid ${colors.accent}` : '2px solid transparent',
+              color: activeTab === 'login' ? colors.white : colors.text.muted,
+              cursor: 'pointer',
+              marginBottom: '-1px',
+            }}
+          >
+            Log In
+          </button>
+          <button
+            onClick={() => handleTabChange('signup')}
+            className="flex-1 text-sm font-medium transition-all"
+            style={{
+              padding: `${spacing.md} 0`,
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'signup' ? `2px solid ${colors.accent}` : '2px solid transparent',
+              color: activeTab === 'signup' ? colors.white : colors.text.muted,
+              cursor: 'pointer',
+              marginBottom: '-1px',
+            }}
+          >
+            Sign Up
+          </button>
         </div>
 
-        {/* Header Section */}
-        <div style={{ 
-            paddingTop: sizes.modal.headerPaddingTop, 
-            paddingBottom: sizes.modal.headerPaddingBottom, 
-            paddingLeft: sizes.modal.paddingContent, 
-            paddingRight: sizes.modal.paddingContent, 
-            textAlign: 'center' 
-        }}>
-            <h2 className="text-3xl font-bold mb-0" style={{ color: 'white' }}>
-                {activeTab === 'login' ? 'Welcome Back' : 'Create Account'}
-            </h2>
+        {/* Header */}
+        <div
+          style={{
+            paddingTop: sizes.modal.headerPaddingTop,
+            paddingBottom: sizes.modal.headerPaddingBottom,
+            paddingLeft: sizes.modal.paddingContent,
+            paddingRight: sizes.modal.paddingContent,
+            textAlign: 'center',
+          }}
+        >
+          <h2 className="text-2xl font-bold" style={{ color: colors.white, margin: 0 }}>
+            {activeTab === 'login' ? 'Welcome Back' : 'Create Account'}
+          </h2>
+          <p className="text-sm" style={{ color: colors.text.muted, marginTop: '6px', marginBottom: 0 }}>
+            {activeTab === 'login' ? 'Sign in to your observatory' : 'Join the observatory'}
+          </p>
         </div>
 
-        {/* Content Area */}
-        <div style={{ 
-            padding: `0 ${sizes.modal.paddingContent} ${sizes.inputs.iconOffset} ${sizes.modal.paddingContent}`, // re-using 24px as bottom padding
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column' 
-        }}>
-            {error && (
-            <div 
-                className="rounded-xl flex items-center gap-3 text-sm"
-                style={{ 
-                marginBottom: spacing.xl,
-                padding: spacing.md,
-                backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                border: `1px solid rgba(239, 68, 68, 0.2)`,
-                color: colors.status.error
+        {/* Content */}
+        <div
+          style={{
+            padding: `0 ${sizes.modal.paddingContent} ${sizes.modal.headerPaddingTop} ${sizes.modal.paddingContent}`,
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Signup success state */}
+          {signupSuccess ? (
+            <div style={{ textAlign: 'center', padding: `${spacing.xl} 0` }}>
+              <div
+                style={{
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(16, 185, 129, 0.15)',
+                  border: `1px solid rgba(16, 185, 129, 0.3)`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 20px',
+                  color: colors.status.success,
+                  fontSize: '22px',
                 }}
-            >
-                <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                <span>{error}</span>
+              >
+                <FontAwesomeIcon icon={faCheck} />
+              </div>
+              <h3 className="text-lg font-semibold" style={{ color: colors.white, margin: '0 0 8px' }}>
+                Check your email
+              </h3>
+              <p className="text-sm" style={{ color: colors.text.muted, margin: 0, lineHeight: 1.5 }}>
+                We sent a confirmation link to<br />
+                <span style={{ color: colors.text.secondary }}>{formData.email}</span>
+              </p>
             </div>
-            )}
+          ) : (
+            <>
+              {error && (
+                <div
+                  className="rounded-lg flex items-center gap-3 text-sm"
+                  style={{
+                    marginBottom: spacing.md,
+                    padding: spacing.md,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    color: colors.status.error,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: colors.status.error,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span>{error}</span>
+                </div>
+              )}
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: sizes.inputs.gap, flex: 1 }}>
-            {activeTab === 'signup' && (
-                <div>
-                <div className="relative">
-                    <span className="absolute top-1/2 -translate-y-1/2" style={{ left: sizes.inputs.iconOffset, color: colors.text.muted }}>
-                    <FontAwesomeIcon icon={faUser} />
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: sizes.inputs.gap, flex: 1 }}>
+                {activeTab === 'signup' && (
+                  <div className="relative">
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2"
+                      style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}
+                    >
+                      <FontAwesomeIcon icon={faUser} />
                     </span>
                     <input
-                    type="text"
-                    required
-                    className="w-full transition-all focus:outline-none focus:ring-0"
-                    style={{
-                        paddingTop: sizes.inputs.paddingVertical,
-                        paddingBottom: sizes.inputs.paddingVertical,
-                        paddingLeft: sizes.inputs.paddingLeftWithIcon,
-                        paddingRight: sizes.inputs.paddingHorizontal,
-                        backgroundColor: colors.transparent,
-                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                        borderRadius: sizes.inputs.borderRadius,
-                        color: colors.white,
-                        fontSize: sizes.fonts.sm
-                    }}
-                    placeholder="Username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      type="text"
+                      required
+                      className="w-full"
+                      style={getInputStyle('username')}
+                      placeholder="Username"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      onFocus={() => setFocusedField('username')}
+                      onBlur={() => setFocusedField(null)}
                     />
-                </div>
-                </div>
-            )}
+                  </div>
+                )}
 
-            <div>
                 <div className="relative">
-                <span className="absolute top-1/2 -translate-y-1/2" style={{ left: '24px', color: colors.text.muted }}>
+                  <span
+                    className="absolute top-1/2 -translate-y-1/2"
+                    style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}
+                  >
                     <FontAwesomeIcon icon={faEnvelope} />
-                </span>
-                <input
+                  </span>
+                  <input
                     type="email"
                     required
-                    className="w-full transition-all focus:outline-none focus:ring-0"
-                    style={{
-                    paddingTop: sizes.inputs.paddingVertical,
-                    paddingBottom: sizes.inputs.paddingVertical,
-                    paddingLeft: sizes.inputs.paddingLeftWithIcon,
-                    paddingRight: sizes.inputs.paddingHorizontal,
-                    backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                    borderRadius: sizes.inputs.borderRadius,
-                    color: colors.white,
-                    fontSize: sizes.fonts.sm
-                    }}
+                    className="w-full"
+                    style={getInputStyle('email')}
                     placeholder="Email Address"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                />
+                    onFocus={() => setFocusedField('email')}
+                    onBlur={() => setFocusedField(null)}
+                  />
                 </div>
-            </div>
 
-            <div>
-                <div className="relative">
-                <span className="absolute top-1/2 -translate-y-1/2" style={{ left: '24px', color: colors.text.muted }}>
-                    <FontAwesomeIcon icon={faLock} />
-                </span>
-                <input
-                    type="password"
-                    required
-                    className="w-full transition-all focus:outline-none focus:ring-0"
-                    style={{
-                    paddingTop: sizes.inputs.paddingVertical,
-                    paddingBottom: sizes.inputs.paddingVertical,
-                    paddingLeft: sizes.inputs.paddingLeftWithIcon,
-                    paddingRight: sizes.inputs.paddingHorizontal,
-                    backgroundColor: colors.transparent,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                    borderRadius: sizes.inputs.borderRadius,
-                    color: colors.white,
-                    fontSize: sizes.fonts.sm
-                    }}
-                    placeholder="Password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                />
-                </div>
-            </div>
-
-            {activeTab === 'signup' && (
                 <div>
-                    <div className="relative">
-                    <span className="absolute top-1/2 -translate-y-1/2" style={{ left: sizes.inputs.iconOffset, color: colors.text.muted }}>
-                        <FontAwesomeIcon icon={faLock} />
+                  <div className="relative">
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2"
+                      style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}
+                    >
+                      <FontAwesomeIcon icon={faLock} />
                     </span>
                     <input
-                        type="password"
-                        required
-                        className="w-full transition-all focus:outline-none focus:ring-0"
-                        style={{
-                        paddingTop: sizes.inputs.paddingVertical,
-                        paddingBottom: sizes.inputs.paddingVertical,
-                        paddingLeft: sizes.inputs.paddingLeftWithIcon,
-                        paddingRight: sizes.inputs.paddingHorizontal,
-                        backgroundColor: colors.transparent,
-                        border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                        borderRadius: sizes.inputs.borderRadius, // Changed to lg
-                        color: colors.white,
-                        fontSize: sizes.fonts.sm
-                        }}
-                        placeholder="Confirm Password"
-                        value={formData.confirm_password}
-                        onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                      type="password"
+                      required
+                      className="w-full"
+                      style={getInputStyle('password')}
+                      placeholder="Password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      onFocus={() => setFocusedField('password')}
+                      onBlur={() => setFocusedField(null)}
                     />
-                    </div>
+                  </div>
+                  {activeTab === 'login' && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: colors.text.muted,
+                        fontSize: sizes.fonts.xs,
+                        cursor: 'pointer',
+                        padding: '6px 0 0',
+                        transition: 'color 150ms ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.color = colors.accent)}
+                      onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                 </div>
-            )}
 
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="font-medium transition-all hover:brightness-110 active:scale-[0.98]"
-                style={{
-                    alignSelf: 'center', // Center the button since it's not full width
-                    width: '50%',        // Reduced width
-                    marginTop: spacing.xl,
+                {activeTab === 'signup' && (
+                  <div className="relative">
+                    <span
+                      className="absolute top-1/2 -translate-y-1/2"
+                      style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}
+                    >
+                      <FontAwesomeIcon icon={faLock} />
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      className="w-full"
+                      style={getInputStyle('confirm_password')}
+                      placeholder="Confirm Password"
+                      value={formData.confirm_password}
+                      onChange={(e) => setFormData({ ...formData, confirm_password: e.target.value })}
+                      onFocus={() => setFocusedField('confirm_password')}
+                      onBlur={() => setFocusedField(null)}
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="font-medium transition-all active:scale-[0.98]"
+                  style={{
+                    width: '100%',
+                    marginTop: spacing.md,
                     paddingTop: sizes.inputs.paddingVertical,
                     paddingBottom: sizes.inputs.paddingVertical,
-                    backgroundColor: colors.navbar.background,
-                    border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
+                    backgroundColor: colors.accent,
+                    border: 'none',
                     borderRadius: sizes.inputs.borderRadius,
-                    color: colors.white,
+                    color: colors.navbar.base,
                     fontSize: sizes.fonts.sm,
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
                     opacity: isLoading ? 0.7 : 1,
-                }}
-            >
-                {isLoading ? 'Processing...' : (activeTab === 'login' ? 'Log In' : 'Create Account')}
-            </button>
-            </form>
+                    fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading) e.currentTarget.style.boxShadow = `0 0 20px rgba(201, 165, 92, 0.3)`
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  {isLoading ? 'Processing...' : activeTab === 'login' ? 'Log In' : 'Create Account'}
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     </>
