@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useProgress } from '@react-three/drei'
 import { useStore } from '../../store/store'
-import { colors } from '../../constants'
+import { colors, sizes } from '../../constants'
 
 export default function LoadingScreen() {
   const dataReady = useStore((state) => state.dataReady)
@@ -69,7 +69,7 @@ export default function LoadingScreen() {
         alignItems: 'center',
         justifyContent: 'center',
         background: 'radial-gradient(ellipse at 30% 40%, #0a0e1a 0%, #050810 40%, #020408 100%)',
-        zIndex: 9999,
+        zIndex: sizes.zIndex.fixed + 5,
         opacity: isReady ? 0 : 1,
         transition: 'opacity 0.5s ease',
         pointerEvents: isReady ? 'none' : 'auto',
@@ -93,7 +93,7 @@ export default function LoadingScreen() {
             style={{
               width: `${percent}%`,
               height: '100%',
-              backgroundColor: colors.primary[400],
+              backgroundColor: colors.accent,
               borderRadius: '2px',
               transition: 'width 0.3s ease',
             }}

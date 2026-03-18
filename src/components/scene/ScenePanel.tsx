@@ -525,9 +525,9 @@ export default function ScenePanel() {
               style={{
                 flex: 1,
                 padding: '10px 0',
-                background: activeTab === tab.key ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                background: 'transparent',
                 border: 'none',
-                borderBottom: activeTab === tab.key ? '2px solid rgba(255, 255, 255, 0.4)' : '2px solid transparent',
+                borderBottom: activeTab === tab.key ? `2px solid ${colors.accent}` : '2px solid transparent',
                 color: activeTab === tab.key ? 'white' : 'rgba(255,255,255,0.4)',
                 fontSize: 13,
                 fontWeight: 500,

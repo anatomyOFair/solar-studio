@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import VisibilityMap from './components/map/VisibilityMap'
 import SolarSystemScene from './components/scene/SolarSystemScene'
 import ScenePanel from './components/scene/ScenePanel'
@@ -25,6 +25,12 @@ function App() {
   const fetchObjects = useStore((state) => state.fetchObjects)
   const setDataReady = useStore((state) => state.setDataReady)
   const nightVision = useStore((state) => state.nightVision)
+  const [ever3D, setEver3D] = useState(false)
+
+  // Keep 3D scene alive once mounted to avoid shader recompilation stalls
+  useEffect(() => {
+    if (viewMode === '3d') setEver3D(true)
+  }, [viewMode])
 
   // Prefetch data + auth on mount
   useEffect(() => {
@@ -58,12 +64,16 @@ function App() {
             <UserReportsPanel />
           </>
         )}
-        {viewMode === '3d' && (
-          <>
+        {ever3D && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            visibility: viewMode === '3d' ? 'visible' : 'hidden',
+            pointerEvents: viewMode === '3d' ? 'auto' : 'none',
+          }}>
             <SolarSystemScene />
-            <ScenePanel />
-          </>
+          </div>
         )}
+        {viewMode === '3d' && <ScenePanel />}
       <LoadingScreen />
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />

@@ -117,7 +117,7 @@ export default function ObjectTracker() {
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: showConstellationLines ? 'rgba(255, 220, 150, 0.8)' : colors.text.muted,
+              backgroundColor: showConstellationLines ? colors.accent : colors.text.muted,
               transition: 'all 0.2s ease',
             }}
           />
@@ -314,7 +314,9 @@ export default function ObjectTracker() {
                 right: 0,
                 bottom: 0,
                 zIndex: sizes.zIndex.modalBackdrop,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)', // Simple dark overlay
+                backgroundColor: colors.navbar.background,
+                backdropFilter: `blur(${sizes.blur.default})`,
+                WebkitBackdropFilter: `blur(${sizes.blur.default})`,
             }}
             onClick={() => setIsSelectorOpen(false)}
           />
@@ -410,10 +412,10 @@ export default function ObjectTracker() {
                               className="w-full text-left rounded-lg px-4 py-2.5 transition-all flex items-center justify-between group"
                               style={{
                               backgroundColor:
-                                  selectedObject?.id === object.id ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.03)',
+                                  selectedObject?.id === object.id ? 'rgba(201, 165, 92, 0.1)' : 'rgba(255, 255, 255, 0.03)',
                               border: `1px solid ${
                                   selectedObject?.id === object.id
-                                  ? 'rgba(255, 255, 255, 0.2)'
+                                  ? colors.accent
                                   : 'transparent'
                               }`,
                               color: colors.white,
@@ -421,7 +423,7 @@ export default function ObjectTracker() {
                           >
                               <span className="font-medium text-sm">{object.name}</span>
                               {selectedObject?.id === object.id && (
-                                   <div className="w-2 h-2 rounded-full shadow-[0_0_8px_rgba(74,222,128,0.5)]" style={{ backgroundColor: colors.status.success }} />
+                                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.accent, boxShadow: '0 0 8px rgba(201, 165, 92, 0.5)' }} />
                               )}
                           </button>
                         ))}

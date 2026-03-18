@@ -198,7 +198,7 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
       <path d={areaD} fill="rgba(56, 189, 248, 0.08)" clipPath="url(#above-horizon)" />
 
       {/* Altitude curve */}
-      <path d={pathD} fill="none" stroke={colors.primary[400]} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d={pathD} fill="none" stroke={colors.accent} strokeWidth="1.5" strokeLinejoin="round" />
 
       {/* "Now" marker */}
       {nowX != null && (
@@ -243,8 +243,8 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
             cx={toX(hoverPoint.time.getTime())}
             cy={toY(hoverPoint.alt)}
             r="3"
-            fill={colors.primary[400]}
-            stroke={colors.primary[400]}
+            fill={colors.accent}
+            stroke={colors.accent}
             strokeWidth="1"
           />
           {/* Tooltip background + text */}
@@ -289,7 +289,7 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
       <text
         x={PAD.left + 4}
         y={PAD.top + 10}
-        fill={colors.primary[400]}
+        fill={colors.accent}
         fontSize="10"
         fontWeight="500"
         fontFamily="inherit"

@@ -84,6 +84,8 @@ interface StoreState {
   setShowLabels: (show: boolean) => void
   showMissionLabels: boolean
   setShowMissionLabels: (show: boolean) => void
+  showOrbits: boolean
+  setShowOrbits: (show: boolean) => void
   // Missions
   missions: MissionDef[]
   fetchMissions: () => Promise<void>
@@ -380,6 +382,8 @@ export const useStore = create<StoreState>((set) => ({
   setShowLabels: (show) => set({ showLabels: show }),
   showMissionLabels: true,
   setShowMissionLabels: (show) => set({ showMissionLabels: show }),
+  showOrbits: true,
+  setShowOrbits: (show) => set({ showOrbits: show }),
   // Missions
   missions: [],
   fetchMissions: async () => {

@@ -87,6 +87,8 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
   const setShowLabels = useStore((state) => state.setShowLabels)
   const showMissionLabels = useStore((state) => state.showMissionLabels)
   const setShowMissionLabels = useStore((state) => state.setShowMissionLabels)
+  const showOrbits = useStore((state) => state.showOrbits)
+  const setShowOrbits = useStore((state) => state.setShowOrbits)
   const userLocation = useStore((state) => state.userLocation)
   const setUserLocation = useStore((state) => state.setUserLocation)
   const fetchUserLocation = useStore((state) => state.fetchUserLocation)
@@ -160,6 +162,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
           <div style={sectionHeaderStyle}>3D View</div>
           <ToggleRow label="Object Labels" checked={showLabels} onChange={setShowLabels} />
           <ToggleRow label="Mission Labels" checked={showMissionLabels} onChange={setShowMissionLabels} />
+          <ToggleRow label="Orbit Lines" checked={showOrbits} onChange={setShowOrbits} />
         </>
       )}
 
@@ -343,7 +346,7 @@ export default function TopNav() {
         width: '80%',
         height: '48px',
         minHeight: '48px',
-        zIndex: sizes.zIndex.fixed,
+        zIndex: sizes.zIndex.fixed + 10,
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
         WebkitBackdropFilter: `blur(${sizes.blur.default})`,

@@ -33,6 +33,7 @@ function Scene() {
   const setSceneReady = useStore((state) => state.setSceneReady)
   const setCameraDistAu = useStore((state) => state.setCameraDistAu)
   const activeMission = useStore((state) => state.activeMission)
+  const showOrbits = useStore((state) => state.showOrbits)
   const missions = useStore((state) => state.missions)
   const fetchMissions = useStore((state) => state.fetchMissions)
   const frameCount = useRef(0)
@@ -180,7 +181,7 @@ function Scene() {
       <Starfield />
       <SunMesh />
       <AsteroidBelt />
-      {orbitData.map((orbit) => (
+      {showOrbits && orbitData.map((orbit) => (
         <OrbitRing key={orbit.id} radius={orbit.radius} tiltX={orbit.tiltX} tiltZ={orbit.tiltZ} distanceAu={orbit.distanceAu} />
       ))}
       <CameraControls

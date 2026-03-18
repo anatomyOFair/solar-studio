@@ -21,9 +21,9 @@ export const CONSTELLATIONS: ConstellationDef[] = [
     id: 'uma',
     name: 'Ursa Major',
     lines: [
-      [{ ra: 165.93, dec: 61.75 }, { ra: 166.45, dec: 56.38 }], // Dubhe–Merak
+      [{ ra: 165.93, dec: 61.75 }, { ra: 165.46, dec: 56.38 }], // Dubhe–Merak
       [{ ra: 165.93, dec: 61.75 }, { ra: 178.46, dec: 53.69 }], // Dubhe–Phecda (via Merak)
-      [{ ra: 166.45, dec: 56.38 }, { ra: 178.46, dec: 53.69 }], // Merak–Phecda
+      [{ ra: 165.46, dec: 56.38 }, { ra: 178.46, dec: 53.69 }], // Merak–Phecda
       [{ ra: 178.46, dec: 53.69 }, { ra: 183.86, dec: 57.03 }], // Phecda–Megrez
       [{ ra: 183.86, dec: 57.03 }, { ra: 193.51, dec: 55.96 }], // Megrez–Alioth
       [{ ra: 193.51, dec: 55.96 }, { ra: 200.98, dec: 54.93 }], // Alioth–Mizar
@@ -50,23 +50,23 @@ export const CONSTELLATIONS: ConstellationDef[] = [
     lines: [
       [{ ra: 88.79, dec: 7.41 }, { ra: 81.28, dec: 6.35 }],   // Betelgeuse–Bellatrix
       [{ ra: 81.28, dec: 6.35 }, { ra: 83.00, dec: -0.30 }],   // Bellatrix–Mintaka
-      [{ ra: 83.00, dec: -0.30 }, { ra: 83.86, dec: -1.20 }],  // Mintaka–Alnilam
-      [{ ra: 83.86, dec: -1.20 }, { ra: 84.05, dec: -1.94 }],  // Alnilam–Alnitak
-      [{ ra: 84.05, dec: -1.94 }, { ra: 78.63, dec: -8.20 }],  // Alnitak–Saiph
-      [{ ra: 78.63, dec: -8.20 }, { ra: 88.79, dec: 7.41 }],   // Saiph–Betelgeuse
+      [{ ra: 83.00, dec: -0.30 }, { ra: 84.05, dec: -1.20 }],  // Mintaka–Alnilam
+      [{ ra: 84.05, dec: -1.20 }, { ra: 85.19, dec: -1.94 }],  // Alnilam–Alnitak
+      [{ ra: 85.19, dec: -1.94 }, { ra: 86.94, dec: -9.67 }],  // Alnitak–Saiph
+      [{ ra: 86.94, dec: -9.67 }, { ra: 88.79, dec: 7.41 }],   // Saiph–Betelgeuse
       [{ ra: 83.00, dec: -0.30 }, { ra: 88.79, dec: 7.41 }],   // Mintaka–Betelgeuse
-      [{ ra: 84.05, dec: -1.94 }, { ra: 85.19, dec: -8.20 }],  // Alnitak–Rigel
-      [{ ra: 85.19, dec: -8.20 }, { ra: 81.28, dec: 6.35 }],   // Rigel–Bellatrix
+      [{ ra: 85.19, dec: -1.94 }, { ra: 78.63, dec: -8.20 }],  // Alnitak–Rigel
+      [{ ra: 78.63, dec: -8.20 }, { ra: 81.28, dec: 6.35 }],   // Rigel–Bellatrix
     ],
   },
   {
     id: 'cas',
     name: 'Cassiopeia',
     lines: [
-      [{ ra: 10.13, dec: 56.54 }, { ra: 17.10, dec: 60.24 }],  // Schedar–Caph
-      [{ ra: 10.13, dec: 56.54 }, { ra: 14.18, dec: 60.72 }],  // Schedar–γ Cas
-      [{ ra: 14.18, dec: 60.72 }, { ra: 21.45, dec: 60.24 }],  // γ Cas–δ Cas
-      [{ ra: 21.45, dec: 60.24 }, { ra: 28.60, dec: 63.67 }],  // δ Cas–ε Cas
+      [{ ra: 2.29, dec: 59.15 }, { ra: 10.13, dec: 56.54 }],   // Caph–Schedar
+      [{ ra: 10.13, dec: 56.54 }, { ra: 14.18, dec: 60.72 }],   // Schedar–γ Cas
+      [{ ra: 14.18, dec: 60.72 }, { ra: 21.45, dec: 60.24 }],   // γ Cas–δ Cas
+      [{ ra: 21.45, dec: 60.24 }, { ra: 28.60, dec: 63.67 }],   // δ Cas–ε Cas
     ],
   },
   {
@@ -74,7 +74,7 @@ export const CONSTELLATIONS: ConstellationDef[] = [
     name: 'Cygnus',
     lines: [
       [{ ra: 310.36, dec: 45.28 }, { ra: 305.56, dec: 40.26 }], // Deneb–γ Cyg (Sadr)
-      [{ ra: 305.56, dec: 40.26 }, { ra: 297.70, dec: 27.96 }], // Sadr–Albireo
+      [{ ra: 305.56, dec: 40.26 }, { ra: 292.68, dec: 27.96 }], // Sadr–Albireo
       [{ ra: 305.56, dec: 40.26 }, { ra: 311.55, dec: 33.97 }], // Sadr–ε Cyg (Gienah)
       [{ ra: 305.56, dec: 40.26 }, { ra: 296.24, dec: 45.13 }], // Sadr–δ Cyg
       [{ ra: 311.55, dec: 33.97 }, { ra: 318.23, dec: 30.23 }], // Gienah–ζ Cyg
@@ -89,7 +89,7 @@ export const CONSTELLATIONS: ConstellationDef[] = [
       [{ ra: 148.19, dec: 26.01 }, { ra: 154.17, dec: 23.77 }], // η Leo–γ Leo (Algieba)
       [{ ra: 154.17, dec: 23.77 }, { ra: 168.53, dec: 20.52 }], // Algieba–δ Leo (Zosma)
       [{ ra: 168.53, dec: 20.52 }, { ra: 177.27, dec: 14.57 }], // Zosma–β Leo (Denebola)
-      [{ ra: 168.53, dec: 20.52 }, { ra: 170.98, dec: 15.43 }], // Zosma–θ Leo
+      [{ ra: 168.53, dec: 20.52 }, { ra: 168.56, dec: 15.43 }], // Zosma–θ Leo
       [{ ra: 152.09, dec: 11.97 }, { ra: 154.17, dec: 23.77 }], // Regulus–Algieba
       [{ ra: 148.19, dec: 26.01 }, { ra: 146.46, dec: 23.77 }], // η Leo–μ Leo
     ],
@@ -189,10 +189,10 @@ export const CONSTELLATIONS: ConstellationDef[] = [
     name: 'Pegasus',
     lines: [
       [{ ra: 346.19, dec: 15.21 }, { ra: 3.31, dec: 15.18 }],    // Markab–Algenib (γ Peg)
-      [{ ra: 346.19, dec: 15.21 }, { ra: 340.37, dec: 10.83 }],   // Markab–β Peg (Scheat)
-      [{ ra: 340.37, dec: 10.83 }, { ra: 326.05, dec: 9.88 }],    // Scheat–ε Peg (Enif)
+      [{ ra: 346.19, dec: 15.21 }, { ra: 345.94, dec: 28.08 }],   // Markab–β Peg (Scheat)
+      [{ ra: 345.94, dec: 28.08 }, { ra: 326.05, dec: 9.88 }],    // Scheat–ε Peg (Enif)
       [{ ra: 3.31, dec: 15.18 }, { ra: 2.10, dec: 29.09 }],      // Algenib–α And (Alpheratz)
-      [{ ra: 2.10, dec: 29.09 }, { ra: 340.37, dec: 10.83 }],    // Alpheratz–Scheat (close square)
+      [{ ra: 2.10, dec: 29.09 }, { ra: 345.94, dec: 28.08 }],    // Alpheratz–Scheat (close square)
       [{ ra: 346.19, dec: 15.21 }, { ra: 2.10, dec: 29.09 }],    // Markab–Alpheratz
     ],
   },

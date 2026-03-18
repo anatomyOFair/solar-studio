@@ -92,7 +92,7 @@ export default function SideNav() {
         transform: 'translateY(-50%)',
         width: '56px',
         minWidth: '56px',
-        zIndex: sizes.zIndex.fixed,
+        zIndex: sizes.zIndex.fixed + 10,
         backgroundColor: colors.navbar.background,
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
