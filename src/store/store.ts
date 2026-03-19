@@ -78,6 +78,13 @@ interface StoreState {
   isObservationModalOpen: boolean
   openObservationModal: () => void
   closeObservationModal: () => void
+  isAccountModalOpen: boolean
+  openAccountModal: () => void
+  closeAccountModal: () => void
+  deleteAccount: () => Promise<void>
+  isPrivacyModalOpen: boolean
+  openPrivacyModal: () => void
+  closePrivacyModal: () => void
   // Settings
   nightVision: boolean
   toggleNightVision: () => void
@@ -377,6 +384,19 @@ export const useStore = create<StoreState>()(logging((set) => ({
   isObservationModalOpen: false,
   openObservationModal: () => set({ isObservationModalOpen: true }),
   closeObservationModal: () => set({ isObservationModalOpen: false }),
+  isAccountModalOpen: false,
+  openAccountModal: () => set({ isAccountModalOpen: true }),
+  closeAccountModal: () => set({ isAccountModalOpen: false }),
+  deleteAccount: async () => {
+    const { supabase } = await import('../lib/supabase')
+    const { error } = await supabase.rpc('delete_own_account')
+    if (error) throw error
+    await supabase.auth.signOut()
+    set({ session: null, user: null, isAccountModalOpen: false })
+  },
+  isPrivacyModalOpen: false,
+  openPrivacyModal: () => set({ isPrivacyModalOpen: true, isAccountModalOpen: false }),
+  closePrivacyModal: () => set({ isPrivacyModalOpen: false }),
   // Settings
   nightVision: false,
   toggleNightVision: () => set((state) => ({ nightVision: !state.nightVision })),

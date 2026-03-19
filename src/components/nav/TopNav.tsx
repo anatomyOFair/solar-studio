@@ -6,11 +6,12 @@ import {
   faClock,
   faSearch,
   faGear,
-  faSignOutAlt,
-  faRightToBracket,
   faGlobe,
   faCube,
   faHouse,
+  faCircleUser,
+  faRightToBracket,
+  faArrowUpRightFromSquare,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
 import { pushEvent } from '../../services/interactionLogger'
@@ -81,7 +82,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
 }) {
   const user = useStore((state) => state.user)
   const openAuthModal = useStore((state) => state.openAuthModal)
-  const logout = useStore((state) => state.logout)
+  const openAccountModal = useStore((state) => state.openAccountModal)
   const viewMode = useStore((state) => state.viewMode)
   const nightVision = useStore((state) => state.nightVision)
   const toggleNightVision = useStore((state) => state.toggleNightVision)
@@ -102,16 +103,6 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
     const r = el.getBoundingClientRect()
     setPos({ top: r.bottom + 12, right: window.innerWidth - r.right })
   }, [anchorRef])
-
-  const handleLogin = () => {
-    onClose()
-    openAuthModal()
-  }
-
-  const handleLogout = async () => {
-    onClose()
-    await logout()
-  }
 
   const sectionHeaderStyle: React.CSSProperties = {
     fontSize: 10, color: 'rgba(255,255,255,0.35)',
@@ -186,34 +177,8 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
       {/* Account */}
       <div style={sectionHeaderStyle}>Account</div>
       {user ? (
-        <>
-          <div style={{ padding: '4px 14px 6px' }}>
-            <div style={{ fontSize: 13, fontWeight: 500 }}>
-              {user.user_metadata?.full_name || user.email}
-            </div>
-            {user.user_metadata?.full_name && user.email && (
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{user.email}</div>
-            )}
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%', textAlign: 'left',
-              padding: '6px 14px',
-              background: 'transparent', border: 'none',
-              color: colors.status.error, cursor: 'pointer',
-              fontSize: 13, fontFamily: 'inherit',
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}
-            className="hover:bg-white/5"
-          >
-            <FontAwesomeIcon icon={faSignOutAlt} style={{ fontSize: 12 }} />
-            Log Out
-          </button>
-        </>
-      ) : (
         <button
-          onClick={handleLogin}
+          onClick={() => { onClose(); openAccountModal() }}
           style={{
             width: '100%', textAlign: 'left',
             padding: '6px 14px',
@@ -221,8 +186,29 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
             color: colors.text.secondary, cursor: 'pointer',
             fontSize: 13, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'background-color 200ms ease',
           }}
-          className="hover:bg-white/5"
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          <FontAwesomeIcon icon={faCircleUser} style={{ fontSize: 14, color: colors.text.muted }} />
+          <span style={{ flex: 1 }}>{user.user_metadata?.full_name || user.email}</span>
+          <FontAwesomeIcon icon={faArrowUpRightFromSquare} style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)' }} />
+        </button>
+      ) : (
+        <button
+          onClick={() => { onClose(); openAuthModal() }}
+          style={{
+            width: '100%', textAlign: 'left',
+            padding: '6px 14px',
+            background: 'transparent', border: 'none',
+            color: colors.text.secondary, cursor: 'pointer',
+            fontSize: 13, fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'background-color 200ms ease',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <FontAwesomeIcon icon={faRightToBracket} style={{ fontSize: 12, color: colors.text.muted }} />
           Log In

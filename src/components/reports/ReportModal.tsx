@@ -1,7 +1,7 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faLocationDot, faCamera, faEye, faEyeSlash, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { faLocationDot, faEye, faEyeSlash, faXmark } from '@fortawesome/free-solid-svg-icons'
 import { colors, sizes, shadows, spacing } from '../../constants'
 
 export default function ReportModal() {
@@ -16,8 +16,6 @@ export default function ReportModal() {
   const [isVisible, setIsVisible] = useState(true)
   const [location, setLocation] = useState<{ lat: number; lon: number; country?: string } | null>(null)
   const [locationLoading, setLocationLoading] = useState(false)
-  const [imageFile, setImageFile] = useState<File | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   if (!isOpen) return null
 
@@ -26,7 +24,6 @@ export default function ReportModal() {
     setIsVisible(true)
     setLocation(null)
     setLocationLoading(false)
-    setImageFile(null)
   }
 
   const handleGetLocation = () => {
@@ -68,27 +65,6 @@ export default function ReportModal() {
     )
   }
 
-  const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
-  const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0]
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        setError('Only JPEG, PNG, WebP, and GIF images are allowed')
-        e.target.value = ''
-        return
-      }
-      if (file.size > MAX_FILE_SIZE) {
-        setError('Image must be under 10 MB')
-        e.target.value = ''
-        return
-      }
-      setError(null)
-      setImageFile(file)
-    }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedObject) {
@@ -105,36 +81,15 @@ export default function ReportModal() {
 
     try {
       const { supabase } = await import('../../lib/supabase')
-      let imageUrl = null
 
-      // 1. Upload Image if exists
-      if (imageFile) {
-        const extMap: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }
-        const fileExt = extMap[imageFile.type] || 'jpg'
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`
-        const { error: uploadError } = await supabase.storage
-          .from('report_images')
-          .upload(fileName, imageFile)
-
-        if (uploadError) throw uploadError
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('report_images')
-          .getPublicUrl(fileName)
-        
-        imageUrl = publicUrl
-      }
-
-      // 2. Insert Report
       const { error: insertError } = await supabase
         .from('user_reports')
         .insert({
-          id: crypto.randomUUID(), // Explicitly generate ID to avoid not-null constraint violation
+          id: crypto.randomUUID(),
           user_id: user.id,
           object_id: selectedObject.id,
           country: location?.country || 'Unknown',
           is_visible: isVisible,
-          image_url: imageUrl,
         })
 
       if (insertError) throw insertError
@@ -320,43 +275,6 @@ export default function ReportModal() {
                         </button>
                     </div>
                     {!location && <p className="text-xs mt-2 text-center" style={{ color: colors.text.muted }}>Required to verify report authenticity</p>}
-                </div>
-
-                {/* 3. Image Upload */}
-                <div>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                    />
-                    <div className="relative">
-                        <span className="absolute top-1/2 -translate-y-1/2" style={{ left: sizes.inputs.iconOffset, color: colors.text.muted, pointerEvents: 'none' }}>
-                            <FontAwesomeIcon icon={faCamera} />
-                        </span>
-                        <button
-                            type="button"
-                            onClick={() => fileInputRef.current?.click()}
-                            style={{
-                                width: '100%',
-                                textAlign: 'left',
-                                paddingTop: sizes.inputs.paddingVertical,
-                                paddingBottom: sizes.inputs.paddingVertical,
-                                paddingLeft: sizes.inputs.paddingLeftWithIcon,
-                                paddingRight: sizes.inputs.paddingHorizontal,
-                                backgroundColor: 'transparent',
-                                border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
-                                borderRadius: sizes.inputs.borderRadius,
-                                color: imageFile ? colors.white : colors.text.muted,
-                                fontSize: sizes.fonts.sm,
-                                cursor: 'pointer',
-                                transition: 'border-color 150ms ease',
-                            }}
-                        >
-                            {imageFile ? imageFile.name : 'Photo (optional)'}
-                        </button>
-                    </div>
                 </div>
 
                 {/* Actions */}

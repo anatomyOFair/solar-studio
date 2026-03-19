@@ -12,6 +12,8 @@ import LoadingScreen from './components/scene/LoadingScreen'
 import AuthModal from './components/auth/AuthModal'
 import ReportModal from './components/reports/ReportModal'
 import ObservationModal from './components/logbook/ObservationModal'
+import AccountModal from './components/account/AccountModal'
+import PrivacyPolicyModal from './components/account/PrivacyPolicyModal'
 import HintOverlay from './components/ui/HintOverlay'
 import { useStore } from './store/store'
 import { initLogging, setUserId } from './services/interactionLogger'
@@ -83,6 +85,8 @@ function App() {
       <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       <ReportModal />
       <ObservationModal />
+      <AccountModal />
+      <PrivacyPolicyModal />
       <HintOverlay />
       {/* SVG filter for night-vision mode — maps all RGB to red channel */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
