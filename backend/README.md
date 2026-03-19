@@ -280,6 +280,38 @@ backend/
 4. **Add Validation**: Enhance request validation and error handling
 5. **Add Tests**: Write unit and integration tests
 
+## Testing
+
+Run tests with pytest:
+
+```bash
+cd backend
+PYTHONPATH=. ./venv/bin/pytest tests/ -v
+```
+
+**77 tests** covering:
+- Health endpoints (`/`, `/health`)
+- Weather API (haversine, caching, response parsing, endpoint integration)
+- Event refresh (meteor showers, lunar eclipses, USNO/NOAA response parsing, storm classification)
+- Forecast refresh (land grid generation, forecast row parsing)
+- Mission seeding (flyby label assignment, config validation)
+- Pydantic model validation (Position, CelestialObject, WeatherConditions bounds)
+
+## API Response Times (Benchmark)
+
+Measured 2026-03-19 with `npx tsx scripts/benchmark-apis.ts` (10 iterations each):
+
+| Endpoint | Avg | Min | Max |
+|---|---|---|---|
+| Supabase – celestial_objects | 120ms | 46ms | 431ms |
+| Supabase – tours | 53ms | 44ms | 62ms |
+| Open-Meteo – weather forecast | 58ms | 37ms | 228ms |
+| Nominatim – reverse geocode | 52ms | 17ms | 326ms |
+| Backend (Heroku) – health | 201ms | 145ms | 626ms |
+| Backend (Heroku) – weather | 197ms | 146ms | 607ms |
+| USNO – moon phases | 356ms | 235ms | 1392ms |
+| NOAA SWPC – Kp forecast | 37ms | 21ms | 123ms |
+
 ## Troubleshooting
 
 ### MongoDB Connection Issues
