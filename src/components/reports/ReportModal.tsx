@@ -46,12 +46,12 @@ export default function ReportModal() {
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
             const data = await response.json()
+            const sanitize = (s: string) => s.replace(/[<>"'`]/g, '').trim()
             if (data && data.address && data.address.country) {
-                country = data.address.country
+                country = sanitize(data.address.country) || country
             } else if (data && data.display_name) {
-                 // Fallback to last part of display name if country not explicit
                 const parts = data.display_name.split(', ')
-                country = parts[parts.length - 1]
+                country = sanitize(parts[parts.length - 1]) || country
             }
         } catch (e) {
             console.error("Reverse geocoding failed", e)

@@ -4,12 +4,13 @@ import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faClock,
-  faCamera,
-  faClockRotateLeft,
   faSearch,
   faGear,
   faSignOutAlt,
   faRightToBracket,
+  faGlobe,
+  faCube,
+  faHouse,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
 
@@ -237,7 +238,6 @@ export default function TopNav() {
   const isLocalTime = useStore((state) => state.isLocalTime)
   const toggleLocalTime = useStore((state) => state.toggleLocalTime)
   const viewMode = useStore((state) => state.viewMode)
-  const setViewMode = useStore((state) => state.setViewMode)
   const simulatedTime = useStore((state) => state.simulatedTime)
   const objects = useStore((state) => state.objects)
   const setSelectedObject = useStore((state) => state.setSelectedObject)
@@ -330,11 +330,12 @@ export default function TopNav() {
     toggleLocalTime()
   }
 
-  const VIEW_LABELS = { home: 'Home', '2d': 'Map', '3d': '3D' } as const
-  const handleViewToggle = () => {
-    const next = viewMode === 'home' ? '2d' : viewMode === '2d' ? '3d' : 'home'
-    setViewMode(next)
-  }
+  const VIEW_CONFIG = {
+    home: { label: 'Home', icon: faHouse },
+    '2d': { label: 'Map', icon: faGlobe },
+    '3d': { label: '3D', icon: faCube },
+  } as const
+  const currentView = VIEW_CONFIG[viewMode]
 
   return (
     <nav
@@ -356,10 +357,22 @@ export default function TopNav() {
       }}
     >
       <div className="h-full flex flex-row items-center justify-between" style={{ color: 'white' }}>
-        {/* 1. Logo and solarStudio */}
+        {/* 1. Logo and Solar Studio */}
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 bg-white rounded"></div>
-          <span className="text-sm" style={{ color: 'white', fontSize: '16px', fontWeight: '400' }}>solarStudio</span>
+          <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="14" fill="#f59e0b" />
+            <g stroke="#f59e0b" strokeWidth="3" strokeLinecap="round">
+              <line x1="32" y1="4" x2="32" y2="14" />
+              <line x1="32" y1="50" x2="32" y2="60" />
+              <line x1="4" y1="32" x2="14" y2="32" />
+              <line x1="50" y1="32" x2="60" y2="32" />
+              <line x1="12.2" y1="12.2" x2="19.3" y2="19.3" />
+              <line x1="44.7" y1="44.7" x2="51.8" y2="51.8" />
+              <line x1="12.2" y1="51.8" x2="19.3" y2="44.7" />
+              <line x1="44.7" y1="19.3" x2="51.8" y2="12.2" />
+            </g>
+          </svg>
+          <span style={{ color: 'white', fontSize: '16px', fontWeight: '500', letterSpacing: '-0.01em' }}>Solar Studio</span>
         </div>
 
         {/* 2. Date and Time */}
@@ -372,21 +385,13 @@ export default function TopNav() {
           <span style={{ color: simulatedTime ? colors.primary[400] : 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
         </button>
 
-        {/* 3. Camera and Map/3D Toggle */}
-        <button
-          onClick={handleViewToggle}
-          className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-          style={{ backgroundColor: 'transparent', color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
-          data-hint="view-toggle"
+        {/* 3. View indicator */}
+        <div
+          className="flex items-center"
+          style={{ gap: spacing.sm, opacity: 0.7 }}
         >
-          <FontAwesomeIcon icon={faCamera} style={{ color: 'white', fontSize: '18px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{VIEW_LABELS[viewMode]}</span>
-        </button>
-
-        {/* 4. History */}
-        <div className="flex items-center opacity-50" style={{ gap: spacing.sm }}>
-          <FontAwesomeIcon icon={faClockRotateLeft} style={{ color: 'white', fontSize: '18px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>History</span>
+          <FontAwesomeIcon icon={currentView.icon} style={{ color: 'white', fontSize: '16px' }} />
+          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '14px', fontWeight: '400' }}>{currentView.label}</span>
         </div>
 
         {/* 5. Search Bar */}

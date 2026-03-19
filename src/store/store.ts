@@ -313,7 +313,8 @@ export const useStore = create<StoreState>((set) => ({
           const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`)
           const data = await res.json()
           if (data?.address) {
-            label = data.address.city || data.address.town || data.address.village || data.address.county || label
+            const raw = data.address.city || data.address.town || data.address.village || data.address.county || ''
+            if (raw) label = raw.replace(/[<>"'`]/g, '').trim() || label
           }
         } catch { /* use coordinate fallback */ }
         set({ userLocation: { lat: latitude, lon: longitude, label } })
