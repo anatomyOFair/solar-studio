@@ -23,7 +23,7 @@ export default function SunMesh() {
 
   const sunTexture = useLoader(THREE.TextureLoader, sunTexturePath)
 
-  // Clone texture for the second layer — shares image data, independent UV offsets
+  // Clone texture for the second layer - shares image data, independent UV offsets
   const layerTex = useMemo(() => {
     const tex = sunTexture.clone()
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping
@@ -55,7 +55,7 @@ export default function SunMesh() {
 
   const handleClick = (e: { stopPropagation: () => void }) => {
     e.stopPropagation()
-    if (isSelected) return // Already focused — don't unfocus
+    if (isSelected) return // Already focused - don't unfocus
     if (sunObj) setSelectedObject(sunObj)
   }
 
@@ -69,7 +69,7 @@ export default function SunMesh() {
           onPointerOut={() => { setHovered(false); document.body.style.cursor = 'auto' }}
         >
           <sphereGeometry args={[radius, 64, 64]} />
-          {/* Base layer — full emissive sun texture */}
+          {/* Base layer - full emissive sun texture */}
           <meshStandardMaterial
             emissiveMap={sunTexture}
             emissive="#ffffff"
@@ -78,7 +78,7 @@ export default function SunMesh() {
           />
         </mesh>
 
-        {/* Second layer — same texture scrolling opposite direction, additive blend */}
+        {/* Second layer - same texture scrolling opposite direction, additive blend */}
         <mesh rotation={[0.3, 0.7, 0]}>
           <sphereGeometry args={[radius * 1.002, 64, 64]} />
           <meshStandardMaterial
@@ -94,7 +94,7 @@ export default function SunMesh() {
         </mesh>
       </group>
 
-      {/* Label — visible when showLabels is on, or when hovered/selected */}
+      {/* Label - visible when showLabels is on, or when hovered/selected */}
       {(showLabels || isSelected || hovered) && (
         <Html
           position={[0, radius + 0.4, 0]}
@@ -122,7 +122,7 @@ export default function SunMesh() {
         </Html>
       )}
 
-      {/* Point light — decay=0 so all planets get consistent illumination */}
+      {/* Point light - decay=0 so all planets get consistent illumination */}
       <pointLight color="#fff5e0" intensity={2} decay={0} />
     </group>
   )

@@ -130,7 +130,7 @@ function TourPrompt({
 
   return createPortal(
     <>
-      {/* Backdrop — matches AuthModal */}
+      {/* Backdrop - matches AuthModal */}
       <div
         style={{
           position: 'fixed',

@@ -123,7 +123,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
         position: 'fixed',
         top: pos.top,
         right: pos.right,
-        minWidth: 220,
+        minWidth: 'min(220px, 80vw)',
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
         WebkitBackdropFilter: `blur(${sizes.blur.default})`,
@@ -133,6 +133,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
         zIndex: sizes.zIndex.modal + 10,
         padding: '6px 0',
         color: 'white',
+        animation: 'dropdownIn 150ms ease-out both',
       }}
     >
       {/* View-specific settings */}
@@ -178,6 +179,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
       <div style={sectionHeaderStyle}>Account</div>
       {user ? (
         <button
+          className="btn-press"
           onClick={() => { onClose(); openAccountModal() }}
           style={{
             width: '100%', textAlign: 'left',
@@ -186,7 +188,6 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
             color: colors.text.secondary, cursor: 'pointer',
             fontSize: 13, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 8,
-            transition: 'background-color 200ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -197,6 +198,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
         </button>
       ) : (
         <button
+          className="btn-press"
           onClick={() => { onClose(); openAuthModal() }}
           style={{
             width: '100%', textAlign: 'left',
@@ -205,7 +207,6 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
             color: colors.text.secondary, cursor: 'pointer',
             fontSize: 13, fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 8,
-            transition: 'background-color 200ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.05)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
@@ -332,7 +333,7 @@ export default function TopNav() {
         top: spacing.md,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '80%',
+        width: 'clamp(320px, 80%, 1400px)',
         height: '48px',
         minHeight: '48px',
         zIndex: sizes.zIndex.fixed + 10,
@@ -367,7 +368,7 @@ export default function TopNav() {
         <button
           onClick={handleTimeToggle}
           className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-          style={{ backgroundColor: 'transparent', color: 'white', width: sizes.widget.timeButtonWidth, minWidth: sizes.widget.timeButtonWidth, maxWidth: sizes.widget.timeButtonWidth, justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
+          style={{ backgroundColor: 'transparent', color: 'white', width: sizes.widget.timeButtonWidth, justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
         >
           <FontAwesomeIcon icon={faClock} style={{ color: simulatedTime ? colors.primary[400] : 'white', fontSize: '18px' }} />
           <span style={{ color: simulatedTime ? colors.primary[400] : 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
@@ -425,7 +426,7 @@ export default function TopNav() {
               style={{
                 position: 'fixed',
                 ...getSearchDropdownPos(),
-                minWidth: '220px',
+                minWidth: 'min(220px, 80vw)',
                 backgroundColor: colors.navbar.background,
                 backdropFilter: `blur(${sizes.blur.default})`,
                 WebkitBackdropFilter: `blur(${sizes.blur.default})`,
@@ -434,6 +435,7 @@ export default function TopNav() {
                 padding: spacing.xs,
                 boxShadow: shadows.lg,
                 zIndex: sizes.zIndex.modal + 10,
+                animation: 'dropdownIn 150ms ease-out both',
               }}
             >
               {searchResults.length === 0 ? (
@@ -475,7 +477,7 @@ export default function TopNav() {
           <button
             ref={settingsBtnRef}
             onClick={() => setIsSettingsOpen((prev) => !prev)}
-            className="flex items-center justify-center hover:opacity-80 transition-opacity bg-transparent border-none"
+            className="btn-press flex items-center justify-center hover:opacity-80 transition-opacity bg-transparent border-none"
             style={{
               backgroundColor: 'transparent',
               color: 'white',

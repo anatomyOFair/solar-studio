@@ -36,7 +36,7 @@ export default function AsteroidBelt() {
         Math.sin(angle) * r,
       )
 
-      // Random scale — tiny rocks
+      // Random scale - tiny rocks
       const s = 0.003 + Math.random() * 0.012
       dummy.scale.setScalar(s)
 

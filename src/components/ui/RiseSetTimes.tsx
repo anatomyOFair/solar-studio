@@ -4,7 +4,7 @@ import { colors } from '../../constants'
 import { getRiseSetForObject, type RiseSet } from '../../utils/tonightSky'
 
 function formatTime(date: Date | null, isLocalTime: boolean): string {
-  if (!date) return '—'
+  if (!date) return '-'
   if (isLocalTime) {
     return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
   }

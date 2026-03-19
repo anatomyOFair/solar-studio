@@ -274,7 +274,7 @@ export async function getWeatherConditionsForGrid(
   return Promise.all(positions.map((pos) => getWeatherConditions(pos.lat, pos.lon)))
 }
 
-// Forecast cache — keyed by hour bucket so we don't re-fetch for the same hour
+// Forecast cache - keyed by hour bucket so we don't re-fetch for the same hour
 let forecastCache: { hour: string; data: Map<string, WeatherConditions> } | null = null
 
 /**

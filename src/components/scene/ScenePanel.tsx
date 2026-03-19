@@ -88,6 +88,7 @@ function InfoTab() {
             </span>
           </div>
           <button
+            className="btn-press"
             onClick={() => setActiveMission(null)}
             style={{
               background: 'rgba(255,255,255,0.1)', border: 'none',
@@ -113,7 +114,7 @@ function InfoTab() {
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Agency</div>
-              <div style={{ fontSize: 13, fontWeight: 500 }}>{activeMission.agency ?? '—'}</div>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>{activeMission.agency ?? '-'}</div>
             </div>
             <div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Key Events</div>
@@ -215,7 +216,7 @@ function InfoTab() {
   const color = PLANET_COLORS[selectedObject.id] ?? DEFAULT_COLOR
   const description = selectedObject.description || DESCRIPTIONS[selectedObject.id] || ''
 
-  // For moons, x/y/z are parent-relative offsets — add parent's heliocentric position
+  // For moons, x/y/z are parent-relative offsets - add parent's heliocentric position
   let x = selectedObject.x ?? 0
   let y = selectedObject.y ?? 0
   let z = selectedObject.z ?? 0
@@ -243,11 +244,11 @@ function InfoTab() {
 
   const stats: { label: string; value: string }[] = [
     { label: 'Type', value: selectedObject.type.charAt(0).toUpperCase() + selectedObject.type.slice(1) },
-    { label: 'Radius', value: selectedObject.radius_km ? `${selectedObject.radius_km.toLocaleString()} km` : '—' },
-    { label: 'From Sun (AU)', value: sunDistAu > 0 ? `${sunDistAu.toFixed(4)} AU` : '—' },
-    { label: 'From Sun', value: sunDistAu > 0 ? formatDistance(sunDistKm) : '—' },
-    { label: 'Light time', value: sunDistAu > 0 ? formatLightTime(sunLightMin) : '—' },
-    { label: 'Magnitude', value: selectedObject.magnitude != null ? selectedObject.magnitude.toFixed(1) : '—' },
+    { label: 'Radius', value: selectedObject.radius_km ? `${selectedObject.radius_km.toLocaleString()} km` : '-' },
+    { label: 'From Sun (AU)', value: sunDistAu > 0 ? `${sunDistAu.toFixed(4)} AU` : '-' },
+    { label: 'From Sun', value: sunDistAu > 0 ? formatDistance(sunDistKm) : '-' },
+    { label: 'Light time', value: sunDistAu > 0 ? formatLightTime(sunLightMin) : '-' },
+    { label: 'Magnitude', value: selectedObject.magnitude != null ? selectedObject.magnitude.toFixed(1) : '-' },
   ]
 
   if (selectedObject.parent_body) {
@@ -279,6 +280,7 @@ function InfoTab() {
           </span>
         </div>
         <button
+          className="btn-press"
           onClick={() => setSelectedObject(null)}
           style={{
             background: 'rgba(255,255,255,0.08)',
@@ -513,7 +515,7 @@ export default function ScenePanel() {
           position: 'fixed',
           top: 80,
           right: 16,
-          width: 320,
+          width: 'clamp(260px, 25vw, 360px)',
           maxHeight: 'calc(100vh - 96px)',
           display: 'flex',
           flexDirection: 'column',
@@ -526,7 +528,7 @@ export default function ScenePanel() {
           transition: 'transform 250ms ease',
         }}
       >
-        {/* Tab bar — sticky */}
+        {/* Tab bar - sticky */}
         <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', flexShrink: 0 }}>
           {TABS.map((tab) => (
             <button
@@ -552,6 +554,7 @@ export default function ScenePanel() {
 
           {/* Collapse button */}
           <button
+            className="btn-press"
             onClick={() => setIsCollapsed(true)}
             style={{
               background: 'transparent',
@@ -568,7 +571,7 @@ export default function ScenePanel() {
           </button>
         </div>
 
-        {/* Tab content — scrollable */}
+        {/* Tab content - scrollable */}
         <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           {activeTab === 'info' && <InfoTab />}
           {activeTab === 'missions' && <MissionsTab onSelect={() => setActiveTab('info')} />}
@@ -579,6 +582,7 @@ export default function ScenePanel() {
       {/* Collapsed toggle button */}
       {isCollapsed && (
         <button
+          className="btn-press"
           onClick={() => setIsCollapsed(false)}
           style={{
             position: 'fixed',

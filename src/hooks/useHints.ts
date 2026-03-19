@@ -24,7 +24,7 @@ const HINTS: HintDef[] = [
   // ── 2D Map ──
   {
     id: 'map',
-    message: 'Your sky map — click anywhere to set your observation location',
+    message: 'Your sky map - click anywhere to set your observation location',
     position: 'bottom',
     requiredView: '2d',
     padding: 0,

@@ -199,9 +199,7 @@ export default function TimeSlider() {
         bottom: spacing.md,
         left: '50%',
         transform: 'translateX(-50%)',
-        width: '35%',
-        minWidth: '320px',
-        maxWidth: '560px',
+        width: 'clamp(280px, 35vw, 560px)',
         zIndex: sizes.zIndex.fixed,
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
@@ -229,6 +227,7 @@ export default function TimeSlider() {
       </span>
 
       <button
+        className="btn-press"
         onClick={handlePlayPause}
         style={{
           background: 'none',

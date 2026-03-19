@@ -221,7 +221,7 @@ export default function HexGridLayer() {
     return () => clearInterval(interval);
   }, [simulatedTime]);
 
-  // Layer lifecycle — create/destroy based on map + selectedObject
+  // Layer lifecycle - create/destroy based on map + selectedObject
   useEffect(() => {
     if (!map || !selectedObject) {
       if (layerRef.current) {

@@ -23,7 +23,7 @@ function NavButton({ active, onClick, icon, label, title }: {
   return (
     <button
       onClick={onClick}
-      className="flex items-center justify-center hover:opacity-80 bg-transparent border-none"
+      className="btn-press flex items-center justify-center hover:opacity-80 bg-transparent border-none"
       style={{
         position: 'relative',
         cursor: 'pointer',

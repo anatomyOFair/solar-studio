@@ -56,6 +56,7 @@ export default function PrivacyPolicyModal() {
           backgroundColor: colors.navbar.background,
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          animation: 'modalBackdropIn 200ms ease-out both',
         }}
         onClick={handleClose}
       />
@@ -67,8 +68,7 @@ export default function PrivacyPolicyModal() {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '720px',
-          maxWidth: sizes.modal.maxWidth,
+          width: sizes.modal.widthWide,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
           backgroundColor: colors.navbar.background,
@@ -81,6 +81,7 @@ export default function PrivacyPolicyModal() {
           boxShadow: shadows.lg,
           padding: 0,
           overflow: 'hidden',
+          animation: 'modalContentIn 200ms ease-out both',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -93,6 +94,7 @@ export default function PrivacyPolicyModal() {
           borderBottom: `1px solid ${colors.navbar.border}`,
         }}>
           <button
+            className="btn-press"
             onClick={handleBack}
             style={{
               background: 'transparent',
@@ -105,7 +107,6 @@ export default function PrivacyPolicyModal() {
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
-              transition: 'color 150ms ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
             onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -115,6 +116,7 @@ export default function PrivacyPolicyModal() {
           </button>
 
           <button
+            className="btn-press"
             onClick={handleClose}
             style={{
               background: 'transparent',
@@ -124,7 +126,6 @@ export default function PrivacyPolicyModal() {
               padding: '4px',
               fontSize: '16px',
               lineHeight: 1,
-              transition: 'color 150ms ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
             onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -135,7 +136,7 @@ export default function PrivacyPolicyModal() {
 
         {/* Content */}
         <div style={{
-          padding: '24px 32px 32px',
+          padding: `24px ${sizes.modal.paddingContent} ${sizes.modal.paddingContent}`,
           flex: 1,
           overflowY: 'auto',
         }}>
@@ -206,22 +207,22 @@ export default function PrivacyPolicyModal() {
             only the technical requests necessary for their function and no user-identifying data:
           </p>
           <ul style={listStyle}>
-            <li>Open-Meteo — weather and cloud cover forecasts</li>
-            <li>OpenStreetMap Nominatim — reverse geocoding for location labels</li>
-            <li>NASA JPL Horizons — celestial body positions</li>
-            <li>NOAA SWPC — aurora and geomagnetic forecasts</li>
-            <li>US Naval Observatory — moon phases and eclipse data</li>
+            <li>Open-Meteo - weather and cloud cover forecasts</li>
+            <li>OpenStreetMap Nominatim - reverse geocoding for location labels</li>
+            <li>NASA JPL Horizons - celestial body positions</li>
+            <li>NOAA SWPC - aurora and geomagnetic forecasts</li>
+            <li>US Naval Observatory - moon phases and eclipse data</li>
           </ul>
 
           <h3 style={headingStyle}>Your data protection rights</h3>
           <p style={paragraphStyle}>As a user, you are entitled to the following rights:</p>
           <ul style={listStyle}>
-            <li><strong style={{ color: colors.text.secondary }}>Right to access</strong> — you can view all your data within the app (observation log, reports, account details).</li>
-            <li><strong style={{ color: colors.text.secondary }}>Right to rectification</strong> — request corrections to inaccurate data.</li>
-            <li><strong style={{ color: colors.text.secondary }}>Right to erasure</strong> — you can permanently delete your account and all associated data at any time from the Account section. This action is immediate and irreversible.</li>
-            <li><strong style={{ color: colors.text.secondary }}>Right to restrict processing</strong> — request limitations on how your data is used.</li>
-            <li><strong style={{ color: colors.text.secondary }}>Right to object</strong> — object to specific uses of your data.</li>
-            <li><strong style={{ color: colors.text.secondary }}>Right to data portability</strong> — request transfer of your data to another service.</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to access</strong> - you can view all your data within the app (observation log, reports, account details).</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to rectification</strong> - request corrections to inaccurate data.</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to erasure</strong> - you can permanently delete your account and all associated data at any time from the Account section. This action is immediate and irreversible.</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to restrict processing</strong> - request limitations on how your data is used.</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to object</strong> - object to specific uses of your data.</li>
+            <li><strong style={{ color: colors.text.secondary }}>Right to data portability</strong> - request transfer of your data to another service.</li>
           </ul>
           <p style={paragraphStyle}>
             To exercise any of these rights, contact us at the details provided below.

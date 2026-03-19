@@ -108,10 +108,10 @@ export function getNightWindow(lat: number, lon: number, effectiveTime: Date): N
   if (isNaN(todaySun.sunset.getTime()) || isNaN(todaySun.sunrise.getTime())) {
     const sunPos = SunCalc.getPosition(effectiveTime, lat, lon)
     if (sunPos.altitude > 0) {
-      // Sun is up and never sets — polar day
+      // Sun is up and never sets - polar day
       return { sunset: todaySun.sunset, sunrise: todaySun.sunrise, isValidNight: false, isPolarNight: false }
     } else {
-      // Sun is down and never rises — polar night (great for observing!)
+      // Sun is down and never rises - polar night (great for observing!)
       const windowStart = new Date(effectiveTime)
       windowStart.setUTCHours(0, 0, 0, 0)
       const windowEnd = new Date(windowStart)

@@ -4,7 +4,7 @@ import L from 'leaflet'
 import { useStore } from '../../../store/store'
 import { calculateYallopQ, type YallopZone } from '../../../utils/yallopCriteria'
 
-// Cache keyed by "lat,lon,dateDay" — zones only change day to day
+// Cache keyed by "lat,lon,dateDay" - zones only change day to day
 const zoneCache = new Map<string, { zone: YallopZone; label: string }>()
 const CACHE_MAX_SIZE = 5000
 
@@ -75,7 +75,7 @@ const CrescentGridLayer = L.GridLayer.extend({
     const nw = map.unproject(nwPixel, zoom)
     const se = map.unproject(L.point((coords.x + 1) * tileSize, (coords.y + 1) * tileSize), zoom)
 
-    // Coarser grid — ~5° cells, adapts slightly with zoom
+    // Coarser grid - ~5° cells, adapts slightly with zoom
     const baseSize = 5
     const cellSize = baseSize / Math.pow(2, Math.max(0, zoom - 4))
 

@@ -43,10 +43,10 @@ export const sizes = {
 
   // Widget sizes
   widget: {
-    minWidth: '200px',
+    minWidth: 'min(200px, 45vw)',
     maxWidth: '480px',
-    searchWidth: '150px',
-    timeButtonWidth: '240px',
+    searchWidth: 'clamp(100px, 12vw, 150px)',
+    timeButtonWidth: 'clamp(180px, 20vw, 240px)',
   },
 
   // Blur effects
@@ -68,10 +68,11 @@ export const sizes = {
 
   // Modal specific sizes
   modal: {
-    width: '500px',
-    maxWidth: '90vw',
+    width: 'min(500px, 90vw)',
+    widthWide: 'min(720px, 90vw)',
+    widthNarrow: 'min(420px, 90vw)',
     maxHeight: '90vh',
-    paddingContent: '40px',
+    paddingContent: 'clamp(20px, 4vw, 40px)',
     headerPaddingTop: '24px',
     headerPaddingBottom: '16px',
     borderWidth: '1px',

@@ -79,7 +79,7 @@ function Scene() {
   }, [])
 
   // Focus camera on selected object, or return to overview.
-  // Only runs on actual selection change — not on time slider / data refresh.
+  // Only runs on actual selection change - not on time slider / data refresh.
   useEffect(() => {
     if (!controlsRef.current) return
 
@@ -92,7 +92,7 @@ function Scene() {
 
       let tx: number, ty: number, tz: number
       if (isMoon && selectedObject.parent_body) {
-        // Moon x/y/z are parent-relative offsets — position relative to parent
+        // Moon x/y/z are parent-relative offsets - position relative to parent
         const parent = objects.find(o => o.id === selectedObject.parent_body)
         if (parent) {
           const p = extrapolatePosition(parent, effectiveTime, objectsUpdatedAt)
@@ -126,7 +126,7 @@ function Scene() {
         true
       )
     } else {
-      // Pull back gently — setTarget + dolly, clamped
+      // Pull back gently - setTarget + dolly, clamped
       controlsRef.current.setTarget(0, 0, 0, true)
       controlsRef.current.dollyTo(30, true)
     }
@@ -145,7 +145,7 @@ function Scene() {
       if (frameCount.current === 10) setSceneReady(true)
     }
 
-    // Camera distance from Sun (throttled — only update when value shifts meaningfully)
+    // Camera distance from Sun (throttled - only update when value shifts meaningfully)
     const camAu = sceneToAu(controlsRef.current.camera.position.length())
     if (Math.abs(camAu - lastCamAu.current) > 0.01) {
       lastCamAu.current = camAu

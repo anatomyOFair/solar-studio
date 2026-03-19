@@ -35,7 +35,7 @@ export function positionToScene(x: number, y: number, z: number): [number, numbe
   ]
 }
 
-/** Convert real radius (km) to display radius — power-law scaling */
+/** Convert real radius (km) to display radius - power-law scaling */
 const SUN_RADIUS = 1.4
 const SIZE_BASE = 0.08      // Earth-sized planet = 0.08 scene units
 const SIZE_EXPONENT = 0.65  // between linear (1.0) and sqrt (0.5)
@@ -71,7 +71,7 @@ const KM_PER_AU = 149_597_870.7
 /**
  * Scale a moon's offset from its parent planet to visible scene units.
  * Raw AU offsets are too tiny after power-law compression (e.g. the Moon
- * is only 0.0026 AU from Earth — invisible at scene scale).
+ * is only 0.0026 AU from Earth - invisible at scene scale).
  * Instead we express the offset in parent radii and compress via power-law
  * so moons orbit at ~2–4× the parent's visual radius.
  */

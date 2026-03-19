@@ -55,10 +55,10 @@ function computeConjunctions(objects: CelestialObject[]): CelestialEvent[] {
 // ── Fallback: locally computed events (used when DB is empty) ──────────
 
 const PHASE_DEFS = [
-  { target: 0,    name: 'New Moon',      desc: 'Moon between Earth and Sun — invisible' },
-  { target: 0.25, name: 'First Quarter', desc: 'Half-lit, waxing — visible in evening sky' },
-  { target: 0.5,  name: 'Full Moon',     desc: 'Fully illuminated — visible all night' },
-  { target: 0.75, name: 'Last Quarter',  desc: 'Half-lit, waning — visible in morning sky' },
+  { target: 0,    name: 'New Moon',      desc: 'Moon between Earth and Sun - invisible' },
+  { target: 0.25, name: 'First Quarter', desc: 'Half-lit, waxing - visible in evening sky' },
+  { target: 0.5,  name: 'Full Moon',     desc: 'Fully illuminated - visible all night' },
+  { target: 0.75, name: 'Last Quarter',  desc: 'Half-lit, waning - visible in morning sky' },
 ]
 
 function computeLunarPhases(from: Date, days: number): CelestialEvent[] {
@@ -134,11 +134,11 @@ export async function getUpcomingEvents(
   let events: CelestialEvent[]
 
   if (cached.length > 0) {
-    // DB has data — use it + add live conjunctions
+    // DB has data - use it + add live conjunctions
     const seen = new Set(cached.map((e) => e.id))
     events = [...cached, ...conjunctions.filter((e) => !seen.has(e.id))]
   } else {
-    // DB empty or table doesn't exist — fall back to local computation
+    // DB empty or table doesn't exist - fall back to local computation
     events = [
       ...conjunctions,
       ...computeLunarPhases(now, 180),

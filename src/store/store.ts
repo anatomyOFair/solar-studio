@@ -282,7 +282,7 @@ export const useStore = create<StoreState>()(logging((set) => ({
       }))
       set({ tours })
     } catch {
-      // DB unavailable — tours panel stays hidden
+      // DB unavailable - tours panel stays hidden
     }
   },
   activeTour: null,

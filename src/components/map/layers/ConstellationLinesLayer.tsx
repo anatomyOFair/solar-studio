@@ -6,7 +6,7 @@ import { CONSTELLATIONS } from '../../../data/constellations'
 // RA (0–360°) → Leaflet longitude (-180 to +180)
 const raToLon = (ra: number) => (ra > 180 ? ra - 360 : ra)
 
-// Single-param createTile — critical for synchronous drawing (see memory.md)
+// Single-param createTile - critical for synchronous drawing (see memory.md)
 const ConstellationGridLayer = L.GridLayer.extend({
   createTile(coords: L.Coords): HTMLCanvasElement {
     const tile = document.createElement('canvas')
@@ -24,7 +24,7 @@ const ConstellationGridLayer = L.GridLayer.extend({
     const tileSize = size.x
     const nwPixel = L.point(coords.x * tileSize, coords.y * tileSize)
 
-    // Buffer in pixels — skip lines far outside this tile
+    // Buffer in pixels - skip lines far outside this tile
     const buffer = tileSize * 0.5
 
     ctx.strokeStyle = '#cc8a1e'

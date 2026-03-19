@@ -119,6 +119,7 @@ export default function ReportModal() {
                 backgroundColor: colors.navbar.background,
                 backdropFilter: `blur(${sizes.blur.default})`,
                 WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+                animation: 'modalBackdropIn 200ms ease-out both',
             }}
         onClick={() => { resetForm(); onClose() }}
       />
@@ -131,7 +132,6 @@ export default function ReportModal() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: sizes.modal.width,
-          maxWidth: sizes.modal.maxWidth,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
           backgroundColor: colors.navbar.background,
@@ -143,12 +143,14 @@ export default function ReportModal() {
           flexDirection: 'column',
           boxShadow: shadows.lg,
           padding: 0,
-          overflow: 'hidden'
+          overflow: 'hidden',
+          animation: 'modalContentIn 200ms ease-out both',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
+          className="btn-press"
           onClick={() => { resetForm(); onClose() }}
           style={{
             position: 'absolute',
@@ -162,7 +164,6 @@ export default function ReportModal() {
             padding: '4px',
             fontSize: '16px',
             lineHeight: 1,
-            transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
           onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -200,6 +201,7 @@ export default function ReportModal() {
                 {/* 1. Visibility Toggle */}
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
+                        className="btn-press"
                         type="button"
                         onClick={() => setIsVisible(true)}
                         style={{
@@ -223,6 +225,7 @@ export default function ReportModal() {
                         Visible
                     </button>
                     <button
+                        className="btn-press"
                         type="button"
                         onClick={() => setIsVisible(false)}
                         style={{

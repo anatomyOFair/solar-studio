@@ -38,10 +38,22 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
     username: '',
   })
 
+  const resetForm = () => {
+    setFormData({ email: '', password: '', confirm_password: '', username: '' })
+    setError(null)
+    setSignupSuccess(false)
+    setFocusedField(null)
+  }
+
   const handleTabChange = (tab: 'login' | 'signup') => {
     setActiveTab(tab)
     setError(null)
     setSignupSuccess(false)
+  }
+
+  const handleClose = () => {
+    resetForm()
+    onClose()
   }
 
   if (!isOpen) return null
@@ -73,7 +85,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
 
         if (data.session) {
           setSession(data.session)
-          onClose()
+          handleClose()
         } else {
           setSignupSuccess(true)
         }
@@ -87,11 +99,16 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
 
         if (data.session) {
           setSession(data.session)
-          onClose()
+          handleClose()
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed')
+      const msg = err.message || ''
+      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials')) {
+        setError('Email or password is incorrect')
+      } else {
+        setError(msg || 'Authentication failed')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -121,8 +138,9 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
           backgroundColor: colors.navbar.background,
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          animation: 'modalBackdropIn 200ms ease-out both',
         }}
-        onClick={onClose}
+        onClick={handleClose}
       />
 
       {/* Modal */}
@@ -132,8 +150,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '420px',
-          maxWidth: sizes.modal.maxWidth,
+          width: sizes.modal.widthNarrow,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
           backgroundColor: colors.navbar.background,
@@ -145,12 +162,14 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
           flexDirection: 'column',
           boxShadow: shadows.lg,
           overflow: 'hidden',
+          animation: 'modalContentIn 200ms ease-out both',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
-          onClick={onClose}
+          className="btn-press"
+          onClick={handleClose}
           style={{
             position: 'absolute',
             top: '16px',
@@ -163,7 +182,6 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
             padding: '4px',
             fontSize: '16px',
             lineHeight: 1,
-            transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
           onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -351,6 +369,7 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                   </div>
                   {activeTab === 'login' && (
                     <button
+                      className="btn-press"
                       type="button"
                       onClick={handleForgotPassword}
                       style={{
@@ -360,7 +379,6 @@ export default function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClos
                         fontSize: sizes.fonts.xs,
                         cursor: 'pointer',
                         padding: '6px 0 0',
-                        transition: 'color 150ms ease',
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.color = colors.accent)}
                       onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}

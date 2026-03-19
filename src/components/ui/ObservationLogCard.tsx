@@ -79,6 +79,7 @@ export default function ObservationLogCard() {
           Log in to start your stargazing journal
         </span>
         <button
+          className="btn-press"
           onClick={openAuthModal}
           style={{
             marginTop: spacing.xs,
@@ -91,7 +92,6 @@ export default function ObservationLogCard() {
             fontWeight: 500,
             fontFamily: 'inherit',
             cursor: 'pointer',
-            transition: 'background-color 150ms ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.12)'
@@ -125,6 +125,7 @@ export default function ObservationLogCard() {
           Observation Log
         </h3>
         <button
+          className="btn-press"
           onClick={openObservationModal}
           style={{
             padding: '4px 10px',
@@ -139,7 +140,6 @@ export default function ObservationLogCard() {
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            transition: 'all 150ms ease',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'

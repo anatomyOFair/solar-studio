@@ -27,7 +27,7 @@ export default function HomeView() {
   const objects = useStore((state) => state.objects)
   const fetchObjects = useStore((state) => state.fetchObjects)
 
-  // Location is now opt-in via Settings toggle — no auto-fetch
+  // Location is now opt-in via Settings toggle - no auto-fetch
 
   useEffect(() => {
     if (objects.length === 0) fetchObjects()
@@ -52,7 +52,7 @@ export default function HomeView() {
         boxSizing: 'border-box',
       }}
     >
-      {/* Tonight's Sky — spans both rows */}
+      {/* Tonight's Sky - spans both rows */}
       <div
         style={{
           ...glassCard,
@@ -83,7 +83,7 @@ export default function HomeView() {
             </span>
             <button
               onClick={fetchUserLocation}
-              className="hover:opacity-80 transition-opacity"
+              className="btn-press hover:opacity-80 transition-opacity"
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -165,7 +165,7 @@ export default function HomeView() {
         <UpcomingEventsPanel />
       </div>
 
-      {/* Observation Log — spans 2 columns */}
+      {/* Observation Log - spans 2 columns */}
       <div
         style={{
           ...glassCard,

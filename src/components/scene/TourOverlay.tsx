@@ -82,6 +82,7 @@ export default function TourOverlay() {
             {tourStep + 1} / {total}
           </span>
           <button
+            className="btn-press"
             onClick={endTour}
             style={{
               background: 'rgba(255,255,255,0.08)',
@@ -127,6 +128,7 @@ export default function TourOverlay() {
       {/* Controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
+          className="btn-press"
           onClick={() => setAutoPlay(!autoPlay)}
           style={{
             background: 'rgba(255,255,255,0.06)',
@@ -147,6 +149,7 @@ export default function TourOverlay() {
 
         <div style={{ display: 'flex', gap: 8 }}>
           <button
+            className="btn-press"
             onClick={prevTourStep}
             disabled={isFirst}
             style={{
@@ -166,6 +169,7 @@ export default function TourOverlay() {
             Prev
           </button>
           <button
+            className="btn-press"
             onClick={nextTourStep}
             style={{
               background: 'rgba(255,255,255,0.1)',

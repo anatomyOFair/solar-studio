@@ -88,7 +88,7 @@ function App() {
       <AccountModal />
       <PrivacyPolicyModal />
       <HintOverlay />
-      {/* SVG filter for night-vision mode — maps all RGB to red channel */}
+      {/* SVG filter for night-vision mode - maps all RGB to red channel */}
       <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden="true">
         <defs>
           <filter id="night-vision-filter" colorInterpolationFilters="sRGB">

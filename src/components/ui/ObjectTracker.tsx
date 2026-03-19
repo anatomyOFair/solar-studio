@@ -84,7 +84,7 @@ export default function ObjectTracker() {
 
   return (
     <>
-      {/* Constellation Lines toggle — always visible */}
+      {/* Constellation Lines toggle - always visible */}
       <div
         className="fixed"
         style={{
@@ -101,7 +101,7 @@ export default function ObjectTracker() {
       >
         <button
           onClick={() => setShowConstellationLines(!showConstellationLines)}
-          className="flex items-center transition-all"
+          className="btn-press flex items-center transition-all"
           style={{
             gap: spacing.sm,
             background: 'none',
@@ -127,7 +127,7 @@ export default function ObjectTracker() {
         </button>
       </div>
 
-      {/* Crescent Visibility Zones toggle — only when Moon selected + near new moon */}
+      {/* Crescent Visibility Zones toggle - only when Moon selected + near new moon */}
       {showCrescentToggle && (
         <div
           className="fixed"
@@ -145,7 +145,7 @@ export default function ObjectTracker() {
         >
           <button
             onClick={() => setShowCrescentZones(!showCrescentZones)}
-            className="flex items-center transition-all"
+            className="btn-press flex items-center transition-all"
             style={{
               gap: spacing.sm,
               background: 'none',
@@ -223,7 +223,7 @@ export default function ObjectTracker() {
         <RiseSetTimes />
       </div>
 
-      {/* Legend — beside the object tracker */}
+      {/* Legend - beside the object tracker */}
       {(showCrescentZones || !!selectedObject) && (
         <div
           className="fixed"
@@ -319,6 +319,7 @@ export default function ObjectTracker() {
                 backgroundColor: colors.navbar.background,
                 backdropFilter: `blur(${sizes.blur.default})`,
                 WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+                animation: 'modalBackdropIn 200ms ease-out both',
             }}
             onClick={() => setIsSelectorOpen(false)}
           />
@@ -329,8 +330,7 @@ export default function ObjectTracker() {
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '420px',
-              maxWidth: sizes.modal.maxWidth,
+              width: sizes.modal.widthNarrow,
               maxHeight: sizes.modal.maxHeight,
               zIndex: sizes.zIndex.modal,
               backgroundColor: colors.navbar.background,
@@ -343,11 +343,13 @@ export default function ObjectTracker() {
               boxShadow: shadows.lg,
               overflow: 'hidden',
               padding: 0,
+              animation: 'modalContentIn 200ms ease-out both',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
             <button
+              className="btn-press"
               onClick={() => setIsSelectorOpen(false)}
               style={{
                 position: 'absolute',
@@ -361,7 +363,6 @@ export default function ObjectTracker() {
                 padding: '4px',
                 fontSize: '16px',
                 lineHeight: 1,
-                transition: 'color 150ms ease',
               }}
               onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
               onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -373,8 +374,8 @@ export default function ObjectTracker() {
             <div style={{
               paddingTop: sizes.modal.headerPaddingTop,
               paddingBottom: sizes.modal.headerPaddingBottom,
-              paddingLeft: '24px',
-              paddingRight: '24px',
+              paddingLeft: sizes.modal.paddingContent,
+              paddingRight: sizes.modal.paddingContent,
               textAlign: 'center',
               borderBottom: `1px solid ${colors.navbar.border}`,
             }}>
@@ -388,7 +389,7 @@ export default function ObjectTracker() {
 
             {/* Content */}
             <div style={{
-              padding: '24px',
+              padding: sizes.modal.paddingContent,
               display: 'flex',
               flexDirection: 'column',
               flex: 1,

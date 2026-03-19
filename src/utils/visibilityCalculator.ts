@@ -237,18 +237,18 @@ export function calculateCelestialVisibilityScore(
   let brightnessFactor: number
 
   if (id === 'moon' || (type === 'moon' && !object?.ra)) {
-    // Earth's Moon — use SunCalc for precise position
+    // Earth's Moon - use SunCalc for precise position
     const moonPos = SunCalc.getMoonPosition(currentTime, observerLat, observerLon)
     objectAltitudeDeg = moonPos.altitude * (180 / Math.PI)
     const moonIllum = SunCalc.getMoonIllumination(currentTime)
     brightnessFactor = 0.1 + 0.9 * moonIllum.fraction
   } else if (id === 'sun') {
-    // Sun — use SunCalc
+    // Sun - use SunCalc
     const sunPos = SunCalc.getPosition(currentTime, observerLat, observerLon)
     objectAltitudeDeg = sunPos.altitude * (180 / Math.PI)
     brightnessFactor = 1.0
   } else if (object?.ra != null && object?.dec != null) {
-    // Planet, distant moon, or other — use RA/Dec
+    // Planet, distant moon, or other - use RA/Dec
     objectAltitudeDeg = raDecToAltitude(object.ra, object.dec, observerLat, observerLon, currentTime)
     // Magnitude → brightness: lower magnitude = brighter (Venus -4, Jupiter -2, Saturn +0.5)
     const mag = object.magnitude ?? 2
@@ -264,16 +264,16 @@ export function calculateCelestialVisibilityScore(
   // 2. Hard gate: well below horizon → 0 (accounting for refraction)
   if (objectAltitudeDeg < -2) return 0
 
-  // 3. Altitude factor — higher = less atmosphere, gentle curve
+  // 3. Altitude factor - higher = less atmosphere, gentle curve
   const altitudeFactor = Math.min(1, Math.max(0, objectAltitudeDeg / 60))
 
-  // 4. Horizon ramp — smooth transition from -2° to 10° instead of hard cut
+  // 4. Horizon ramp - smooth transition from -2° to 10° instead of hard cut
   //    Prevents jarring green/red boundaries on the grid overlay
   const horizonRamp = objectAltitudeDeg < 10
     ? Math.max(0, (objectAltitudeDeg + 2) / 12)
     : 1
 
-  // 5. Weather factor — clouds and fog reduce visibility
+  // 5. Weather factor - clouds and fog reduce visibility
   const weatherFactor = Math.max(0, 1 - weather.cloudCover * 0.9 - weather.fog * 0.5)
 
   // 6. Time-of-day factor (sun position)
@@ -294,7 +294,7 @@ export function calculateCelestialVisibilityScore(
   } else if (id === 'moon' || type === 'moon') {
     timeFactor = Math.max(0.2, 0.5 - sunAltitudeDeg / 180)
   } else {
-    // Planets not visible during day — hard gate
+    // Planets not visible during day - hard gate
     timeFactor = 0
   }
 

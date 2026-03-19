@@ -36,8 +36,8 @@ export function isNearNewMoon(date: Date): boolean {
  * Based on Yallop (1997) NAO Technical Note No. 69.
  *
  * The q-value is computed from:
- *   ARCV — geocentric altitude difference between moon and sun
- *   W'   — topocentric crescent width (arcminutes)
+ *   ARCV - geocentric altitude difference between moon and sun
+ *   W'   - topocentric crescent width (arcminutes)
  *
  * Evaluated at the "best time" for observation:
  *   bestTime = sunset + 4/9 * (moonset - sunset)
@@ -54,7 +54,7 @@ export function calculateYallopQ(lat: number, lon: number, date: Date): YallopRe
 
   // If moon never rises or sets before sun, crescent not visible
   if (!moonset || isNaN(moonset.getTime())) {
-    // Moon might be always up — check if it's above horizon at sunset
+    // Moon might be always up - check if it's above horizon at sunset
     if (moonTimes.alwaysUp) {
       // Use sunset + 30 min as best time approximation
       return computeQ(lat, lon, new Date(sunset.getTime() + 30 * 60000))
@@ -62,7 +62,7 @@ export function calculateYallopQ(lat: number, lon: number, date: Date): YallopRe
     return ZONE_F
   }
 
-  // Moon sets before sunset — crescent not visible
+  // Moon sets before sunset - crescent not visible
   if (moonset.getTime() <= sunset.getTime()) return ZONE_F
 
   // 2. Best time = sunset + 4/9 * lag
@@ -84,26 +84,26 @@ function computeQ(lat: number, lon: number, bestTime: Date): YallopResult {
   const sunAltDeg = sunPos.altitude * DEG
   const sunAzDeg = sunPos.azimuth * DEG
 
-  // ARCV — arc of vision (altitude difference)
+  // ARCV - arc of vision (altitude difference)
   const ARCV = moonAltDeg - sunAltDeg
 
-  // DAZ — difference in azimuth
+  // DAZ - difference in azimuth
   const DAZ = moonAzDeg - sunAzDeg
 
-  // ARCL — angular separation between sun and moon centres
+  // ARCL - angular separation between sun and moon centres
   const ARCVrad = ARCV * RAD
   const DAZrad = DAZ * RAD
   const cosARCL = Math.cos(ARCVrad) * Math.cos(DAZrad)
   const ARCL = Math.acos(Math.max(-1, Math.min(1, cosARCL))) * DEG
 
-  // SD' — topocentric semi-diameter of the moon (arcminutes)
+  // SD' - topocentric semi-diameter of the moon (arcminutes)
   // Moon mean radius = 1737.4 km
   const SDprime = Math.atan(1737.4 / moonDistKm) * DEG * 60
 
-  // W' — topocentric crescent width (arcminutes)
+  // W' - topocentric crescent width (arcminutes)
   const Wprime = SDprime * (1 - Math.cos(ARCL * RAD))
 
-  // q — Yallop test value
+  // q - Yallop test value
   // Cubic polynomial fit of ARCV on W', residuals scaled by 10
   const q = (ARCV - (11.8371 - 6.3226 * Wprime + 0.7319 * Wprime * Wprime - 0.1018 * Wprime * Wprime * Wprime)) / 10
 

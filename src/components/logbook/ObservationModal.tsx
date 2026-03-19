@@ -117,6 +117,7 @@ export default function ObservationModal() {
           backgroundColor: colors.navbar.background,
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          animation: 'modalBackdropIn 200ms ease-out both',
         }}
         onClick={() => { resetForm(); onClose() }}
       />
@@ -129,7 +130,6 @@ export default function ObservationModal() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: sizes.modal.width,
-          maxWidth: sizes.modal.maxWidth,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
           backgroundColor: colors.navbar.background,
@@ -142,11 +142,13 @@ export default function ObservationModal() {
           boxShadow: shadows.lg,
           padding: 0,
           overflow: 'hidden',
+          animation: 'modalContentIn 200ms ease-out both',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
+          className="btn-press"
           onClick={() => { resetForm(); onClose() }}
           style={{
             position: 'absolute',
@@ -160,7 +162,6 @@ export default function ObservationModal() {
             padding: '4px',
             fontSize: '16px',
             lineHeight: 1,
-            transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
           onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -248,6 +249,7 @@ export default function ObservationModal() {
                     zIndex: 10,
                     maxHeight: '200px',
                     overflowY: 'auto',
+                    animation: 'dropdownIn 150ms ease-out both',
                   }}
                 >
                   {filteredSuggestions.map((obj) => (
@@ -361,6 +363,7 @@ export default function ObservationModal() {
               <div style={{ display: 'flex', gap: '4px' }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
+                    className="btn-press"
                     key={star}
                     type="button"
                     onClick={() => setRating(star === rating ? 0 : star)}
@@ -371,7 +374,6 @@ export default function ObservationModal() {
                       padding: '4px',
                       fontSize: '20px',
                       color: star <= rating ? colors.status.warning : colors.text.muted,
-                      transition: 'color 150ms ease',
                     }}
                   >
                     <FontAwesomeIcon icon={faStar} />

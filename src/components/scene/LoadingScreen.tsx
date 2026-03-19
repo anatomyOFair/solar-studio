@@ -76,8 +76,21 @@ export default function LoadingScreen() {
       }}
     >
       <div style={{ textAlign: 'center' }}>
-        <div style={{ color: colors.text.primary, fontSize: '18px', fontWeight: 500, marginBottom: '24px' }}>
-          solarStudio
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '24px' }}>
+          <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="32" cy="32" r="14" fill="#f59e0b" />
+            <g stroke="#f59e0b" strokeWidth="3" strokeLinecap="round">
+              <line x1="32" y1="4" x2="32" y2="14" />
+              <line x1="32" y1="50" x2="32" y2="60" />
+              <line x1="4" y1="32" x2="14" y2="32" />
+              <line x1="50" y1="32" x2="60" y2="32" />
+              <line x1="12.2" y1="12.2" x2="19.3" y2="19.3" />
+              <line x1="44.7" y1="44.7" x2="51.8" y2="51.8" />
+              <line x1="12.2" y1="51.8" x2="19.3" y2="44.7" />
+              <line x1="44.7" y1="19.3" x2="51.8" y2="12.2" />
+            </g>
+          </svg>
+          <span style={{ color: colors.text.primary, fontSize: '20px', fontWeight: 500, letterSpacing: '-0.01em' }}>Solar Studio</span>
         </div>
 
         <div

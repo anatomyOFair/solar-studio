@@ -146,3 +146,31 @@
   cursor: default !important;
   pointer-events: none !important;
 }
+
+/* ── Modal & Dropdown Animations ──────────────────────────────────────── */
+
+@keyframes modalBackdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalContentIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Button active press feedback ─────────────────────────────────────── */
+
+.btn-press {
+  transition: transform 120ms ease, color 150ms ease, border-color 150ms ease,
+              background-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+}
+
+.btn-press:active {
+  transform: scale(0.98);
+}

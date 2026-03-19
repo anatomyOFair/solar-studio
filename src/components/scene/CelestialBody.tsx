@@ -19,7 +19,7 @@ import saturnRingTex from '../../assets/textures/8k_saturn_ring_alpha.png'
 import uranusTex from '../../assets/textures/2k_uranus.jpg'
 import neptuneTex from '../../assets/textures/2k_neptune.jpg'
 
-// Rotation speed multipliers relative to Earth (1.0) — based on real sidereal periods.
+// Rotation speed multipliers relative to Earth (1.0) - based on real sidereal periods.
 // Base visual speed is slow enough to appreciate the day/night terminator.
 // Venus is retrograde (negative). Gas giants spin ~2.5× faster than Earth.
 // Reusable vector for per-frame scale lerp (avoids GC pressure)
@@ -40,7 +40,7 @@ const ROTATION_SPEED: Record<string, number> = {
 }
 
 // Atmosphere config: [color, intensity, exponent, scale]
-// Real atmosphere ratios are tiny (Earth = 1.016, Jupiter = 1.001) — invisible at scene scale.
+// Real atmosphere ratios are tiny (Earth = 1.016, Jupiter = 1.001) - invisible at scene scale.
 // We exaggerate uniformly but preserve relative proportions and use real colors/opacities.
 // Venus = thickest visible haze, Mars = thinnest, gas giants = subtle (their "surface" IS atmosphere).
 const ATMOSPHERE: Record<string, [string, number, number, number]> = {
@@ -80,7 +80,7 @@ const atmosFragmentShader = /* glsl */ `
   }
 `
 
-// Earth day/night shader — blends day texture with emissive night lights based on sun direction
+// Earth day/night shader - blends day texture with emissive night lights based on sun direction
 const earthVertexShader = /* glsl */ `
   varying vec2 vUv;
   varying vec3 vNormalWorld;
@@ -151,7 +151,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   const radius = radiusToScene(object.radius_km ?? 1000, object.id) * (isMoon ? 0.5 : 1)
   const color = PLANET_COLORS[object.id] ?? DEFAULT_COLOR
 
-  // Moons: x/y/z IS the offset from parent — scale it and add to parent's scene position
+  // Moons: x/y/z IS the offset from parent - scale it and add to parent's scene position
   const position = useMemo((): [number, number, number] => {
     if (!parentObj) return positionToScene(x, y, z)
     const effectiveTime = simulatedTime ?? new Date()
@@ -195,7 +195,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
   const secondaryTexture = textures[1] ?? null
   const nightTexture = isEarth ? (textures[2] ?? null) : null
 
-  // Saturn ring geometry — flat annulus
+  // Saturn ring geometry - flat annulus
   const ringGeometry = useMemo(() => {
     if (!isSaturn) return null
     const inner = radius * 1.2
@@ -224,7 +224,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
     if (isEarth && meshRef.current) {
       // Absolute rotation so the lit hemisphere matches real geography.
-      // Subsolar longitude ≈ (12 − UTCh) × 15° — the meridian where it's noon.
+      // Subsolar longitude ≈ (12 − UTCh) × 15° - the meridian where it's noon.
       const now = useStore.getState().simulatedTime ?? new Date()
       const utcH = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds() / 3600
       const sunLon = (12 - utcH) * (Math.PI / 12)
@@ -255,8 +255,8 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
   const handleClick = (e: { stopPropagation: () => void; clientX: number; clientY: number }) => {
     e.stopPropagation()
-    if (isSelected) return // Already focused — don't unfocus
-    // Ignore drag-releases — only act on actual clicks
+    if (isSelected) return // Already focused - don't unfocus
+    // Ignore drag-releases - only act on actual clicks
     if (pointerDownPos.current) {
       const dx = e.clientX - pointerDownPos.current.x
       const dy = e.clientY - pointerDownPos.current.y
@@ -353,7 +353,7 @@ function TexturedPlanet({ object }: CelestialBodyProps) {
 
      </group>
 
-      {/* Label — visible when showLabels is on, or when hovered/selected */}
+      {/* Label - visible when showLabels is on, or when hovered/selected */}
       {(showLabels || isSelected || hovered) && (
         <Html
           position={[0, radius + 0.4, 0]}

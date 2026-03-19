@@ -155,7 +155,7 @@ export default function UserReportsPanel() {
           <button
             type="button"
             onClick={() => setIsCollapsed(true)}
-            className="transition-colors hover:text-white"
+            className="btn-press transition-colors hover:text-white"
             style={{
               color: colors.text.muted,
               background: 'transparent',
@@ -264,7 +264,7 @@ export default function UserReportsPanel() {
               <button
                 type="button"
                 onClick={() => !user ? openAuthModal() : openReportModal()}
-                className=""
+                className="btn-press"
                 style={{
                   backgroundColor: colors.navbar.background,
                   border: `${sizes.inputs.borderWidth} solid ${colors.navbar.border}`,
@@ -295,7 +295,7 @@ export default function UserReportsPanel() {
         <button
           type="button"
           onClick={() => setIsCollapsed(false)}
-          className="fixed flex items-center justify-center rounded-full transition-all duration-200 hover:brightness-125 hover:shadow-[0_0_12px_rgba(255,255,255,0.1)]"
+          className="btn-press fixed flex items-center justify-center rounded-full transition-all duration-200 hover:brightness-125 hover:shadow-[0_0_12px_rgba(255,255,255,0.1)]"
           style={{
             top: '50%',
             right: spacing.md,

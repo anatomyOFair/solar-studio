@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark, faSignOutAlt, faTrash, faChevronDown, faChevronUp, faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import { useStore } from '../../store/store'
@@ -16,6 +16,15 @@ export default function AccountModal() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [aboutOpen, setAboutOpen] = useState(false)
+
+  useEffect(() => {
+    if (isOpen) {
+      setConfirmDelete(false)
+      setIsDeleting(false)
+      setError(null)
+      setAboutOpen(false)
+    }
+  }, [isOpen, user?.id])
 
   if (!isOpen || !user) return null
 
@@ -82,6 +91,7 @@ export default function AccountModal() {
           backgroundColor: colors.navbar.background,
           backdropFilter: `blur(${sizes.blur.default})`,
           WebkitBackdropFilter: `blur(${sizes.blur.default})`,
+          animation: 'modalBackdropIn 200ms ease-out both',
         }}
         onClick={handleClose}
       />
@@ -94,7 +104,6 @@ export default function AccountModal() {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           width: sizes.modal.width,
-          maxWidth: sizes.modal.maxWidth,
           maxHeight: sizes.modal.maxHeight,
           zIndex: sizes.zIndex.modal,
           backgroundColor: colors.navbar.background,
@@ -107,11 +116,13 @@ export default function AccountModal() {
           boxShadow: shadows.lg,
           padding: 0,
           overflow: 'hidden',
+          animation: 'modalContentIn 200ms ease-out both',
         }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}
         <button
+          className="btn-press"
           onClick={handleClose}
           style={{
             position: 'absolute',
@@ -125,7 +136,6 @@ export default function AccountModal() {
             padding: '4px',
             fontSize: '16px',
             lineHeight: 1,
-            transition: 'color 150ms ease',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.color = colors.white)}
           onMouseLeave={(e) => (e.currentTarget.style.color = colors.text.muted)}
@@ -178,6 +188,7 @@ export default function AccountModal() {
 
           {/* Privacy Policy link */}
           <button
+            className="btn-press"
             onClick={openPrivacyModal}
             style={{
               ...collapsibleHeaderStyle,
@@ -190,9 +201,10 @@ export default function AccountModal() {
             <FontAwesomeIcon icon={faArrowUpRightFromSquare} style={{ fontSize: '10px' }} />
           </button>
 
-          {/* About — collapsible */}
+          {/* About - collapsible */}
           <div>
             <button
+              className="btn-press"
               onClick={() => setAboutOpen(!aboutOpen)}
               style={collapsibleHeaderStyle}
             >
@@ -225,6 +237,7 @@ export default function AccountModal() {
 
           {/* Log Out */}
           <button
+            className="btn-press"
             onClick={handleLogout}
             style={{
               width: '100%',
@@ -241,7 +254,6 @@ export default function AccountModal() {
               fontSize: sizes.fonts.sm,
               fontFamily: 'inherit',
               cursor: 'pointer',
-              transition: 'border-color 150ms ease',
             }}
             onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
             onMouseLeave={(e) => (e.currentTarget.style.borderColor = colors.navbar.border)}
@@ -254,6 +266,7 @@ export default function AccountModal() {
           <div style={{ marginTop: spacing.md }}>
             {!confirmDelete ? (
               <button
+                className="btn-press"
                 onClick={() => setConfirmDelete(true)}
                 style={{
                   width: '100%',
@@ -270,7 +283,6 @@ export default function AccountModal() {
                   fontSize: sizes.fonts.sm,
                   fontFamily: 'inherit',
                   cursor: 'pointer',
-                  transition: 'border-color 150ms ease',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)')}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.25)')}
@@ -292,6 +304,7 @@ export default function AccountModal() {
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
+                    className="btn-press"
                     onClick={handleDelete}
                     disabled={isDeleting}
                     style={{
@@ -311,6 +324,7 @@ export default function AccountModal() {
                     {isDeleting ? 'Deleting...' : 'Yes, Delete'}
                   </button>
                   <button
+                    className="btn-press"
                     onClick={() => setConfirmDelete(false)}
                     style={{
                       flex: 1,
