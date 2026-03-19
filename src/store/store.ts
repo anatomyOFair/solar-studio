@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { logging } from './loggingMiddleware'
 import type { Map } from 'leaflet'
 import type { CelestialObject, UserReport, ObservationLogEntry } from '../types'
 import type { TourDef } from '../data/tours'
@@ -94,7 +93,7 @@ interface StoreState {
   setActiveMission: (mission: MissionDef | null) => void
 }
 
-export const useStore = create<StoreState>()(logging((set) => ({
+export const useStore = create<StoreState>((set) => ({
   map: null,
   setMap: (map) => set({ map }),
   selectedObject: null,
@@ -429,7 +428,7 @@ export const useStore = create<StoreState>()(logging((set) => ({
   },
   activeMission: null,
   setActiveMission: (mission) => set({ activeMission: mission, missionTime: null }),
-})))
+}))
 
 export function getEffectiveTime(): Date {
   return useStore.getState().simulatedTime ?? new Date()
