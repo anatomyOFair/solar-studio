@@ -14,6 +14,7 @@ import ReportModal from './components/reports/ReportModal'
 import ObservationModal from './components/logbook/ObservationModal'
 import HintOverlay from './components/ui/HintOverlay'
 import { useStore } from './store/store'
+import { initLogging, setUserId } from './services/interactionLogger'
 import { colors } from './constants'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
 
   // Prefetch data + auth on mount
   useEffect(() => {
+    initLogging()
     fetchObjects().finally(() => setDataReady(true))
 
     let subscription: { unsubscribe: () => void } | null = null
@@ -41,10 +43,12 @@ function App() {
     import('./lib/supabase').then(({ supabase }) => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session)
+            setUserId(session?.user?.id ?? null)
         })
 
         const { data } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session)
+            setUserId(session?.user?.id ?? null)
         })
         subscription = data.subscription
     })

@@ -13,6 +13,7 @@ import {
   faHouse,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
+import { pushEvent } from '../../services/interactionLogger'
 
 /** Simple fuzzy match: checks if all characters of query appear in order within target */
 function fuzzyMatch(query: string, target: string): { match: boolean; score: number } {
@@ -306,6 +307,7 @@ export default function TopNav() {
   }, [])
 
   const handleSearchSelect = (obj: typeof objects[number]) => {
+    pushEvent('search_select', { objectId: obj.id, objectName: obj.name, query: searchQuery })
     setSelectedObject(obj)
     setSearchQuery('')
     setIsSearchFocused(false)
