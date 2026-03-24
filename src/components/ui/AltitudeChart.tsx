@@ -3,7 +3,7 @@ import { useStore } from '../../store/store'
 import { getCurrentAltitude, getNightWindow } from '../../utils/tonightSky'
 import { colors } from '../../constants'
 
-const PAD = { top: 12, right: 16, bottom: 24, left: 36 }
+const PAD = { top: 14, right: 16, bottom: 28, left: 38 }
 const STEP_MS = 10 * 60 * 1000 // 10-minute intervals
 
 function formatTimeShort(date: Date, isLocalTime: boolean): string {
@@ -157,7 +157,7 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
         y={horizonY}
         width={chartW}
         height={PAD.top + chartH - horizonY}
-        fill="rgba(239, 68, 68, 0.04)"
+        fill="rgba(239, 68, 68, 0.07)"
       />
 
       {/* Y-axis grid lines + labels */}
@@ -171,16 +171,16 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
               y1={y}
               x2={PAD.left + chartW}
               y2={y}
-              stroke={isHorizon ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)'}
-              strokeWidth={isHorizon ? 1 : 0.5}
+              stroke={isHorizon ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)'}
+              strokeWidth={isHorizon ? 1.5 : 0.5}
               strokeDasharray={isHorizon ? '4 3' : undefined}
             />
             <text
               x={PAD.left - 4}
-              y={y + 3}
+              y={y + 4}
               textAnchor="end"
-              fill={colors.text.muted}
-              fontSize="9"
+              fill={isHorizon ? colors.text.secondary : colors.text.muted}
+              fontSize="10"
               fontFamily="inherit"
             >
               {d}°
@@ -195,10 +195,10 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
           <rect x={PAD.left} y={PAD.top} width={chartW} height={horizonY - PAD.top} />
         </clipPath>
       </defs>
-      <path d={areaD} fill="rgba(56, 189, 248, 0.08)" clipPath="url(#above-horizon)" />
+      <path d={areaD} fill="rgba(56, 189, 248, 0.14)" clipPath="url(#above-horizon)" />
 
       {/* Altitude curve */}
-      <path d={pathD} fill="none" stroke={colors.accent} strokeWidth="1.5" strokeLinejoin="round" />
+      <path d={pathD} fill="none" stroke={colors.accent} strokeWidth="2.5" strokeLinejoin="round" />
 
       {/* "Now" marker */}
       {nowX != null && (
@@ -207,9 +207,9 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
           y1={PAD.top}
           x2={nowX}
           y2={PAD.top + chartH}
-          stroke="rgba(255,255,255,0.3)"
-          strokeWidth="1"
-          strokeDasharray="3 3"
+          stroke="rgba(255,255,255,0.4)"
+          strokeWidth="1.5"
+          strokeDasharray="4 3"
         />
       )}
 
@@ -218,10 +218,10 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
         <text
           key={i}
           x={toX(xl.t)}
-          y={H - 4}
+          y={H - 6}
           textAnchor={i === 0 ? 'start' : i === xLabels.length - 1 ? 'end' : 'middle'}
-          fill={colors.text.muted}
-          fontSize="9"
+          fill={colors.text.secondary}
+          fontSize="10"
           fontFamily="inherit"
         >
           {xl.label}
@@ -242,18 +242,18 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
           <circle
             cx={toX(hoverPoint.time.getTime())}
             cy={toY(hoverPoint.alt)}
-            r="3"
+            r="4"
             fill={colors.accent}
             stroke={colors.accent}
-            strokeWidth="1"
+            strokeWidth="1.5"
           />
           {/* Tooltip background + text */}
           {(() => {
             const tx = toX(hoverPoint.time.getTime())
             const ty = toY(hoverPoint.alt)
             const label = `${formatTimeShort(hoverPoint.time, isLocalTime)}  ${hoverPoint.alt.toFixed(1)}°`
-            const boxW = label.length * 5.5 + 12
-            const boxH = 18
+            const boxW = label.length * 6 + 14
+            const boxH = 20
             // Flip tooltip if near right edge
             const flipX = tx + boxW + 8 > W
             const bx = flipX ? tx - boxW - 8 : tx + 8
@@ -271,10 +271,10 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
                   strokeWidth="0.5"
                 />
                 <text
-                  x={bx + 6}
-                  y={by + 12.5}
+                  x={bx + 7}
+                  y={by + 14}
                   fill={colors.text.primary}
-                  fontSize="9"
+                  fontSize="10"
                   fontFamily="inherit"
                 >
                   {label}
@@ -288,10 +288,10 @@ export default function AltitudeChart({ location, objectId }: AltitudeChartProps
       {/* Object name label */}
       <text
         x={PAD.left + 4}
-        y={PAD.top + 10}
+        y={PAD.top + 12}
         fill={colors.accent}
-        fontSize="10"
-        fontWeight="500"
+        fontSize="11"
+        fontWeight="600"
         fontFamily="inherit"
       >
         {chartObject.name}

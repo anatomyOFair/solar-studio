@@ -5,7 +5,7 @@ export interface HintDef {
   id: string
   message: string
   position: 'top' | 'bottom' | 'left' | 'right'
-  requiredView?: 'home' | '2d' | '3d'
+  requiredView?: '2d' | '3d'
   padding?: number
 }
 
@@ -18,7 +18,7 @@ const HINTS: HintDef[] = [
   },
   {
     id: 'view-toggle',
-    message: 'Switch between Home, Map, and 3D views',
+    message: 'Switch between Map and 3D views',
     position: 'bottom',
   },
   // ── 2D Map ──

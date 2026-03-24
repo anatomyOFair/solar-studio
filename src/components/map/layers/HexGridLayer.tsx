@@ -13,9 +13,17 @@ import {
   getWeatherForecastForTime,
 } from "../../../utils/weatherService";
 
+// Default weather for areas without real data (assumes clear sky)
+const DEFAULT_WEATHER: WeatherConditions = {
+  cloudCover: 0.1,
+  precipitation: 0,
+  fog: 0,
+  extinctionCoeff: 0.1,
+};
+
 // Cache for visibility scores - keyed by "objectId,lat,lon,time10min"
 const visibilityCache = new Map<string, number>();
-const CACHE_MAX_SIZE = 10000;
+const CACHE_MAX_SIZE = 50000;
 const CACHE_TIME_RESOLUTION_MS = 600000; // 10 minutes
 
 function getCacheKey(lat: number, lon: number, time: Date, objectId: string): string {
@@ -31,21 +39,15 @@ function getCachedScore(
   time: Date,
   weatherCache: Map<string, WeatherConditions>,
   object: CelestialObject | null
-): { score: number; hasRealWeather: boolean } {
+): number {
   const key = getCacheKey(lat, lon, time, object?.id ?? 'moon');
 
-  if (visibilityCache.has(key)) {
-    const cached = visibilityCache.get(key)!;
-    return { score: Math.abs(cached), hasRealWeather: cached >= 0 };
+  const cached = visibilityCache.get(key);
+  if (cached !== undefined) {
+    return cached;
   }
 
-  const weather = getWeatherFromBulkCache(lat, lon, weatherCache);
-
-  if (!weather) {
-    visibilityCache.set(key, -0.5);
-    return { score: 0.5, hasRealWeather: false };
-  }
-
+  const weather = getWeatherFromBulkCache(lat, lon, weatherCache) ?? DEFAULT_WEATHER;
   const score = calculateCelestialVisibilityScore(lat, lon, time, weather, object);
 
   if (visibilityCache.size >= CACHE_MAX_SIZE) {
@@ -54,7 +56,7 @@ function getCachedScore(
   }
 
   visibilityCache.set(key, score);
-  return { score, hasRealWeather: true };
+  return score;
 }
 
 // --- Canvas-based L.GridLayer subclass ---
@@ -109,7 +111,7 @@ const VisibilityGridLayer = L.GridLayer.extend({
     const se = map.unproject(L.point((coords.x + 1) * tileSize, (coords.y + 1) * tileSize), zoom);
 
     // Grid cell size at this zoom
-    const baseSize = 2.5;
+    const baseSize = 1.0;
     const cellSize = baseSize / Math.pow(2, zoom - 4);
 
     // Find grid cells that overlap this tile
@@ -123,12 +125,12 @@ const VisibilityGridLayer = L.GridLayer.extend({
         const cellCenterLat = lat + cellSize / 2;
         const cellCenterLng = lng + cellSize / 2;
 
-        const { score, hasRealWeather } = getCachedScore(
+        const score = getCachedScore(
           cellCenterLat, cellCenterLng, now, weatherCache, selectedObject
         );
 
-        const color = hasRealWeather ? getVisibilityColor(score) : "#6B7280";
-        const opacity = hasRealWeather ? 0.25 + score * 0.2 : 0.15;
+        const color = getVisibilityColor(score);
+        const opacity = 0.25 + score * 0.2;
 
         // Convert cell corners from lat/lng to tile-local pixel coords
         const cellNW = map.project(L.latLng(lat + cellSize, lng), zoom);

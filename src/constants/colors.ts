@@ -46,7 +46,7 @@ export const colors = {
   text: {
     primary: '#ffffff',
     secondary: '#cbd5e1',
-    muted: '#94a3b8',
+    muted: '#a8b5c4',
     dark: '#0f172a',
   },
 

@@ -16,7 +16,8 @@ load_dotenv()
 # Config
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-GRID_RESOLUTION = 5  # degrees
+GRID_RESOLUTION = 3  # degrees
+BATCH_SIZE = 50  # locations per API call
 FORECAST_DAYS = 5
 
 # Validate config
@@ -29,63 +30,65 @@ if not all([SUPABASE_URL, SUPABASE_KEY]):
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
-def generate_land_grid():
+def generate_global_grid():
     """
-    Generate grid points covering major land masses at 5-degree resolution.
+    Generate grid points covering the entire globe at GRID_RESOLUTION spacing.
     """
-    grid_points = set()
-
-    land_regions = [
-        (20, 60, -130, -70),    # North America
-        (10, 30, -110, -60),    # Central America & Caribbean
-        (-40, 10, -80, -30),    # South America
-        (30, 60, -10, 30),      # Western Europe
-        (40, 60, 20, 50),       # Eastern Europe
-        (-40, 40, -20, 50),     # Africa
-        (20, 40, 30, 60),       # Middle East
-        (0, 40, 60, 110),       # South Asia
-        (20, 50, 100, 150),     # East Asia
-        (-40, -10, 110, 160),   # Australia
-    ]
-
-    for lat_min, lat_max, lon_min, lon_max in land_regions:
-        lat_start = (lat_min // GRID_RESOLUTION) * GRID_RESOLUTION
-        if lat_start < lat_min:
-            lat_start += GRID_RESOLUTION
-
-        lon_start = (lon_min // GRID_RESOLUTION) * GRID_RESOLUTION
-        if lon_start < lon_min:
-            lon_start += GRID_RESOLUTION
-
-        lat = lat_start
-        while lat <= lat_max:
-            lon = lon_start
-            while lon <= lon_max:
-                grid_points.add((int(lat), int(lon)))
-                lon += GRID_RESOLUTION
-            lat += GRID_RESOLUTION
-
-    return list(grid_points)
+    grid_points = []
+    lat = -84  # Leaflet Mercator clips at ~85°, skip poles
+    while lat <= 84:
+        lon = -180
+        while lon <= 180:
+            grid_points.append((lat, lon))
+            lon += GRID_RESOLUTION
+        lat += GRID_RESOLUTION
+    return grid_points
 
 
-def fetch_forecast(lat: float, lon: float) -> dict | None:
-    """Fetch hourly forecast from Open-Meteo (free, no API key required)"""
+def fetch_forecast_batch(points: list[tuple[int, int]], max_retries: int = 5) -> list[tuple[tuple[int, int], dict]] | None:
+    """Fetch hourly forecast for multiple locations in one API call, with retry on 429"""
     url = "https://api.open-meteo.com/v1/forecast"
+    lats = ",".join(str(p[0]) for p in points)
+    lons = ",".join(str(p[1]) for p in points)
     params = {
-        "latitude": lat,
-        "longitude": lon,
+        "latitude": lats,
+        "longitude": lons,
         "hourly": "cloud_cover,precipitation,visibility",
         "forecast_days": FORECAST_DAYS,
         "timezone": "UTC",
     }
 
-    try:
-        response = httpx.get(url, params=params, timeout=15)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"  Error fetching forecast for ({lat}, {lon}): {e}")
-        return None
+    # Aggressive backoff: 30s, 60s, 120s, 240s, 480s — survives hourly limit resets
+    RETRY_WAITS = [30, 60, 120, 240, 480]
+
+    for attempt in range(max_retries):
+        try:
+            response = httpx.get(url, params=params, timeout=30)
+            if response.status_code == 429:
+                wait = RETRY_WAITS[min(attempt, len(RETRY_WAITS) - 1)]
+                print(f"  Rate limited, waiting {wait}s (attempt {attempt+1}/{max_retries})...")
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, dict):
+                return [(points[0], data)]
+
+            return [(points[i], d) for i, d in enumerate(data)]
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429 and attempt < max_retries - 1:
+                wait = RETRY_WAITS[min(attempt, len(RETRY_WAITS) - 1)]
+                print(f"  Rate limited, waiting {wait}s (attempt {attempt+1}/{max_retries})...")
+                time.sleep(wait)
+                continue
+            print(f"  Error fetching batch of {len(points)} points: {e}")
+            return None
+        except Exception as e:
+            print(f"  Error fetching batch of {len(points)} points: {e}")
+            return None
+
+    return None
 
 
 def parse_forecast_rows(data: dict, lat_grid: int, lon_grid: int) -> list[dict]:
@@ -154,7 +157,7 @@ def refresh_forecast():
     print(f"Starting forecast refresh at {datetime.now(timezone.utc).isoformat()}")
     print(f"Forecast days: {FORECAST_DAYS}")
 
-    grid_points = generate_land_grid()
+    grid_points = generate_global_grid()
     print(f"Generated {len(grid_points)} grid points to refresh")
 
     # Clean up old data first
@@ -163,26 +166,38 @@ def refresh_forecast():
     success_count = 0
     error_count = 0
 
-    for i, (lat, lon) in enumerate(grid_points):
-        print(f"[{i+1}/{len(grid_points)}] Fetching forecast for ({lat}, {lon})...")
+    # Batch into chunks of BATCH_SIZE
+    batches = [grid_points[i:i + BATCH_SIZE] for i in range(0, len(grid_points), BATCH_SIZE)]
+    print(f"Split into {len(batches)} batches of up to {BATCH_SIZE} locations each")
 
-        forecast_raw = fetch_forecast(lat, lon)
-        if forecast_raw:
-            rows = parse_forecast_rows(forecast_raw, lat, lon)
-            if upsert_forecast_batch(rows):
-                success_count += 1
-            else:
-                error_count += 1
+    # Open-Meteo free limits: 10k/day, 5k/hour, 600/min
+    # Each location in a batch = 1 API call. ~6897 pts = 138 batches × 50.
+    # At 1 batch/75s → 48 batches/hour → 2400 calls/hour (well under 5k).
+    # Total runtime: 138 × 75s ≈ 2.9 hours.
+    BATCH_DELAY = 75  # seconds between batches
+
+    for batch_idx, batch in enumerate(batches):
+        print(f"[{batch_idx+1}/{len(batches)}] Fetching batch of {len(batch)} points...")
+
+        results = fetch_forecast_batch(batch)
+        if results:
+            for (lat, lon), forecast_data in results:
+                rows = parse_forecast_rows(forecast_data, lat, lon)
+                if upsert_forecast_batch(rows):
+                    success_count += 1
+                else:
+                    error_count += 1
         else:
-            error_count += 1
+            error_count += len(batch)
 
-        # Be polite — Open-Meteo is free, no strict rate limit but don't hammer it
-        time.sleep(0.5)
+        if batch_idx < len(batches) - 1:
+            time.sleep(BATCH_DELAY)
 
     print(f"\nForecast refresh complete!")
     print(f"  Success: {success_count}")
     print(f"  Errors: {error_count}")
     print(f"  Total: {len(grid_points)}")
+    print(f"  API calls: {len(batches)}")
 
 
 if __name__ == "__main__":

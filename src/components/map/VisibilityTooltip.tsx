@@ -1,30 +1,32 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { useMap } from 'react-leaflet'
+import L from 'leaflet'
 import { useStore } from '../../store/store'
 import { getCelestialVisibilityBreakdown } from '../../utils/visibilityCalculator'
 import { getAllWeatherFromCache, getWeatherFromBulkCache } from '../../utils/weatherService'
 import type { WeatherConditions } from '../../types'
-import { colors, spacing, sizes } from '../../constants'
+
+// Inject probe marker pulse animation once
+const PROBE_STYLE_ID = 'probe-marker-pulse'
+if (typeof document !== 'undefined' && !document.getElementById(PROBE_STYLE_ID)) {
+  const style = document.createElement('style')
+  style.id = PROBE_STYLE_ID
+  style.textContent = `
+    @keyframes probe-pulse {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+  `
+  document.head.appendChild(style)
+}
 
 export default function VisibilityTooltip() {
   const map = useMap()
-  const selectedObject = useStore((state) => state.selectedObject)
   const simulatedTime = useStore((state) => state.simulatedTime)
-  const [tooltipVisible, setTooltipVisible] = useState(false)
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 })
-  const [visibilityData, setVisibilityData] = useState<{
-    percentage: number
-    weatherRating: number
-    timeRating: number
-    objectAltitude: number
-    illumination: number | null
-    isAboveHorizon: boolean
-  } | null>(null)
+  const setProbedLocation = useStore((state) => state.setProbedLocation)
 
-  const currentPixelRef = useRef<{ x: number; y: number } | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const tooltipVisibleRef = useRef(false)
   const weatherCacheRef = useRef<Map<string, WeatherConditions>>(new Map())
+  const markerRef = useRef<L.Marker | null>(null)
 
   // Load weather cache and refresh every 5 minutes (matching HexGridLayer)
   useEffect(() => {
@@ -38,246 +40,88 @@ export default function VisibilityTooltip() {
     return () => clearInterval(interval)
   }, [simulatedTime])
 
-  const calculateVisibilityAtPoint = useCallback(
+  // Place or move the probe marker
+  const updateMarker = useCallback(
     (lat: number, lon: number) => {
-      if (!selectedObject) return null
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        html: `
+          <div style="position:relative;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+            <div style="position:absolute;width:14px;height:14px;border-radius:50%;background:#c9a55c;opacity:0.4;animation:probe-pulse 2s ease-out infinite;"></div>
+            <div style="width:8px;height:8px;border-radius:50%;background:#c9a55c;border:2px solid white;box-shadow:0 0 6px rgba(0,0,0,0.5);position:relative;z-index:1;"></div>
+          </div>
+        `,
+      })
 
-      const weather = getWeatherFromBulkCache(lat, lon, weatherCacheRef.current)
-      if (!weather) return null
-      const effectiveTime = simulatedTime ?? new Date()
-
-      const breakdown = getCelestialVisibilityBreakdown(lat, lon, effectiveTime, weather, selectedObject)
-
-      return {
-        percentage: Math.round(breakdown.score * 100),
-        weatherRating: breakdown.weatherRating,
-        timeRating: breakdown.timeRating,
-        objectAltitude: breakdown.objectAltitude,
-        illumination: breakdown.illumination,
-        isAboveHorizon: breakdown.isAboveHorizon,
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lon])
+        markerRef.current.setIcon(icon)
+      } else {
+        markerRef.current = L.marker([lat, lon], { icon, interactive: false, zIndexOffset: 900 }).addTo(map)
       }
     },
-    [selectedObject, simulatedTime]
+    [map]
   )
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      if (!map || !selectedObject) return
-
-      const currentPixel = { x: e.clientX, y: e.clientY }
-
-      // Check if we've moved more than 15 pixels (much less sensitive)
-      const hasMoved = !currentPixelRef.current ||
-        Math.abs(currentPixelRef.current.x - currentPixel.x) >= 15 ||
-        Math.abs(currentPixelRef.current.y - currentPixel.y) >= 15
-
-      if (hasMoved) {
-        // Position has changed, reset and start new timer
-        currentPixelRef.current = currentPixel
-
-        if (tooltipVisibleRef.current) {
-          tooltipVisibleRef.current = false
-          setTooltipVisible(false)
-          setVisibilityData(null)
-        }
-
-        // Clear any existing timeout
-        if (timeoutRef.current) {
-          clearTimeout(timeoutRef.current)
-        }
-
-        // Start new timeout for 1.5 seconds
-        timeoutRef.current = setTimeout(() => {
-          const rect = map.getContainer().getBoundingClientRect()
-          const x = currentPixel.x - rect.left
-          const y = currentPixel.y - rect.top
-          const latlng = map.containerPointToLatLng([x, y])
-
-          tooltipVisibleRef.current = true
-          setTooltipVisible(true)
-          setTooltipPosition({ x: currentPixel.x, y: currentPixel.y })
-
-          // Calculate visibility data
-          const data = calculateVisibilityAtPoint(latlng.lat, latlng.lng)
-          if (data && tooltipVisibleRef.current) {
-            setVisibilityData(data)
-          }
-        }, 1500)
-      }
-    },
-    [map, selectedObject, calculateVisibilityAtPoint]
-  )
-
-  const handleMouseLeave = useCallback(() => {
-    currentPixelRef.current = null
-    tooltipVisibleRef.current = false
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
+  const removeMarker = useCallback(() => {
+    if (markerRef.current) {
+      markerRef.current.remove()
+      markerRef.current = null
     }
-
-    setTooltipVisible(false)
-    setVisibilityData(null)
   }, [])
 
-  useEffect(() => {
-    if (!selectedObject) {
-      // Don't show tooltips when no object selected
-      setTooltipVisible(false)
-      setVisibilityData(null)
-      return
-    }
+  // Handle left-click on map
+  const handleClick = useCallback(
+    (e: L.LeafletMouseEvent) => {
+      const { lat, lng: lon } = e.latlng
+      const selectedObj = useStore.getState().selectedObject
+      const simTime = useStore.getState().simulatedTime
 
-    const mapContainer = map.getContainer()
-    mapContainer.addEventListener('mousemove', handleMouseMove)
-    mapContainer.addEventListener('mouseleave', handleMouseLeave)
+      // Always drop pin
+      updateMarker(lat, lon)
 
-    return () => {
-      mapContainer.removeEventListener('mousemove', handleMouseMove)
-      mapContainer.removeEventListener('mouseleave', handleMouseLeave)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
+      // Compute visibility only if an object is selected
+      if (selectedObj) {
+        const weather = getWeatherFromBulkCache(lat, lon, weatherCacheRef.current)
+        if (weather) {
+          const effectiveTime = simTime ?? new Date()
+          const breakdown = getCelestialVisibilityBreakdown(lat, lon, effectiveTime, weather, selectedObj)
+          setProbedLocation({
+            lat,
+            lon,
+            percentage: Math.round(breakdown.score * 100),
+            weatherRating: breakdown.weatherRating,
+            timeRating: breakdown.timeRating,
+            objectAltitude: breakdown.objectAltitude,
+            illumination: breakdown.illumination,
+            isAboveHorizon: breakdown.isAboveHorizon,
+          })
+          return
+        }
       }
-    }
-  }, [map, selectedObject, handleMouseMove, handleMouseLeave])
 
-  if (!tooltipVisible) return null
-
-  // Position tooltip relative to mouse, adjusting if too close to edges
-  const tooltipX = tooltipPosition.x + 20
-  const tooltipY = tooltipPosition.y - 20
-
-  return (
-    <div
-      className="pointer-events-none"
-      style={{
-        position: 'fixed',
-        left: `${tooltipX}px`,
-        top: `${tooltipY}px`,
-        zIndex: 9999,
-        backgroundColor: colors.navbar.base,
-        border: `1px solid ${colors.navbar.border}`,
-        borderRadius: sizes.borderRadius.xl,
-        padding: spacing.md,
-        minWidth: '200px',
-        animation: 'fadeIn 0.2s ease',
-      }}
-    >
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translate(-50%, calc(-100% - 10px)); }
-            to { opacity: 1; transform: translate(-50%, -100%); }
-          }
-        `}
-      </style>
-
-      {!visibilityData ? (
-        <div className="text-sm" style={{ color: colors.text.secondary }}>
-          Loading...
-        </div>
-      ) : (
-        <>
-          <div className="mb-3">
-            <div className="text-xs uppercase mb-1" style={{ color: colors.text.muted, fontWeight: 600 }}>
-              Visibility Details
-            </div>
-            <div className="text-2xl font-bold" style={{ color: colors.text.primary }}>
-              {visibilityData.percentage}%
-            </div>
-            {!visibilityData.isAboveHorizon && (
-              <div className="text-xs mt-1" style={{ color: colors.status.error }}>
-                {selectedObject?.name ?? 'Object'} below horizon
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2 mb-3 pb-3" style={{ borderBottom: `1px solid ${colors.navbar.border}` }}>
-            <div className="flex items-center justify-between">
-              <div className="text-sm" style={{ color: colors.text.secondary }}>
-                Altitude
-              </div>
-              <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                {visibilityData.objectAltitude.toFixed(1)}°
-              </div>
-            </div>
-            {visibilityData.illumination != null && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm" style={{ color: colors.text.secondary }}>
-                  Illumination
-                </div>
-                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                  {visibilityData.illumination.toFixed(0)}%
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="text-sm" style={{ color: colors.text.secondary }}>
-                Weather Rating
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                  {visibilityData.weatherRating}/10
-                </div>
-                <div
-                  className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: colors.navbar.border }}
-                >
-                  <div
-                    className="h-full transition-all"
-                    style={{
-                      width: `${visibilityData.weatherRating * 10}%`,
-                      backgroundColor: getWeatherColor(visibilityData.weatherRating),
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="text-sm" style={{ color: colors.text.secondary }}>
-                Time/Light Rating
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-semibold" style={{ color: colors.text.primary }}>
-                  {visibilityData.timeRating}/10
-                </div>
-                <div
-                  className="w-12 h-2 rounded-full overflow-hidden"
-                  style={{ backgroundColor: colors.navbar.border }}
-                >
-                  <div
-                    className="h-full transition-all"
-                    style={{
-                      width: `${visibilityData.timeRating * 10}%`,
-                      backgroundColor: getTimeColor(visibilityData.timeRating),
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+      // No object or no weather — just store coordinates
+      setProbedLocation({ lat, lon })
+    },
+    [setProbedLocation, updateMarker]
   )
-}
 
-// Helper function to get weather color based on rating
-function getWeatherColor(rating: number): string {
-  if (rating >= 8) return colors.status.success
-  if (rating >= 5) return colors.status.warning
-  return colors.status.error
-}
+  // Attach click listener (always active)
+  useEffect(() => {
+    map.on('click', handleClick)
+    return () => {
+      map.off('click', handleClick)
+    }
+  }, [map, handleClick])
 
-// Helper function to get time color based on rating
-function getTimeColor(rating: number): string {
-  if (rating >= 7) return colors.status.success
-  if (rating >= 4) return colors.status.warning
-  return colors.status.error
-}
+  // Clean up marker on unmount
+  useEffect(() => {
+    return () => {
+      removeMarker()
+    }
+  }, [removeMarker])
 
+  return null
+}

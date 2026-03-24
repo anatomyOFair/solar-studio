@@ -1,43 +1,20 @@
-import { useState, useEffect, useRef, useMemo, useLayoutEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useStore } from '../../store/store'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faClock,
-  faSearch,
   faGear,
   faGlobe,
   faCube,
-  faHouse,
   faCircleUser,
   faRightToBracket,
   faArrowUpRightFromSquare,
 } from '@fortawesome/free-solid-svg-icons'
 import { colors, spacing, sizes, shadows } from '../../constants'
-import { pushEvent } from '../../services/interactionLogger'
 
-/** Simple fuzzy match: checks if all characters of query appear in order within target */
-function fuzzyMatch(query: string, target: string): { match: boolean; score: number } {
-  const q = query.toLowerCase()
-  const t = target.toLowerCase()
-  if (q.length === 0) return { match: true, score: 0 }
-
-  let qi = 0
-  let score = 0
-  let prevMatchIdx = -1
-  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
-    if (t[ti] === q[qi]) {
-      // Bonus for consecutive matches
-      if (prevMatchIdx === ti - 1) score += 2
-      // Bonus for matching at word start
-      if (ti === 0 || t[ti - 1] === ' ') score += 3
-      score += 1
-      prevMatchIdx = ti
-      qi++
-    }
-  }
-  return { match: qi === q.length, score }
-}
+// Must match PANEL_WIDTH in MapPanel.tsx
+const NAV_WIDTH = 'clamp(322px, 25vw, 391px)'
 
 // ── Toggle Row ───────────────────────────────────────────────────────────
 
@@ -96,12 +73,12 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
   const setUserLocation = useStore((state) => state.setUserLocation)
   const fetchUserLocation = useStore((state) => state.fetchUserLocation)
 
-  const [pos, setPos] = useState({ top: 0, right: 0 })
+  const [pos, setPos] = useState({ top: 0, left: 0 })
   useLayoutEffect(() => {
     const el = anchorRef.current
     if (!el) return
     const r = el.getBoundingClientRect()
-    setPos({ top: r.bottom + 12, right: window.innerWidth - r.right })
+    setPos({ top: r.bottom + 8, left: r.left })
   }, [anchorRef])
 
   const sectionHeaderStyle: React.CSSProperties = {
@@ -122,7 +99,7 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
       style={{
         position: 'fixed',
         top: pos.top,
-        right: pos.right,
+        left: pos.left,
         minWidth: 'min(220px, 80vw)',
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
@@ -137,13 +114,6 @@ function SettingsDropdown({ onClose, menuRef, anchorRef }: {
       }}
     >
       {/* View-specific settings */}
-      {viewMode === 'home' && (
-        <>
-          <div style={sectionHeaderStyle}>Home</div>
-          <ToggleRow label="Night Vision" checked={nightVision} onChange={() => toggleNightVision()} />
-        </>
-      )}
-
       {viewMode === '2d' && (
         <>
           <div style={sectionHeaderStyle}>Map</div>
@@ -227,18 +197,11 @@ export default function TopNav() {
   const toggleLocalTime = useStore((state) => state.toggleLocalTime)
   const viewMode = useStore((state) => state.viewMode)
   const simulatedTime = useStore((state) => state.simulatedTime)
-  const objects = useStore((state) => state.objects)
-  const setSelectedObject = useStore((state) => state.setSelectedObject)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const [highlightedIndex, setHighlightedIndex] = useState(-1)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const settingsRef = useRef<HTMLDivElement>(null)
   const settingsBtnRef = useRef<HTMLButtonElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
-  const searchDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (simulatedTime) return // Don't tick when simulating
@@ -257,223 +220,68 @@ export default function TopNav() {
       ) {
         setIsSettingsOpen(false)
       }
-      if (
-        searchRef.current && !searchRef.current.contains(event.target as Node) &&
-        (!searchDropdownRef.current || !searchDropdownRef.current.contains(event.target as Node))
-      ) {
-        setIsSearchFocused(false)
-      }
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isSettingsOpen])
 
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) return []
-    return objects
-      .filter((obj) => obj.id !== 'earth')
-      .map((obj) => ({ obj, ...fuzzyMatch(searchQuery, obj.name) }))
-      .filter((r) => r.match)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 8)
-      .map((r) => r.obj)
-  }, [searchQuery, objects])
-
-  // Reset highlight when results change
-  useEffect(() => {
-    setHighlightedIndex(-1)
-  }, [searchResults])
-
-  const showSearchDropdown = isSearchFocused && searchQuery.trim().length > 0
-
-  const getSearchDropdownPos = useCallback(() => {
-    const el = searchRef.current
-    if (!el) return { top: 0, left: 0 }
-    const r = el.getBoundingClientRect()
-    return { top: r.bottom + 12, left: r.left - 8 }
-  }, [])
-
-  const handleSearchSelect = (obj: typeof objects[number]) => {
-    pushEvent('search_select', { objectId: obj.id, objectName: obj.name, query: searchQuery })
-    setSelectedObject(obj)
-    setSearchQuery('')
-    setIsSearchFocused(false)
-    setHighlightedIndex(-1)
-  }
-
   const displayTime = simulatedTime ?? currentTime
 
   const formatTime = () => {
-    const dateStr = displayTime.toLocaleDateString()
     if (isLocalTime) {
-      const timeStr = displayTime.toLocaleTimeString()
-      return `${dateStr} ${timeStr}`
-    } else {
-      const utc = displayTime.toUTCString()
-      const timeStr = utc.split(' ')[4]
-      return `${dateStr} ${timeStr} UTC`
+      return displayTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
     }
+    return displayTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' }) + ' UTC'
+  }
+
+  const formatDate = () => {
+    return displayTime.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
   }
 
   const handleTimeToggle = () => {
     toggleLocalTime()
   }
 
-  const VIEW_CONFIG = {
-    home: { label: 'Home', icon: faHouse },
-    '2d': { label: 'Map', icon: faGlobe },
-    '3d': { label: '3D', icon: faCube },
-  } as const
-  const currentView = VIEW_CONFIG[viewMode]
+  const setViewMode = useStore((state) => state.setViewMode)
+
+  const VIEW_PILLS: { mode: '2d' | '3d'; label: string; icon: typeof faGlobe }[] = [
+    { mode: '2d', label: 'Map', icon: faGlobe },
+    { mode: '3d', label: '3D', icon: faCube },
+  ]
 
   return (
     <nav
       className="fixed"
       style={{
         top: spacing.md,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'clamp(320px, 80%, 1400px)',
-        height: '48px',
-        minHeight: '48px',
+        left: spacing.md,
+        width: NAV_WIDTH,
         zIndex: sizes.zIndex.fixed + 10,
         backgroundColor: colors.navbar.background,
         backdropFilter: `blur(${sizes.blur.default})`,
         WebkitBackdropFilter: `blur(${sizes.blur.default})`,
         border: `1px solid ${colors.navbar.border}`,
         borderRadius: sizes.borderRadius.xl,
-        padding: `0 ${spacing.sm}`,
+        padding: `${spacing.sm} ${spacing.md}`,
       }}
     >
-      <div className="h-full flex flex-row items-center justify-between" style={{ color: 'white' }}>
-        {/* 1. Logo and Solar Studio */}
-        <div className="flex items-center gap-2">
-          <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="32" cy="32" r="14" fill="#f59e0b" />
-            <g stroke="#f59e0b" strokeWidth="3" strokeLinecap="round">
-              <line x1="32" y1="4" x2="32" y2="14" />
-              <line x1="32" y1="50" x2="32" y2="60" />
-              <line x1="4" y1="32" x2="14" y2="32" />
-              <line x1="50" y1="32" x2="60" y2="32" />
-              <line x1="12.2" y1="12.2" x2="19.3" y2="19.3" />
-              <line x1="44.7" y1="44.7" x2="51.8" y2="51.8" />
-              <line x1="12.2" y1="51.8" x2="19.3" y2="44.7" />
-              <line x1="44.7" y1="19.3" x2="51.8" y2="12.2" />
-            </g>
-          </svg>
-          <span style={{ color: 'white', fontSize: '16px', fontWeight: '500', letterSpacing: '-0.01em' }}>Solar Studio</span>
-        </div>
-
-        {/* 2. Date and Time */}
-        <button
-          onClick={handleTimeToggle}
-          className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
-          style={{ backgroundColor: 'transparent', color: 'white', width: sizes.widget.timeButtonWidth, justifyContent: 'flex-start', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400', gap: spacing.sm }}
-        >
-          <FontAwesomeIcon icon={faClock} style={{ color: simulatedTime ? colors.primary[400] : 'white', fontSize: '18px' }} />
-          <span style={{ color: simulatedTime ? colors.primary[400] : 'white', fontFamily: 'inherit', fontSize: '16px', fontWeight: '400' }}>{formatTime()}</span>
-        </button>
-
-        {/* 3. View indicator */}
-        <div
-          className="flex items-center"
-          style={{ gap: spacing.sm, opacity: 0.7 }}
-        >
-          <FontAwesomeIcon icon={currentView.icon} style={{ color: 'white', fontSize: '16px' }} />
-          <span style={{ color: 'white', fontFamily: 'inherit', fontSize: '14px', fontWeight: '400' }}>{currentView.label}</span>
-        </div>
-
-        {/* 5. Search Bar */}
-        <div className="relative flex items-center" style={{ gap: spacing.sm }} ref={searchRef} data-hint="search">
-          <FontAwesomeIcon icon={faSearch} style={{ color: 'white', fontSize: '18px' }} />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => setIsSearchFocused(true)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setSearchQuery('')
-                setIsSearchFocused(false)
-                setHighlightedIndex(-1)
-                ;(e.target as HTMLInputElement).blur()
-              } else if (e.key === 'ArrowDown') {
-                e.preventDefault()
-                setHighlightedIndex((prev) => Math.min(prev + 1, searchResults.length - 1))
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault()
-                setHighlightedIndex((prev) => Math.max(prev - 1, 0))
-              } else if (e.key === 'Enter' && searchResults.length > 0) {
-                const idx = highlightedIndex >= 0 ? highlightedIndex : 0
-                handleSearchSelect(searchResults[idx])
-                ;(e.target as HTMLInputElement).blur()
-              }
-            }}
-            placeholder="Search..."
-            className="bg-transparent border-none outline-none text-sm search-input"
-            style={{
-              width: sizes.widget.searchWidth,
-              color: '#ffffff',
-              fontSize: '16px'
-            }}
-          />
-
-          {/* Search Results Dropdown (portaled to body for backdrop-filter) */}
-          {showSearchDropdown && createPortal(
-            <div
-              ref={searchDropdownRef}
-              className="flex flex-col"
-              style={{
-                position: 'fixed',
-                ...getSearchDropdownPos(),
-                minWidth: 'min(220px, 80vw)',
-                backgroundColor: colors.navbar.background,
-                backdropFilter: `blur(${sizes.blur.default})`,
-                WebkitBackdropFilter: `blur(${sizes.blur.default})`,
-                border: `1px solid ${colors.navbar.border}`,
-                borderRadius: sizes.borderRadius.lg,
-                padding: spacing.xs,
-                boxShadow: shadows.lg,
-                zIndex: sizes.zIndex.modal + 10,
-                animation: 'dropdownIn 150ms ease-out both',
-              }}
-            >
-              {searchResults.length === 0 ? (
-                <div style={{ padding: `${spacing.sm} ${spacing.md}`, color: colors.text.muted, fontSize: '13px' }}>
-                  No results
-                </div>
-              ) : (
-                searchResults.map((obj, i) => (
-                  <button
-                    key={obj.id}
-                    onClick={() => handleSearchSelect(obj)}
-                    onMouseEnter={() => setHighlightedIndex(i)}
-                    className="w-full text-left transition-colors"
-                    style={{
-                      padding: `${spacing.sm} ${spacing.md}`,
-                      backgroundColor: i === highlightedIndex ? 'rgba(255,255,255,0.08)' : 'transparent',
-                      border: 'none',
-                      color: colors.text.primary,
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      borderRadius: sizes.borderRadius.md,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{obj.name}</span>
-                    <span style={{ fontSize: '11px', color: colors.text.muted, textTransform: 'capitalize' }}>{obj.type.replace('_', ' ')}</span>
-                  </button>
-                ))
-              )}
-            </div>,
-            document.body,
-          )}
-        </div>
-
-        {/* 6. Settings Gear */}
-        <div className="relative" data-hint="night-vision">
+      {/* Row 1: Logo + Title + Settings */}
+      <div className="flex items-center" style={{ color: 'white', gap: '10px', height: '30px' }}>
+        <svg width="22" height="22" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+          <circle cx="32" cy="32" r="14" fill="#f59e0b" />
+          <g stroke="#f59e0b" strokeWidth="3" strokeLinecap="round">
+            <line x1="32" y1="4" x2="32" y2="14" />
+            <line x1="32" y1="50" x2="32" y2="60" />
+            <line x1="4" y1="32" x2="14" y2="32" />
+            <line x1="50" y1="32" x2="60" y2="32" />
+            <line x1="12.2" y1="12.2" x2="19.3" y2="19.3" />
+            <line x1="44.7" y1="44.7" x2="51.8" y2="51.8" />
+            <line x1="12.2" y1="51.8" x2="19.3" y2="44.7" />
+            <line x1="44.7" y1="19.3" x2="51.8" y2="12.2" />
+          </g>
+        </svg>
+        <span style={{ fontSize: '16px', fontWeight: 600, flex: 1 }}>Solar Studio</span>
+        <div className="relative" data-hint="night-vision" style={{ flexShrink: 0 }}>
           <button
             ref={settingsBtnRef}
             onClick={() => setIsSettingsOpen((prev) => !prev)}
@@ -482,13 +290,13 @@ export default function TopNav() {
               backgroundColor: 'transparent',
               color: 'white',
               cursor: 'pointer',
-              width: 36,
-              height: 36,
+              width: 28,
+              height: 28,
             }}
             aria-label="Settings"
             title="Settings"
           >
-            <FontAwesomeIcon icon={faGear} style={{ color: 'white', fontSize: '18px' }} />
+            <FontAwesomeIcon icon={faGear} style={{ color: 'white', fontSize: '13px' }} />
           </button>
 
           {isSettingsOpen && (
@@ -498,6 +306,73 @@ export default function TopNav() {
               onClose={() => setIsSettingsOpen(false)}
             />
           )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px 0' }} />
+
+      {/* Row 2: Time + View switcher */}
+      <div className="flex items-center" style={{ color: 'white', gap: '8px', height: '28px' }}>
+        <button
+          onClick={handleTimeToggle}
+          className="flex items-center hover:opacity-80 transition-opacity bg-transparent border-none"
+          style={{
+            backgroundColor: 'transparent',
+            color: simulatedTime ? colors.primary[400] : colors.text.secondary,
+            fontFamily: 'inherit',
+            fontSize: '12px',
+            fontWeight: 400,
+            gap: '5px',
+            flex: 1,
+            minWidth: 0,
+            justifyContent: 'flex-start',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          <FontAwesomeIcon icon={faClock} style={{ fontSize: '11px', flexShrink: 0 }} />
+          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {formatDate()} {formatTime()}
+          </span>
+        </button>
+
+        <div
+          className="flex items-center"
+          style={{
+            gap: '2px',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderRadius: sizes.borderRadius.md,
+            padding: '2px',
+            flexShrink: 0,
+          }}
+        >
+          {VIEW_PILLS.map(({ mode, label, icon }) => {
+            const active = viewMode === mode
+            return (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className="btn-press flex items-center transition-all"
+                style={{
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: '3px 10px',
+                  borderRadius: `calc(${sizes.borderRadius.md} - 2px)`,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  fontFamily: 'inherit',
+                  backgroundColor: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: active ? 'white' : colors.text.muted,
+                }}
+              >
+                <FontAwesomeIcon icon={icon} style={{ fontSize: '10px' }} />
+                {label}
+              </button>
+            )
+          })}
         </div>
       </div>
     </nav>

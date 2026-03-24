@@ -16,7 +16,7 @@ export default function CameraDistanceHUD() {
     <div style={{
       position: 'fixed',
       bottom: 16,
-      left: 16,
+      right: 16,
       background: 'rgba(10, 15, 26, 0.7)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
@@ -30,11 +30,11 @@ export default function CameraDistanceHUD() {
       pointerEvents: 'none',
       userSelect: 'none',
     }}>
-      <div style={{ color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 9, marginBottom: 4 }}>
+      <div style={{ color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 9, marginBottom: 4 }}>
         Camera
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-        <span style={{ color: 'rgba(255,255,255,0.5)' }}>From Sun</span>
+        <span style={{ color: 'rgba(255,255,255,0.6)' }}>From Sun</span>
         <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatAu(cameraDistAu)}</span>
       </div>
     </div>

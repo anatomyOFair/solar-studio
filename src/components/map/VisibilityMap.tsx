@@ -2,8 +2,6 @@ import { MapContainer, TileLayer, useMap } from 'react-leaflet'
 import { useEffect, useRef } from 'react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import icon from 'leaflet/dist/images/marker-icon.png'
-import iconShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useStore } from '../../store/store'
 import VisibilityTooltip from './VisibilityTooltip'
 import HexGridLayer from './layers/HexGridLayer'
@@ -11,14 +9,83 @@ import CrescentVisibilityLayer from './layers/CrescentVisibilityLayer'
 import VectorLayer from './layers/VectorLayer'
 import ConstellationLinesLayer from './layers/ConstellationLinesLayer'
 
-const DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-})
+// Inject pulse keyframes + cursor overrides once
+const PULSE_STYLE_ID = 'user-loc-pulse'
+if (typeof document !== 'undefined' && !document.getElementById(PULSE_STYLE_ID)) {
+  const style = document.createElement('style')
+  style.id = PULSE_STYLE_ID
+  style.textContent = `
+    @keyframes loc-pulse {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.8); opacity: 0; }
+    }
+    .leaflet-container { cursor: crosshair !important; }
+    .leaflet-dragging .leaflet-container { cursor: grabbing !important; }
+  `
+  document.head.appendChild(style)
+}
 
-L.Marker.prototype.options.icon = DefaultIcon
+function UserLocationMarker() {
+  const map = useMap()
+  const userLocation = useStore((state) => state.userLocation)
+  const markerRef = useRef<L.Marker | null>(null)
+  const lastLocKey = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!userLocation) {
+      if (markerRef.current) {
+        markerRef.current.remove()
+        markerRef.current = null
+        lastLocKey.current = null
+      }
+      return
+    }
+
+    const locKey = `${userLocation.lat},${userLocation.lon}`
+    const pinColor = '#3b82f6'
+    const icon = L.divIcon({
+      className: '',
+      iconSize: [36, 36],
+      iconAnchor: [18, 18],
+      popupAnchor: [0, -18],
+      html: `
+        <div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+          <div style="position:absolute;width:20px;height:20px;border-radius:50%;background:${pinColor};opacity:0.5;animation:loc-pulse 2s ease-out infinite;"></div>
+          <div style="width:14px;height:14px;border-radius:50%;background:${pinColor};border:2.5px solid white;box-shadow:0 0 8px rgba(0,0,0,0.5);position:relative;z-index:1;"></div>
+        </div>
+      `,
+    })
+
+    if (markerRef.current) {
+      markerRef.current.setLatLng([userLocation.lat, userLocation.lon])
+      markerRef.current.setIcon(icon)
+    } else {
+      markerRef.current = L.marker([userLocation.lat, userLocation.lon], { icon, zIndexOffset: 1000 })
+        .addTo(map)
+    }
+
+    markerRef.current.bindPopup(userLocation.label, {
+      className: 'user-loc-popup',
+      closeButton: false,
+      offset: [0, -2],
+    })
+
+    // Fly to location only when it changes
+    if (locKey !== lastLocKey.current) {
+      lastLocKey.current = locKey
+      map.flyTo([userLocation.lat, userLocation.lon], 8, { duration: 1.5 })
+    }
+
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.remove()
+        markerRef.current = null
+      }
+    }
+  }, [userLocation, map])
+
+  return null
+}
 
 function MapConfigurator() {
   const map = useMap()
@@ -171,6 +238,7 @@ export default function VisibilityMap({ className = '' }: VisibilityMapProps) {
           minZoom={2}
         />
         <MapConfigurator />
+        <UserLocationMarker />
         <VectorLayer />
         {showConstellationLines && <ConstellationLinesLayer />}
 

@@ -1,7 +1,7 @@
 import type { WeatherConditions } from '../types'
 import { supabase } from '../lib/supabase'
 
-const GRID_RESOLUTION = 5
+const GRID_RESOLUTION = 3
 
 // Backend API URL - localhost for dev, Heroku for prod
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ||

@@ -19,7 +19,7 @@ const EVENT_STYLES: Record<CelestialEvent['type'], { color: string; icon: any }>
   special:        { color: '#c084fc', icon: faStar },
 }
 
-export default function UpcomingEventsPanel() {
+export default function UpcomingEventsPanel({ hideHeader }: { hideHeader?: boolean } = {}) {
   const objects = useStore((state) => state.objects)
   const simulatedTime = useStore((state) => state.simulatedTime)
   const now = simulatedTime ?? new Date()
@@ -49,20 +49,22 @@ export default function UpcomingEventsPanel() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <h3
-        style={{
-          color: colors.text.secondary,
-          fontSize: '13px',
-          fontWeight: 500,
-          margin: 0,
-          marginBottom: spacing.sm,
-          flexShrink: 0,
-        }}
-      >
-        Upcoming Events
-      </h3>
+      {!hideHeader && (
+        <h3
+          style={{
+            color: colors.text.secondary,
+            fontSize: '13px',
+            fontWeight: 500,
+            margin: 0,
+            marginBottom: spacing.sm,
+            flexShrink: 0,
+          }}
+        >
+          Upcoming Events
+        </h3>
+      )}
 
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div style={{ flex: 1, minHeight: 0, ...(hideHeader ? {} : { overflowY: 'auto' as const }) }}>
         {loading ? (
           <div
             className="flex items-center justify-center"

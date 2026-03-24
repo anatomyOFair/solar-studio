@@ -56,7 +56,7 @@ export default function RiseSetTimes() {
 
   return (
     <div style={{ marginTop: '6px' }}>
-      <div className="flex" style={{ gap: '12px', fontSize: '11px', color: colors.text.muted, whiteSpace: 'nowrap' }}>
+      <div className="flex" style={{ gap: '12px', fontSize: '12px', color: colors.text.muted, whiteSpace: 'nowrap' }}>
         {riseSet.alwaysUp ? (
           <span>Always above horizon</span>
         ) : riseSet.alwaysDown ? (

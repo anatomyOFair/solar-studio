@@ -133,6 +133,11 @@ export default function TonightsSky({ location }: TonightsSkyProps) {
           {nightWindow && nightWindow.isPolarNight && (
             <>Polar night &mdash; extended viewing window</>
           )}
+          {nightWindow && nightWindow.isValidNight && (
+            <div style={{ color: colors.text.muted, fontSize: '10px', marginTop: '2px', opacity: 0.7 }}>
+              Scores reflect peak viewing time
+            </div>
+          )}
         </div>
 
         {/* Filter button */}

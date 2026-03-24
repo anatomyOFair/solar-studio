@@ -36,7 +36,7 @@ function StarRating({ rating }: { rating: number | null }) {
   )
 }
 
-export default function ObservationLogCard() {
+export default function ObservationLogCard({ hideHeader }: { hideHeader?: boolean } = {}) {
   const user = useStore((state) => state.user)
   const objects = useStore((state) => state.objects)
   const entries = useStore((state) => state.observationLogEntries)
@@ -114,16 +114,18 @@ export default function ObservationLogCard() {
         className="flex items-center justify-between"
         style={{ marginBottom: spacing.sm, flexShrink: 0 }}
       >
-        <h3
-          style={{
-            color: colors.text.secondary,
-            fontSize: '13px',
-            fontWeight: 500,
-            margin: 0,
-          }}
-        >
-          Observation Log
-        </h3>
+        {!hideHeader && (
+          <h3
+            style={{
+              color: colors.text.secondary,
+              fontSize: '13px',
+              fontWeight: 500,
+              margin: 0,
+            }}
+          >
+            Observation Log
+          </h3>
+        )}
         <button
           className="btn-press"
           onClick={openObservationModal}

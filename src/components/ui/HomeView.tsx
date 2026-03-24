@@ -42,7 +42,7 @@ export default function HomeView() {
         width: '100%',
         height: '100%',
         paddingTop: `calc(${spacing.md} + 48px + ${spacing.md})`,
-        paddingLeft: `calc(${spacing.md} + 48px + ${spacing.md})`,
+        paddingLeft: spacing.md,
         paddingRight: spacing.md,
         paddingBottom: spacing.md,
         display: 'grid',

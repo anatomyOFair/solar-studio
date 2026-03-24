@@ -28,8 +28,10 @@ interface StoreState {
   logout: () => Promise<void>
 
   // UI Slice
-  viewMode: 'home' | '2d' | '3d'
-  setViewMode: (mode: 'home' | '2d' | '3d') => void
+  viewMode: '2d' | '3d'
+  setViewMode: (mode: '2d' | '3d') => void
+  panelHidden: boolean
+  setPanelHidden: (hidden: boolean) => void
   isLocalTime: boolean
   toggleLocalTime: () => void
   isAuthModalOpen: boolean
@@ -99,6 +101,18 @@ interface StoreState {
   fetchMissions: () => Promise<void>
   activeMission: MissionDef | null
   setActiveMission: (mission: MissionDef | null) => void
+  // Probed map location (left-click)
+  probedLocation: {
+    lat: number
+    lon: number
+    percentage?: number
+    weatherRating?: number
+    timeRating?: number
+    objectAltitude?: number
+    illumination?: number | null
+    isAboveHorizon?: boolean
+  } | null
+  setProbedLocation: (loc: StoreState['probedLocation']) => void
 }
 
 export const useStore = create<StoreState>()(logging((set) => ({
@@ -215,8 +229,10 @@ export const useStore = create<StoreState>()(logging((set) => ({
   },
 
   // UI Slice
-  viewMode: 'home',
+  viewMode: '2d',
   setViewMode: (mode) => set({ viewMode: mode }),
+  panelHidden: false,
+  setPanelHidden: (hidden) => set({ panelHidden: hidden }),
   isLocalTime: false,
   toggleLocalTime: () => set((state) => ({ isLocalTime: !state.isLocalTime })),
   isAuthModalOpen: false,
@@ -449,6 +465,9 @@ export const useStore = create<StoreState>()(logging((set) => ({
   },
   activeMission: null,
   setActiveMission: (mission) => set({ activeMission: mission, missionTime: null }),
+  // Probed map location
+  probedLocation: null,
+  setProbedLocation: (loc) => set({ probedLocation: loc }),
 })))
 
 export function getEffectiveTime(): Date {
