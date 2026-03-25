@@ -16,8 +16,7 @@ import { useStore } from './store/store'
 import { initLogging, setUserId } from './services/interactionLogger'
 import { colors } from './constants'
 
-const MIN_WIDTH = 1280
-const MIN_HEIGHT = 720
+const MIN_DIAGONAL = 1100 // CSS-pixel diagonal ≈ 10-inch physical screen
 
 function App() {
   const isAuthModalOpen = useStore((state) => state.isAuthModalOpen)
@@ -29,12 +28,12 @@ function App() {
   const setDataReady = useStore((state) => state.setDataReady)
   const nightVision = useStore((state) => state.nightVision)
   const [ever3D, setEver3D] = useState(false)
-  const [tooSmall, setTooSmall] = useState(window.innerWidth < MIN_WIDTH || window.innerHeight < MIN_HEIGHT)
+  const [tooSmall, setTooSmall] = useState(Math.hypot(window.screen.width, window.screen.height) < MIN_DIAGONAL)
   const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth)
 
   useEffect(() => {
     const check = () => {
-      setTooSmall(window.innerWidth < MIN_WIDTH || window.innerHeight < MIN_HEIGHT)
+      setTooSmall(Math.hypot(window.screen.width, window.screen.height) < MIN_DIAGONAL)
       setIsPortrait(window.innerHeight > window.innerWidth)
     }
     window.addEventListener('resize', check)
