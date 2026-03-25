@@ -111,6 +111,7 @@ interface StoreState {
     objectAltitude?: number
     illumination?: number | null
     isAboveHorizon?: boolean
+    noWeather?: boolean
   } | null
   setProbedLocation: (loc: StoreState['probedLocation']) => void
 }

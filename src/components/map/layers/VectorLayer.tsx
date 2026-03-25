@@ -98,6 +98,7 @@ export default function VectorLayer() {
   return (
     <Polygon
       positions={nightPoly}
+      interactive={false}
       pathOptions={{
         color: 'rgba(255,255,255,0.15)',
         weight: 1,

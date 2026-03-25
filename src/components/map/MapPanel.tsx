@@ -713,7 +713,9 @@ function ProbedLocationSection() {
         </>
       ) : (
         <div style={{ fontSize: '12px', color: colors.text.muted, marginBottom: '4px' }}>
-          Select an object to see visibility details
+          {probedLocation.noWeather
+            ? 'No weather data available for this location'
+            : 'Select an object to see visibility details'}
         </div>
       )}
     </>

@@ -9,7 +9,7 @@ import time
 import httpx
 from dotenv import load_dotenv
 from supabase import create_client, Client
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 load_dotenv()
 
@@ -124,20 +124,29 @@ def parse_forecast_rows(data: dict, lat_grid: int, lon_grid: int) -> list[dict]:
     return rows
 
 
-def upsert_forecast_batch(rows: list[dict]) -> bool:
-    """Bulk upsert forecast rows into Supabase"""
+def upsert_forecast_batch(rows: list[dict], max_retries: int = 3) -> bool:
+    """Bulk upsert forecast rows into Supabase, with retry on transient errors"""
     if not rows:
         return True
 
-    try:
-        supabase.table("weather_forecast").upsert(
-            rows,
-            on_conflict="lat_grid,lon_grid,forecast_time"
-        ).execute()
-        return True
-    except Exception as e:
-        print(f"  Error upserting forecast batch: {e}")
-        return False
+    for attempt in range(max_retries):
+        try:
+            supabase.table("weather_forecast").upsert(
+                rows,
+                on_conflict="lat_grid,lon_grid,forecast_time"
+            ).execute()
+            return True
+        except Exception as e:
+            err_str = str(e).lower()
+            is_transient = "ssl" in err_str or "connection" in err_str or "timeout" in err_str
+            if is_transient and attempt < max_retries - 1:
+                wait = 5 * (attempt + 1)
+                print(f"  Transient error upserting, retrying in {wait}s (attempt {attempt+1}/{max_retries}): {e}")
+                time.sleep(wait)
+                continue
+            print(f"  Error upserting forecast batch: {e}")
+            return False
+    return False
 
 
 def cleanup_old_forecasts():
@@ -152,16 +161,48 @@ def cleanup_old_forecasts():
         print(f"  Error cleaning up old forecasts: {e}")
 
 
+def get_fresh_grid_points() -> set[tuple[float, float]]:
+    """Query Supabase for grid points that already have forecast data 2+ days out."""
+    fresh = set()
+    cutoff = (datetime.now(timezone.utc) + timedelta(days=2)).isoformat()
+    try:
+        # Grid points with at least one forecast row beyond 2 days from now
+        offset = 0
+        page_size = 1000
+        while True:
+            result = supabase.table("weather_forecast") \
+                .select("lat_grid, lon_grid") \
+                .gte("forecast_time", cutoff) \
+                .range(offset, offset + page_size - 1) \
+                .execute()
+            if not result.data:
+                break
+            for row in result.data:
+                fresh.add((float(row["lat_grid"]), float(row["lon_grid"])))
+            if len(result.data) < page_size:
+                break
+            offset += page_size
+    except Exception as e:
+        print(f"  Warning: could not check fresh grid points: {e}")
+    return fresh
+
+
 def refresh_forecast():
     """Main refresh function"""
     print(f"Starting forecast refresh at {datetime.now(timezone.utc).isoformat()}")
     print(f"Forecast days: {FORECAST_DAYS}")
 
     grid_points = generate_global_grid()
-    print(f"Generated {len(grid_points)} grid points to refresh")
+    print(f"Generated {len(grid_points)} total grid points")
 
     # Clean up old data first
     cleanup_old_forecasts()
+
+    # Skip locations that already have fresh forecast data (2+ days out)
+    fresh = get_fresh_grid_points()
+    if fresh:
+        grid_points = [p for p in grid_points if p not in fresh]
+        print(f"Skipping {len(fresh)} grid points with fresh data, {len(grid_points)} to fetch")
 
     success_count = 0
     error_count = 0

@@ -100,9 +100,12 @@ export default function VisibilityTooltip() {
           })
           return
         }
+        // Object selected but no weather data for this point
+        setProbedLocation({ lat, lon, noWeather: true })
+        return
       }
 
-      // No object or no weather — just store coordinates
+      // No object selected — just store coordinates
       setProbedLocation({ lat, lon })
     },
     [setProbedLocation, updateMarker]

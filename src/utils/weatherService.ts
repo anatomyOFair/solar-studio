@@ -18,6 +18,7 @@ const USER_CACHE_TTL_MS = 10 * 60 * 1000 // 10 minutes
 // Bulk cache for all weather data (for overlay)
 let bulkWeatherCache: Map<string, WeatherConditions> | null = null
 let bulkCacheTimestamp = 0
+let bulkFetchPromise: Promise<Map<string, WeatherConditions>> | null = null
 const BULK_CACHE_TTL_MS = 5 * 60 * 1000 // 5 minutes
 
 /**
@@ -199,32 +200,76 @@ function seededRandom(seed: number): () => number {
  * Fetch ALL weather data from weather_forecast table for current hour (for overlay)
  * Returns a Map keyed by "lat,lon" grid coordinates
  */
-export async function getAllWeatherFromCache(): Promise<Map<string, WeatherConditions>> {
+export function getAllWeatherFromCache(): Promise<Map<string, WeatherConditions>> {
   // Return cached if fresh
   if (bulkWeatherCache && Date.now() - bulkCacheTimestamp < BULK_CACHE_TTL_MS) {
-    return bulkWeatherCache
+    return Promise.resolve(bulkWeatherCache)
   }
 
+  // Deduplicate concurrent requests
+  if (bulkFetchPromise) return bulkFetchPromise
+
+  bulkFetchPromise = _fetchBulkWeather().finally(() => { bulkFetchPromise = null })
+  return bulkFetchPromise
+}
+
+type ForecastRow = { lat_grid: number; lon_grid: number; cloud_cover: number | null; precipitation: number | null; visibility_km: number | null }
+
+/**
+ * Paginated fetch for one hemisphere to stay under Supabase's server-side row cap.
+ */
+async function fetchWeatherSlice(
+  timeGte: string,
+  timeLt: string,
+  hemisphere: 'south' | 'north',
+): Promise<ForecastRow[]> {
+  const rows: ForecastRow[] = []
+  const PAGE_SIZE = 1000
+  let offset = 0
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    let q = supabase
+      .from('weather_forecast')
+      .select('lat_grid, lon_grid, cloud_cover, precipitation, visibility_km')
+      .gte('forecast_time', timeGte)
+      .lt('forecast_time', timeLt)
+    if (hemisphere === 'south') {
+      q = q.lt('lat_grid', 0)
+    } else {
+      q = q.gte('lat_grid', 0)
+    }
+    const { data, error } = await q.range(offset, offset + PAGE_SIZE - 1)
+    if (error || !data) break
+    rows.push(...(data as ForecastRow[]))
+    if (data.length < PAGE_SIZE) break
+    offset += PAGE_SIZE
+  }
+  return rows
+}
+
+async function _fetchBulkWeather(): Promise<Map<string, WeatherConditions>> {
   try {
     const now = new Date()
     now.setMinutes(0, 0, 0)
     const hourEnd = new Date(now.getTime() + 60 * 60 * 1000)
+    const timeGte = now.toISOString()
+    const timeLt = hourEnd.toISOString()
 
-    const { data, error } = await supabase
-      .from('weather_forecast')
-      .select('lat_grid, lon_grid, cloud_cover, precipitation, visibility_km')
-      .gte('forecast_time', now.toISOString())
-      .lt('forecast_time', hourEnd.toISOString())
+    // Split by hemisphere to stay under Supabase's server-side max-rows cap (~3450 per half)
+    const [southRows, northRows] = await Promise.all([
+      fetchWeatherSlice(timeGte, timeLt, 'south'),
+      fetchWeatherSlice(timeGte, timeLt, 'north'),
+    ])
+    const allRows = [...southRows, ...northRows]
 
-    if (error || !data) {
-      console.warn('Failed to fetch bulk weather:', error)
+    if (allRows.length === 0) {
       return bulkWeatherCache || new Map()
     }
 
     const weatherMap = new Map<string, WeatherConditions>()
 
-    for (const row of data) {
-      const key = `${row.lat_grid},${row.lon_grid}`
+    for (const row of allRows) {
+      const key = `${Number(row.lat_grid)},${Number(row.lon_grid)}`
       const cloudCover = (row.cloud_cover ?? 0) / 100
       const precipitation = row.precipitation ?? 0
       const visKm = row.visibility_km
@@ -238,6 +283,7 @@ export async function getAllWeatherFromCache(): Promise<Map<string, WeatherCondi
       })
     }
 
+    console.log(`[Weather] Fetched ${allRows.length} rows (south: ${southRows.length}, north: ${northRows.length}), ${weatherMap.size} unique grid points`)
     bulkWeatherCache = weatherMap
     bulkCacheTimestamp = Date.now()
     return weatherMap
@@ -297,22 +343,25 @@ export async function getWeatherForecastForTime(
     const hourStart = new Date(time)
     hourStart.setMinutes(0, 0, 0)
     const hourEnd = new Date(hourStart.getTime() + 60 * 60 * 1000)
+    const timeGte = hourStart.toISOString()
+    const timeLt = hourEnd.toISOString()
 
-    const { data, error } = await supabase
-      .from('weather_forecast')
-      .select('lat_grid, lon_grid, cloud_cover, precipitation, visibility_km')
-      .gte('forecast_time', hourStart.toISOString())
-      .lt('forecast_time', hourEnd.toISOString())
+    // Split by hemisphere to stay under Supabase's server-side max-rows cap
+    const [southRows, northRows] = await Promise.all([
+      fetchWeatherSlice(timeGte, timeLt, 'south'),
+      fetchWeatherSlice(timeGte, timeLt, 'north'),
+    ])
+    const allRows = [...southRows, ...northRows]
 
-    if (error || !data || data.length === 0) {
-      console.warn('No forecast data for', hourKey, error)
+    if (allRows.length === 0) {
+      console.warn('No forecast data for', hourKey)
       return getAllWeatherFromCache()
     }
 
     const weatherMap = new Map<string, WeatherConditions>()
 
-    for (const row of data) {
-      const key = `${row.lat_grid},${row.lon_grid}`
+    for (const row of allRows) {
+      const key = `${Number(row.lat_grid)},${Number(row.lon_grid)}`
       const cloudCover = (row.cloud_cover ?? 0) / 100 // 0-100 -> 0-1
       const precipitation = row.precipitation ?? 0
       const visKm = row.visibility_km

@@ -13,13 +13,8 @@ import {
   getWeatherForecastForTime,
 } from "../../../utils/weatherService";
 
-// Default weather for areas without real data (assumes clear sky)
-const DEFAULT_WEATHER: WeatherConditions = {
-  cloudCover: 0.1,
-  precipitation: 0,
-  fog: 0,
-  extinctionCoeff: 0.1,
-};
+// Sentinel score for "no weather data" — rendered as grey
+const NO_DATA_SCORE = -1;
 
 // Cache for visibility scores - keyed by "objectId,lat,lon,time10min"
 const visibilityCache = new Map<string, number>();
@@ -47,7 +42,8 @@ function getCachedScore(
     return cached;
   }
 
-  const weather = getWeatherFromBulkCache(lat, lon, weatherCache) ?? DEFAULT_WEATHER;
+  const weather = getWeatherFromBulkCache(lat, lon, weatherCache);
+  if (!weather) return NO_DATA_SCORE;
   const score = calculateCelestialVisibilityScore(lat, lon, time, weather, object);
 
   if (visibilityCache.size >= CACHE_MAX_SIZE) {
@@ -129,8 +125,9 @@ const VisibilityGridLayer = L.GridLayer.extend({
           cellCenterLat, cellCenterLng, now, weatherCache, selectedObject
         );
 
-        const color = getVisibilityColor(score);
-        const opacity = 0.25 + score * 0.2;
+        const isNoData = score === NO_DATA_SCORE;
+        const color = isNoData ? '#555555' : getVisibilityColor(score);
+        const opacity = isNoData ? 0.2 : 0.25 + score * 0.2;
 
         // Convert cell corners from lat/lng to tile-local pixel coords
         const cellNW = map.project(L.latLng(lat + cellSize, lng), zoom);
