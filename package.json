@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "vercel:pull:prod": "vercel pull --yes --environment=production",
     "vercel:build:prod": "vercel build --prod",
     "vercel:deploy:prod": "vercel deploy --prebuilt --prod"
@@ -48,6 +50,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",
     "vite": "^7.1.7",
-    "vite-plugin-pwa": "^1.2.0"
+    "vite-plugin-pwa": "^1.2.0",
+    "vitest": "^4.1.1"
   }
 }
