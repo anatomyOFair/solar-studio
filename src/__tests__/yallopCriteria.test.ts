@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { calculateYallopQ, isNearNewMoon, type YallopZone } from '../utils/yallopCriteria'
 
 // These tests use real SunCalc calculations with known astronomical dates.
